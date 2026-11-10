@@ -191,7 +191,7 @@ class OverviewHomeView @JvmOverloads constructor(
             clipToPadding = false
         }
         val cover = FrameLayout(context).apply {
-            tag = item.id
+            tag = item.stableId
             contentDescription = "$demoLabel: ${item.title}, ${item.sourceLabel ?: item.sourcePackage.orEmpty()}, ${item.subtitle.orEmpty()}"
         }
         decorate(cover)
