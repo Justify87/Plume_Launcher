@@ -4054,8 +4054,10 @@ class MainActivity : Activity() {
         val index = if (zone == HomeFocusNavigator.Zone.SIDEBAR) homeSidebar.indexOf(v)
             else sidebar()?.let { homeSidebar.indexOf(it) } ?: 0
         if (zone == HomeFocusNavigator.Zone.SIDEBAR && direction == HomeFocusNavigator.Direction.RIGHT) {
-            return homeOverview.takeIf { it.isShown }?.preferredCard()
-                ?: action.takeIf { it.isAttachedToWindow && it.isShown }
+            // Preserve M02: an app opens its action first. Down then reaches its sample cards.
+            // The shared Overview has no action, so Right opens the first card directly.
+            return action.takeIf { it.isAttachedToWindow && it.isShown }
+                ?: homeOverview.takeIf { it.isShown }?.preferredCard()
                 ?: v
         }
         val target = HomeFocusNavigator.next(zone, direction, index, homeSidebar.itemCount,
