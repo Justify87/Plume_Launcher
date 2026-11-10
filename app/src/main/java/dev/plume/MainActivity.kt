@@ -4190,7 +4190,7 @@ class MainActivity : Activity() {
             previewPageKey = pageKey
             previewScroll.scrollTo(0, 0)
         }
-        val restoreScrollY = previewScrollY[pageKey] ?: previewScroll.scrollY
+        val restoreScrollY = if (changedPage) previewScrollY[pageKey] ?: 0 else previewScroll.scrollY
         heading.text = when {
             app != null -> app.label
             all -> getString(R.string.all_apps)
