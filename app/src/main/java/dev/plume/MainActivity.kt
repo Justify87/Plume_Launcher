@@ -4212,10 +4212,11 @@ class MainActivity : Activity() {
             !hasPermission -> R.string.tv_feed_permission
             app != null && !hasItems -> R.string.tv_app_empty
             app != null -> R.string.tv_app_info
+            !hasItems -> R.string.tv_feed_empty
             else -> R.string.sidebar_overview_info
         })
         for (view in listOf(heading, description, action)) ink(view, fg)
-        description.visibility = if (app == null && !all) View.GONE else View.VISIBLE
+        description.visibility = if (app != null || all || !hasItems) View.VISIBLE else View.GONE
         action.visibility = if (app != null) View.VISIBLE else View.GONE
         action.tag = app?.pkg
         homeOverview.visibility = if (all) View.GONE else View.VISIBLE
