@@ -26,6 +26,9 @@ jobs:
       - name: Plume rules
         run: sh tools/pr-rules.sh "$BASE"
 
+      - name: ADB launcher installer regression tests
+        run: sh tools/plume-install-test/run.sh
+
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
