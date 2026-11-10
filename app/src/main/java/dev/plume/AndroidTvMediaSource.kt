@@ -49,16 +49,26 @@ internal object AndroidTvMediaSource {
         fun part(value: String) = "${value.length}:$value"
         val prefix = part(pkg)
         val keys = ArrayList<String>()
-        program.internalProviderId?.trim()?.takeIf { it.isNotEmpty() }?.let {
-            keys += "provider:$prefix:${part(it)}"
-        }
-        val series = program.seriesId?.trim()?.takeIf { it.isNotEmpty() }
-            ?: program.seriesTitle?.trim()?.takeIf { it.isNotEmpty() }
+        val seriesNames = listOfNotNull(
+            program.seriesId?.trim()?.takeIf { it.isNotEmpty() },
+            program.seriesTitle?.trim()?.takeIf { it.isNotEmpty() },
             // Some providers put the series name in title and the episode in episode_title.
-            ?: program.item.title.takeIf { !program.episodeTitle.isNullOrBlank() && it != program.episodeTitle }
-        if (series != null) {
-            val season = program.seasonNumber?.trim()?.takeIf { it.isNotEmpty() }
-            val episode = program.episodeNumber?.trim()?.takeIf { it.isNotEmpty() }
+            program.item.title.takeIf {
+                !program.episodeTitle.isNullOrBlank() && it != program.episodeTitle
+            },
+        ).distinct()
+        val season = program.seasonNumber?.trim()?.takeIf { it.isNotEmpty() }
+        val episode = program.episodeNumber?.trim()?.takeIf { it.isNotEmpty() }
+        program.internalProviderId?.trim()?.takeIf { it.isNotEmpty() }?.let { id ->
+            // Internal IDs can identify an entire series. Add the episode coordinates when known.
+            val suffix = when {
+                season != null && episode != null -> ":${part(season)}:${part(episode)}"
+                program.episodeTitle != null -> ":${part(program.episodeTitle)}"
+                else -> ""
+            }
+            keys += "provider:$prefix:${part(id)}$suffix"
+        }
+        for (series in seriesNames) {
             if (season != null && episode != null) {
                 keys += "episode:$prefix:${part(series)}:${part(season)}:${part(episode)}"
             }
