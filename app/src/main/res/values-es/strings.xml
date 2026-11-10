@@ -1,5 +1,5 @@
 <resources>
-    <string name="override_desc">Abre Plume cada vez que aparece la pantalla de inicio de Google TV, para que el botón Inicio te lleve aquí.</string>
+    <string name="override_desc">Abre Plume Launcher Advanced cada vez que aparece la pantalla de inicio de Google TV, para que el botón Inicio te lleve aquí.</string>
     <string name="delete_photo">¿Eliminar \"%1$s\"?</string>
     <string name="photo_added">Se añadió \"%1$s\". Envía otra o pulsa Listo.</string>
     <string name="n_of_m">%1$d de %2$d</string>
@@ -9,7 +9,7 @@
     <string name="up_to_date_row">Al día (%1$s)</string>
     <string name="too_many_tries">Demasiados intentos. Inténtalo de nuevo en %1$d s.</string>
     <string name="downloading_paintings">Descargando cuadros de la Galería (%1$s)…</string>
-    <string name="update_available_toast">Plume %1$s está disponible. Actualízalo en los ajustes de Plume.</string>
+    <string name="update_available_toast">Plume Launcher Advanced %1$s está disponible. Actualízalo en los ajustes de Plume Launcher Advanced.</string>
     <string name="no_places">No hay lugares llamados \"%1$s\".</string>
     <string name="time_left_hm">Quedan %1$d h %2$d min</string>
     <string name="time_left_m">Quedan %1$d min</string>
@@ -29,9 +29,9 @@
     <string name="add_from_phone">Añadir desde el teléfono…</string>
     <string name="choose_from_tv">Elegir una carpeta en esta TV…</string>
     <string name="remove_photo_row">Quitar una foto…</string>
-    <string name="photos_permission">Plume necesita acceso a las fotos para mostrar tus carpetas</string>
-    <string name="home_off_hint">Desactiva \"Plume: botón Inicio\" en Ajustes → Sistema → Accesibilidad</string>
-    <string name="home_on_hint">Activa \"Plume: botón Inicio\" en Ajustes → Sistema → Accesibilidad</string>
+    <string name="photos_permission">Plume Launcher Advanced necesita acceso a las fotos para mostrar tus carpetas</string>
+    <string name="home_off_hint">Desactiva \"Plume Launcher Advanced: botón Inicio\" en Ajustes → Sistema → Accesibilidad</string>
+    <string name="home_on_hint">Activa \"Plume Launcher Advanced: botón Inicio\" en Ajustes → Sistema → Accesibilidad</string>
     <string name="dark_wallpaper">Fondo oscuro</string>
     <string name="light_wallpaper">Fondo claro</string>
     <string name="folder_photo_changes">Cambiar foto cada</string>
@@ -92,21 +92,21 @@
     <string name="screensaver_timing">Empezar tras</string>
     <string name="home_button">Botón Inicio</string>
     <string name="default_launcher">Lanzador predeterminado</string>
-    <string name="plume_press_change">Plume: pulsa para cambiar</string>
+    <string name="plume_press_change">Plume Launcher Advanced: pulsa para cambiar</string>
     <string name="press_to_set">Pulsa para configurar</string>
     <string name="updates">Actualizaciones</string>
     <string name="updating">Actualizando…</string>
     <string name="checking">Comprobando…</string>
     <string name="lock_layout">Bloquear diseño</string>
-    <string name="plume_settings">Ajustes de Plume</string>
+    <string name="plume_settings">Ajustes de Plume Launcher Advanced</string>
     <string name="enter_pin">Introduce el PIN</string>
     <string name="wrong_pin">PIN incorrecto</string>
     <string name="choose_pin">Elige un PIN</string>
     <string name="enter_again">Introdúcelo de nuevo</string>
     <string name="pins_mismatch">Los PIN no coinciden. Elige uno de nuevo.</string>
-    <string name="layout_locked">Diseño bloqueado. Los ajustes de Plume y los cambios en la pantalla de inicio ahora requieren el PIN.</string>
+    <string name="layout_locked">Diseño bloqueado. Los ajustes de Plume Launcher Advanced y los cambios en la pantalla de inicio ahora requieren el PIN.</string>
     <string name="pin_hint">▲ ▼ cambiar  ·  ◀ ▶ mover  ·  OK confirmar. Los botones numéricos también funcionan.</string>
-    <string name="pin_forgot">¿Lo olvidaste? Ajustes de Android → Aplicaciones → Plume → Borrar datos elimina el bloqueo, junto con tu diseño y ajustes.</string>
+    <string name="pin_forgot">¿Lo olvidaste? Ajustes de Android → Aplicaciones → Plume Launcher Advanced → Borrar datos elimina el bloqueo, junto con tu diseño y ajustes.</string>
     <string name="tip_move">Consejo: mantén pulsado OK sobre una app para reordenar la fila</string>
     <string name="open">Abrir</string>
     <string name="move">Mover</string>
@@ -145,8 +145,8 @@
     <string name="paintings_failed">No se pudieron descargar los cuadros. Comprueba la conexión e inténtalo de nuevo.</string>
     <string name="cant_dream">Esta TV no puede iniciar el salvapantallas bajo demanda</string>
     <string name="update_check_failed">No se pudieron buscar actualizaciones. Comprueba la conexión.</string>
-    <string name="up_to_date_toast">Plume está al día</string>
-    <string name="allow_installs">Activa Plume en la siguiente lista y luego vuelve a pulsar Actualizaciones</string>
+    <string name="up_to_date_toast">Plume Launcher Advanced está al día</string>
+    <string name="allow_installs">Activa Plume Launcher Advanced en la siguiente lista y luego vuelve a pulsar Actualizaciones</string>
     <string name="update_download_failed">No se pudo descargar la actualización. Comprueba la conexión e inténtalo de nuevo.</string>
     <string name="update_install_failed">Error al instalar la actualización</string>
     <string name="city_hint">Escribe una ciudad y pulsa Buscar</string>
@@ -173,7 +173,7 @@
     <string name="settings">Ajustes</string>
     <string name="continue_watching">Seguir viendo</string>
     <!-- Mostrado en la lista de Accesibilidad de Android. Las dos indicaciones de activar/desactivar lo citan, así que deben coincidir. -->
-    <string name="home_service_label">Plume: botón Inicio</string>
+    <string name="home_service_label">Plume Launcher Advanced: botón Inicio</string>
     <string name="theme_light">Claro</string>
     <string name="theme_dark">Oscuro</string>
     <string name="theme_auto">Auto</string>
@@ -187,10 +187,10 @@
     <string name="help_apps_row">Qué apps hay en la fila, su orden y su aspecto.</string>
     <string name="help_shows_row">La fila debajo de tus apps: Seguir viendo y los canales que añaden tus apps.</string>
     <string name="help_screensaver">Lo que muestra la TV cuando nadie la usa durante un rato.</string>
-    <string name="help_remote_home">Haz que Inicio abra Plume y cambia lo que hacen los botones del control remoto.</string>
+    <string name="help_remote_home">Haz que Inicio abra Plume Launcher Advanced y cambia lo que hacen los botones del control remoto.</string>
     <string name="help_lock">Un PIN que impide que otras personas cambien tu pantalla de inicio.</string>
-    <string name="help_updates">Plume busca una versión nueva una vez al día. Instálala aquí.</string>
-    <string name="help_finish_setup">Inicio todavía abre la pantalla de inicio propia de la TV. Configúralo para que abra Plume.</string>
+    <string name="help_updates">Plume Launcher Advanced busca una versión nueva una vez al día. Instálala aquí.</string>
+    <string name="help_finish_setup">Inicio todavía abre la pantalla de inicio propia de la TV. Configúralo para que abra Plume Launcher Advanced.</string>
     <string name="help_location">Para el clima y para el amanecer y el atardecer en Auto. Automático la obtiene de tu dirección de internet.</string>
     <string name="help_rearrange">Mueve las apps de la fila. También puedes mantener pulsado OK sobre una app.</string>
     <string name="help_choose_apps">Elige las apps de la fila. Las demás siguen en Todas las apps.</string>
@@ -202,8 +202,8 @@
     <string name="help_from_apps">Elige las apps que pueden añadir contenidos a esta fila.</string>
     <string name="help_channels">Activa o desactiva los canales que añaden las apps, como Recomendados.</string>
     <string name="help_hidden_shows">Contenidos que ocultaste de la fila. Pulsa OK para volver a mostrarlos todos.</string>
-    <string name="help_home_button">Inicio abre Plume. Mantén pulsado Inicio para abrir el panel propio de la TV.</string>
-    <string name="help_default_launcher">En Android TV, Plume puede ser la pantalla de inicio. Google TV mantiene la suya, así que usa el botón Inicio.</string>
+    <string name="help_home_button">Inicio abre Plume Launcher Advanced. Mantén pulsado Inicio para abrir el panel propio de la TV.</string>
+    <string name="help_default_launcher">En Android TV, Plume Launcher Advanced puede ser la pantalla de inicio. Google TV mantiene la suya, así que usa el botón Inicio.</string>
     <string name="help_run_setup">Vuelve a configurar el botón Inicio.</string>
     <string name="help_remote_keys">Cambia lo que hace un botón del control remoto al pulsarlo o mantenerlo pulsado.</string>
     <!-- Temporada y episodio en una tarjeta de Seguir viendo, por ejemplo "T1 E3". -->
@@ -212,23 +212,23 @@
     <string name="setup_home">Repetir configuración</string>
     <string name="preview_home_setup">Vista previa de configuración de Inicio</string>
     <string name="setup_step">Paso %1$d de %2$d</string>
-    <string name="setup_role_title">Haz que Plume sea tu pantalla de inicio</string>
-    <string name="setup_role_body">Android preguntará qué aplicación usar como pantalla de inicio. Elige Plume.</string>
+    <string name="setup_role_title">Haz que Plume Launcher Advanced sea tu pantalla de inicio</string>
+    <string name="setup_role_body">Android preguntará qué aplicación usar como pantalla de inicio. Elige Plume Launcher Advanced.</string>
     <string name="setup_test_title">Pulsa Inicio en tu control remoto</string>
-    <string name="setup_test_body">Plume comprueba que el botón Inicio te traiga de vuelta aquí. Si se abre otra pantalla de inicio, vuelve a abrir Plume desde tus apps y el asistente probará el siguiente método.</string>
-    <string name="setup_service_title">Activa el botón Inicio de Plume</string>
-    <string name="setup_service_body">Se abrirán los ajustes de accesibilidad. Selecciona \"Plume: botón Inicio\", actívalo y pulsa Atrás para volver aquí.</string>
+    <string name="setup_test_body">Plume Launcher Advanced comprueba que el botón Inicio te traiga de vuelta aquí. Si se abre otra pantalla de inicio, vuelve a abrir Plume Launcher Advanced desde tus apps y el asistente probará el siguiente método.</string>
+    <string name="setup_service_title">Activa el botón Inicio de Plume Launcher Advanced</string>
+    <string name="setup_service_body">Se abrirán los ajustes de accesibilidad. Selecciona \"Plume Launcher Advanced: botón Inicio\", actívalo y pulsa Atrás para volver aquí.</string>
     <string name="setup_adb_title">Desbloquéalo una vez con ADB</string>
-    <string name="setup_adb_body">Esta TV bloquea el cambio del botón Inicio para apps instaladas fuera de Play Store. Activa la depuración por red en Opciones de desarrollador y ejecuta estos comandos desde una computadora o una app ADB en el teléfono. Plume hace el resto.</string>
+    <string name="setup_adb_body">Esta TV bloquea el cambio del botón Inicio para apps instaladas fuera de Play Store. Activa la depuración por red en Opciones de desarrollador y ejecuta estos comandos desde una computadora o una app ADB en el teléfono. Plume Launcher Advanced hace el resto.</string>
     <string name="setup_scan_help">Ayuda paso a paso</string>
     <string name="setup_done_title">Inicio configurado</string>
-    <string name="setup_done_body">El botón Inicio de tu control remoto ahora abre Plume.</string>
-    <string name="setup_done_body_service">El botón Inicio de tu control remoto ahora abre Plume. Mantén pulsado Inicio para abrir el panel de Google TV.</string>
+    <string name="setup_done_body">El botón Inicio de tu control remoto ahora abre Plume Launcher Advanced.</string>
+    <string name="setup_done_body_service">El botón Inicio de tu control remoto ahora abre Plume Launcher Advanced. Mantén pulsado Inicio para abrir el panel de Google TV.</string>
     <string name="setup_continue">Continuar</string>
     <string name="setup_not_now">Ahora no</string>
     <string name="setup_skip_check">Omitir esta comprobación</string>
     <string name="setup_open_accessibility">Abrir Accesibilidad</string>
-    <string name="setup_restricted_title">Permite el botón Inicio de Plume</string>
+    <string name="setup_restricted_title">Permite el botón Inicio de Plume Launcher Advanced</string>
     <string name="setup_restricted_body">Esta TV atenúa el interruptor para apps instaladas fuera de Play Store. En Información de la app, selecciona \"Permitir ajustes restringidos\". En algunas TV está en el menú ⋮. Luego pulsa Atrás para volver aquí.</string>
     <string name="setup_open_app_info">Abrir Información de la app</string>
     <string name="setup_no_menu">No lo encuentro</string>
@@ -236,7 +236,7 @@
     <string name="setup_close">Cerrar</string>
     <string name="setup_done">Listo</string>
     <string name="whats_new_title">Novedades de %1$s</string>
-    <string name="whats_new_card_title">Nuevo en Plume %1$s</string>
+    <string name="whats_new_card_title">Nuevo en Plume Launcher Advanced %1$s</string>
     <string name="see_all_changes">Ver todos los cambios</string>
     <string name="check_updates">Buscar actualizaciones</string>
     <string name="install_update">Instalar %1$s</string>
@@ -265,9 +265,9 @@
     <string name="section_clock_weather">Reloj y clima</string>
     <string name="section_remote_home">Control remoto y botón Inicio</string>
     <string name="section_lock">Bloquear diseño</string>
-    <string name="lock_note">Un PIN protege los ajustes de Plume, el Wi-Fi, los ajustes de Android y los cambios en la pantalla de inicio. Las apps se siguen abriendo.</string>
+    <string name="lock_note">Un PIN protege los ajustes de Plume Launcher Advanced, el Wi-Fi, los ajustes de Android y los cambios en la pantalla de inicio. Las apps se siguen abriendo.</string>
     <string name="finish_setup">Terminar configuración</string>
-    <string name="finish_setup_value">Haz que Inicio abra Plume</string>
+    <string name="finish_setup_value">Haz que Inicio abra Plume Launcher Advanced</string>
     <!-- Botones del control remoto: cambiar lo que hace un botón del control -->
     <string name="section_keys">Botones del control</string>
     <string name="key_add">Añadir un botón</string>
@@ -308,5 +308,5 @@
     <string name="clock_medium">Mediano</string>
     <string name="clock_large">Grande</string>
     <string name="help_clock_size">El tamaño del reloj en Inicio.</string>
-    <string name="act_all_apps">Todas las aplicaciones de Plume</string>
+    <string name="act_all_apps">Todas las aplicaciones de Plume Launcher Advanced</string>
 </resources>
