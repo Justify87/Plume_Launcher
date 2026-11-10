@@ -16,6 +16,10 @@ Put changes that are not released under `## Unreleased`. Rename that heading to 
 
 ## Unreleased
 
+- **Nuvio Next Up.** Overview shows aired next episodes from Nuvio's separate Next Up channel.
+- **Nuvio Continue Watching.** Only started Nuvio items appear in Weitermachen. Older Nuvio versions still work.
+- Classic keeps its previous Watch Next row. Check Nuvio's channel visibility on your TV.
+
 - **App TV pages.** Press Up or Down in Overview to preview TV content from each app.
 - Empty media rows stay hidden. Press Right for an app page or OK to launch the app.
 - Press Back on an app page to return to Overview. Media focus stays on the same item after a refresh.
