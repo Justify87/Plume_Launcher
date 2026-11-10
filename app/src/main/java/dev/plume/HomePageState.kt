@@ -40,9 +40,7 @@ internal object HomePageContent {
         val items = feed.snapshot(sourceId = "tv", packageName = pkg)
         return MediaCategory.values().mapNotNull { category ->
             val group = items.filter { it.category == category }
-            if (group.isEmpty() && (page != HomePageState.Overview ||
-                    category !in setOf(MediaCategory.CONTINUE, MediaCategory.NEW))) null
-            else HomeMediaSection(category, group)
+            if (group.isEmpty()) null else HomeMediaSection(category, group)
         }
     }
 
