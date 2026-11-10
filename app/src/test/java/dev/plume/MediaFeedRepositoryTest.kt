@@ -45,12 +45,22 @@ class MediaFeedRepositoryTest {
 
     @Test fun repeatedSourcesAndIdenticalIntentsDedupeWithinAnApp() {
         val repo = MediaFeedRepository()
-        val one = item("1", intent = "intent:#Intent;end")
-        val repeat = item("2", intent = "intent:#Intent;end")
+        val one = item("1", intent = "intent:#Intent;end", contentId = null, order = 0)
+        val repeat = item("2", intent = "intent:#Intent;end", contentId = null, order = 1)
         repo.replaceSource("tv", listOf(one, repeat))
         assertEquals(1, repo.snapshot().size)
         repo.replaceSource("tv", listOf(one))
         assertEquals(listOf(one), repo.snapshot())
+    }
+
+    @Test fun distinctProviderContentIdsWinOverSharedAppLaunchIntent() {
+        val sameLaunch = "intent:#Intent;package=app.a;end"
+        val repo = MediaFeedRepository()
+        repo.replaceSource("tv", listOf(
+            item("episode-one", intent = sameLaunch),
+            item("episode-two", intent = sameLaunch),
+        ))
+        assertEquals(2, repo.snapshot().size)
     }
 
     @Test fun identicalTitlesFromDifferentAppsOrSeriesStaySeparate() {

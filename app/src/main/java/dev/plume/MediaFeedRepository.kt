@@ -40,8 +40,8 @@ internal object MediaFeedRules {
         return items.filter { item ->
             val owner = item.sourcePackage?.takeIf { it.isNotBlank() } ?: "unknown:${item.stableId}"
             val key = when {
-                !item.intentUri.isNullOrBlank() -> "intent:${part(owner)}:${part(item.intentUri)}"
                 !item.contentId.isNullOrBlank() -> "content:${part(owner)}:${part(item.contentId)}"
+                !item.intentUri.isNullOrBlank() -> "intent:${part(owner)}:${part(item.intentUri)}"
                 else -> "row:${part(item.stableId)}"
             }
             seen.add(key)
