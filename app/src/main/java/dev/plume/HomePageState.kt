@@ -11,6 +11,9 @@ internal sealed class HomePageState {
         init { require(packageName.isNotBlank()) }
     }
 
+    /** Back returns from an app preview only; the launcher handles Home separately. */
+    fun backTarget(): HomePageState? = if (this is App) Overview else null
+
     val key: String get() = when (this) {
         Overview -> HomeSidebarView.OVERVIEW
         AllApps -> HomeSidebarView.ALL_APPS
