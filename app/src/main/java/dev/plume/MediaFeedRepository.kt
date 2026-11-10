@@ -48,9 +48,10 @@ internal object MediaFeedRules {
         }
     }
 
-    private fun time(value: Long?): Long = when {
-        value == null || value <= 0 -> 0L
-        value < 100_000_000_000L -> value * 1000L // some TV providers publish seconds
+    /** Some TV providers report seconds in a millisecond column. Keep unknown values null. */
+    fun timestampMillis(value: Long?): Long? = when {
+        value == null || value <= 0 -> null
+        value < 100_000_000_000L -> value * 1000L
         else -> value
     }
 
@@ -70,7 +71,7 @@ internal object MediaFeedRules {
         require(perApp > 0)
         val ordered = items.sortedWith(
             compareBy<MediaItem> { categoryOrder(it.category) }
-                .thenByDescending { time(it.engagedAtMillis ?: it.publishedAtMillis) }
+                .thenByDescending { timestampMillis(it.engagedAtMillis ?: it.publishedAtMillis) ?: 0L }
                 .thenBy { it.sourceOrder }
                 .thenBy { it.stableId },
         )

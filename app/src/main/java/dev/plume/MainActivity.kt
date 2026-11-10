@@ -5521,7 +5521,7 @@ class MainActivity : Activity() {
                 subtitle = p.sub.takeIf { it.isNotBlank() }, imageUri = p.image,
                 progressPercent = p.progress.takeIf { p.durationMillis != null && (p.playbackPositionMillis ?: 0L) >= 1000L },
                 durationMillis = p.durationMillis, playbackPositionMillis = p.playbackPositionMillis,
-                engagedAtMillis = p.engagedAtMillis, category = p.category,
+                engagedAtMillis = MediaFeedRules.timestampMillis(p.engagedAtMillis), category = p.category,
                 intentUri = p.intent?.takeIf { it.isNotBlank() }, contentId = p.contentId,
                 sourceOrder = index,
             )

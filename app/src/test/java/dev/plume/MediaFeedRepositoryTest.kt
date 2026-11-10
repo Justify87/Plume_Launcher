@@ -29,6 +29,13 @@ class MediaFeedRepositoryTest {
         assertEquals(MediaCategory.UNKNOWN, MediaFeedRules.classify(99))
     }
 
+    @Test fun timestampsNormalizeSecondsWithoutInventingMissingDates() {
+        assertEquals(null, MediaFeedRules.timestampMillis(null))
+        assertEquals(null, MediaFeedRules.timestampMillis(0))
+        assertEquals(1_792_581_271_000L, MediaFeedRules.timestampMillis(1_792_581_271L))
+        assertEquals(1_792_581_271_123L, MediaFeedRules.timestampMillis(1_792_581_271_123L))
+    }
+
     @Test fun absentValuesStayAbsentAndProgressIsValidated() {
         val bare = MediaItem("id", "tv", null, "Untitled source item")
         assertEquals(null, bare.subtitle)
