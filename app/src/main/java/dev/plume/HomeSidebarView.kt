@@ -24,7 +24,7 @@ class HomeSidebarView @JvmOverloads constructor(context: Context, attrs: Attribu
         const val ALL_APPS = "sidebar:all_apps"
     }
 
-    data class Item(val key: String, val label: String, val icon: Drawable)
+    data class Item(val key: String, val label: String, val icon: Drawable, val tint: Boolean = false)
 
     private val column = LinearLayout(context).apply {
         orientation = LinearLayout.VERTICAL
@@ -64,6 +64,7 @@ class HomeSidebarView @JvmOverloads constructor(context: Context, attrs: Attribu
             }
             row.addView(ImageView(context).apply {
                 setImageDrawable(item.icon)
+                if (item.tint) setColorFilter(ink) // vector shortcuts: white Home and black Apps need theme ink
                 scaleType = ImageView.ScaleType.FIT_CENTER
                 importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
             }, LinearLayout.LayoutParams(dp(30), dp(30)))
