@@ -4065,14 +4065,14 @@ class MainActivity : Activity() {
         val visibleApps = sortedApps().filter { inRow(it.pkg, rowHiddenSet()) }
         val items = buildList {
             add(HomeSidebarView.Item(HomeSidebarView.OVERVIEW,
-                getString(R.string.home_layout_overview), getDrawable(R.drawable.ic_home)!!))
+                getString(R.string.home_layout_overview), getDrawable(R.drawable.ic_home)!!, tint = true))
             for (app in visibleApps) {
                 // The same loaded App.icon used by the classic row; no extra PackageManager query.
                 val icon = app.icon.constantState?.newDrawable(resources)?.mutate() ?: app.icon
                 add(HomeSidebarView.Item(app.pkg, app.label, icon))
             }
             add(HomeSidebarView.Item(HomeSidebarView.ALL_APPS,
-                getString(R.string.all_apps), getDrawable(R.drawable.ic_apps)!!))
+                getString(R.string.all_apps), getDrawable(R.drawable.ic_apps)!!, tint = true))
         }
         val hadSidebarFocus = homeSidebar.focusedKey()
         val action = findViewById<View>(R.id.overviewAction)
