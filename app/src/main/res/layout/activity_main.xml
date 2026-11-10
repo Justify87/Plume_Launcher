@@ -164,109 +164,151 @@
                 android:visibility="gone" />
         </LinearLayout>
 
-        <View
+        <!-- Both layouts share the exact clock and top bar above. -->
+        <FrameLayout
+            android:id="@+id/homeBodyHost"
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_weight="1" />
-
-        <!-- Only shown while editing the row (it carries the instructions). -->
-        <TextView
-            android:id="@+id/appsTitle"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
-            android:fontFamily="sans-serif-medium"
-            android:textSize="15sp"
-            android:visibility="gone" />
-
-        <!-- Both rows: the scroller reaches 16dp (one grid gap) past the content edges on each side and
-             clips there. That is room for the focus lift, while the next item, a gap away, stays hidden.
-             Same on left and right, and SnapScrollView scrolls by whole items. -->
-        <dev.plume.SnapScrollView
-            android:id="@+id/appScroll"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="-16dp"
-            android:layout_marginTop="-24dp"
-            android:layout_marginEnd="-16dp"
-            android:layout_marginBottom="-24dp"
-            android:clipToPadding="false"
-            android:paddingStart="16dp"
-            android:paddingTop="24dp"
-            android:paddingEnd="16dp"
-            android:paddingBottom="24dp"
-            android:scrollbars="none">
+            android:layout_weight="1"
+            android:clipChildren="false"
+            android:clipToPadding="false">
 
             <LinearLayout
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:id="@+id/classicHome"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
                 android:clipChildren="false"
+                android:clipToPadding="false"
                 android:orientation="vertical">
 
-                <LinearLayout
-                    android:id="@+id/appRow"
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1" />
+
+                <!-- Only shown while editing the row (it carries the instructions). -->
+                <TextView
+                    android:id="@+id/appsTitle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:clipChildren="false"
-                    android:orientation="horizontal" />
-
-                <!-- Name of the focused app, slid under its tile (tvOS style). In the scroll content, so it scrolls along. -->
-                <dev.plume.FittingLabel
-                    android:id="@+id/rowLabel"
-                    android:layout_width="200dp"
-                    android:layout_height="20dp"
-                    android:layout_marginTop="8dp"
-                    android:alpha="0"
-                    android:gravity="center"
-                    android:maxLines="1"
-                    android:textSize="13sp" />
-
-                <!-- "App names: Always": every name under its tile, in place of rowLabel (same space). -->
-                <LinearLayout
-                    android:id="@+id/nameRow"
-                    android:layout_width="wrap_content"
-                    android:layout_height="20dp"
-                    android:layout_marginTop="8dp"
-                    android:orientation="horizontal"
+                    android:layout_marginBottom="8dp"
+                    android:fontFamily="sans-serif-medium"
+                    android:textSize="15sp"
                     android:visibility="gone" />
+
+                <!-- Both rows: the scroller reaches 16dp (one grid gap) past the content edges on each side and
+                     clips there. That is room for the focus lift, while the next item, a gap away, stays hidden.
+                     Same on left and right, and SnapScrollView scrolls by whole items. -->
+                <dev.plume.SnapScrollView
+                    android:id="@+id/appScroll"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="-16dp"
+                    android:layout_marginTop="-24dp"
+                    android:layout_marginEnd="-16dp"
+                    android:layout_marginBottom="-24dp"
+                    android:clipToPadding="false"
+                    android:paddingStart="16dp"
+                    android:paddingTop="24dp"
+                    android:paddingEnd="16dp"
+                    android:paddingBottom="24dp"
+                    android:scrollbars="none">
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:clipChildren="false"
+                        android:orientation="vertical">
+
+                        <LinearLayout
+                            android:id="@+id/appRow"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:clipChildren="false"
+                            android:orientation="horizontal" />
+
+                        <!-- Name of the focused app, slid under its tile (tvOS style). In the scroll content, so it scrolls along. -->
+                        <dev.plume.FittingLabel
+                            android:id="@+id/rowLabel"
+                            android:layout_width="200dp"
+                            android:layout_height="20dp"
+                            android:layout_marginTop="8dp"
+                            android:alpha="0"
+                            android:gravity="center"
+                            android:maxLines="1"
+                            android:textSize="13sp" />
+
+                        <!-- "App names: Always": every name under its tile, in place of rowLabel (same space). -->
+                        <LinearLayout
+                            android:id="@+id/nameRow"
+                            android:layout_width="wrap_content"
+                            android:layout_height="20dp"
+                            android:layout_marginTop="8dp"
+                            android:orientation="horizontal"
+                            android:visibility="gone" />
+                    </LinearLayout>
+                </dev.plume.SnapScrollView>
+
+                <TextView
+                    android:id="@+id/watchTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:alpha="0.7"
+                    android:fontFamily="sans-serif-medium"
+                    android:text="@string/continue_watching"
+                    android:textSize="14sp"
+                    android:visibility="gone" />
+
+                <!-- 16dp between the title and the cards: room for the focused card's rise (~13dp). -->
+                <dev.plume.SnapScrollView
+                    android:id="@+id/watchScroll"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="-16dp"
+                    android:layout_marginTop="-8dp"
+                    android:layout_marginEnd="-16dp"
+                    android:layout_marginBottom="-24dp"
+                    android:clipToPadding="false"
+                    android:paddingStart="16dp"
+                    android:paddingTop="24dp"
+                    android:paddingEnd="16dp"
+                    android:paddingBottom="24dp"
+                    android:scrollbars="none"
+                    android:visibility="gone">
+
+                    <LinearLayout
+                        android:id="@+id/watchRow"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:clipChildren="false"
+                        android:orientation="horizontal" />
+                </dev.plume.SnapScrollView>
             </LinearLayout>
-        </dev.plume.SnapScrollView>
 
-        <TextView
-            android:id="@+id/watchTitle"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
-            android:alpha="0.7"
-            android:fontFamily="sans-serif-medium"
-            android:text="@string/continue_watching"
-            android:textSize="14sp"
-            android:visibility="gone" />
-
-        <!-- 16dp between the title and the cards: room for the focused card's rise (~13dp). -->
-        <dev.plume.SnapScrollView
-            android:id="@+id/watchScroll"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="-16dp"
-            android:layout_marginTop="-8dp"
-            android:layout_marginEnd="-16dp"
-            android:layout_marginBottom="-24dp"
-            android:clipToPadding="false"
-            android:paddingStart="16dp"
-            android:paddingTop="24dp"
-            android:paddingEnd="16dp"
-            android:paddingBottom="24dp"
-            android:scrollbars="none"
-            android:visibility="gone">
-
-            <LinearLayout
-                android:id="@+id/watchRow"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+            <FrameLayout
+                android:id="@+id/overviewHome"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
                 android:clipChildren="false"
-                android:orientation="horizontal" />
-        </dev.plume.SnapScrollView>
+                android:visibility="gone">
+
+                <!-- M01 only: M02 replaces this tile with the sidebar and overview rows. -->
+                <TextView
+                    android:id="@+id/overviewPlaceholder"
+                    android:layout_width="420dp"
+                    android:layout_height="144dp"
+                    android:layout_gravity="center"
+                    android:contentDescription="@string/home_layout_placeholder"
+                    android:focusable="true"
+                    android:clickable="true"
+                    android:fontFamily="sans-serif-medium"
+                    android:gravity="center"
+                    android:padding="20dp"
+                    android:text="@string/home_layout_placeholder"
+                    android:textSize="20sp" />
+            </FrameLayout>
+        </FrameLayout>
     </LinearLayout>
 
     <!-- All apps: hidden until the Apps tile is pressed; Back closes it. -->
