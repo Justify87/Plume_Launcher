@@ -345,6 +345,8 @@ class MainActivity : Activity() {
     private lateinit var glass: GlassLayer // paints the blurred wallpaper under glass tiles
     private lateinit var videoWallpaper: VideoWallpaper
     private var homeLayoutMode = HomeLayoutMode.CLASSIC
+    private lateinit var homeSidebar: HomeSidebarView
+    private var sidebarSelection = HomeSidebarView.OVERVIEW
 
     private var resumed = false
     private var ready = false // false while the user is still locked: no prefs, files or cache yet
@@ -431,7 +433,7 @@ class MainActivity : Activity() {
         }
         applyTopBar()
         applyTheme()
-        setupOverviewPlaceholder()
+        setupHomeSidebar()
         applyHomeLayoutMode()
         glassShown = glassLook() to null // the tiles are built for this look; only the blur is still to come
         loadWallpaper()
@@ -1017,7 +1019,8 @@ class MainActivity : Activity() {
         // Home from an app goes back to the tile or card it was started from, wherever focus is now. If Plume did not start the app,
         // or the tile or card is gone, Home starts again at the first tile.
         if (homeLayoutMode == HomeLayoutMode.OVERVIEW) {
-            findViewById<View>(R.id.overviewPlaceholder).requestFocus()
+            (back?.let { homeSidebar.viewFor(it) } ?: homeSidebar.viewFor(HomeSidebarView.OVERVIEW))
+                ?.requestFocus()
             return
         }
         if (back?.let { homeViewFor(it) }?.requestFocus() == true) return
@@ -2581,7 +2584,7 @@ class MainActivity : Activity() {
                 // Clear's sharp picture is made only while Clear is the style: load the wallpaper again to make it.
                 if (glassStyle() == GlassStyle.CLEAR && sharpPixels == null && Backdrop.of(currentWallpaper()) == Backdrop.PICTURE) loadWallpaper()
                 else applyGlass()
-                styleOverviewPlaceholder()
+                if (homeLayoutMode == HomeLayoutMode.OVERVIEW) renderHomeSidebar()
                 renderSettings(R.string.glass)
             },
         )
@@ -3599,6 +3602,7 @@ class MainActivity : Activity() {
             requestLayout()
         }
         appRow.removeAllViews()
+        if (homeLayoutMode == HomeLayoutMode.OVERVIEW) renderHomeSidebar()
         val hidden = rowHiddenSet()
         val tiles = sortedApps().filter { inRow(it.pkg, hidden) }.map { appTile(it, labeled = false) }
         if (tiles.isEmpty()) return showNames()
@@ -3990,28 +3994,42 @@ class MainActivity : Activity() {
         }
     }
 
-    /** The overview has one focusable placeholder until M02 adds its own navigation. */
+    /** The optional layout has one physical focus owner: the Android view tree. */
     private fun overviewNav(v: View, key: Int): View? {
-        val placeholder = findViewById<View>(R.id.overviewPlaceholder)
-        val top = lastTop?.takeIf { it.isAttachedToWindow && it.isShown } ?: findViewById(R.id.launcherSettings)
-        return when {
-            v.parent === wifi.parent -> when (key) {
-                KeyEvent.KEYCODE_DPAD_DOWN -> placeholder
-                KeyEvent.KEYCODE_DPAD_UP -> v
-                KeyEvent.KEYCODE_DPAD_LEFT -> if (v.id == shownTop().first()) v else null
-                KeyEvent.KEYCODE_DPAD_RIGHT -> if (v.id == shownTop().last()) v else null
-                else -> null
-            }
-            v === placeholder -> when (key) {
-                KeyEvent.KEYCODE_DPAD_UP -> top
-                KeyEvent.KEYCODE_DPAD_DOWN, KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT -> v
-                else -> null
-            }
-            else -> null
+        val direction = when (key) {
+            KeyEvent.KEYCODE_DPAD_UP -> HomeFocusNavigator.Direction.UP
+            KeyEvent.KEYCODE_DPAD_DOWN -> HomeFocusNavigator.Direction.DOWN
+            KeyEvent.KEYCODE_DPAD_LEFT -> HomeFocusNavigator.Direction.LEFT
+            KeyEvent.KEYCODE_DPAD_RIGHT -> HomeFocusNavigator.Direction.RIGHT
+            else -> return null
+        }
+        val zone = when {
+            v.parent === wifi.parent -> HomeFocusNavigator.Zone.TOP
+            homeSidebar.indexOf(v) >= 0 -> HomeFocusNavigator.Zone.SIDEBAR
+            v === findViewById<View>(R.id.overviewAction) -> HomeFocusNavigator.Zone.CONTENT
+            else -> return null
+        }
+        if (zone == HomeFocusNavigator.Zone.TOP) {
+            if (direction == HomeFocusNavigator.Direction.LEFT && v.id == shownTop().first()) return v
+            if (direction == HomeFocusNavigator.Direction.RIGHT && v.id == shownTop().last()) return v
+        }
+        val index = if (zone == HomeFocusNavigator.Zone.SIDEBAR) homeSidebar.indexOf(v)
+            else homeSidebar.viewFor(sidebarSelection)?.let { homeSidebar.indexOf(it) } ?: 0
+        val action = findViewById<View>(R.id.overviewAction)
+        val target = HomeFocusNavigator.next(zone, direction, index, homeSidebar.itemCount,
+            contentAvailable = action.visibility == View.VISIBLE)
+        val top = lastTop?.takeIf { it.isAttachedToWindow && it.isShown }
+            ?: findViewById(R.id.launcherSettings)
+        return when (target) {
+            HomeFocusNavigator.Target.Stay -> v
+            HomeFocusNavigator.Target.Framework -> null
+            HomeFocusNavigator.Target.Top -> top
+            is HomeFocusNavigator.Target.Sidebar -> homeSidebar.viewAt(target.index) ?: v
+            HomeFocusNavigator.Target.Content -> action
         }
     }
 
-    /** Shared top bar, separate bodies. Never touch the classic row IDs or their navigation. */
+    /** The shared top bar and the unchanged Classic rows are independent of the new body. */
     private fun applyHomeLayoutMode() {
         val old = homeLayoutMode
         homeLayoutMode = HomeLayoutMode.fromPreference(prefs.getString(HomeLayoutMode.PREF_KEY, null))
@@ -4023,27 +4041,94 @@ class MainActivity : Activity() {
         lastCard = null
         rowOut = false
         if (classic && old != homeLayoutMode) placeRow(animate = false)
+        if (!classic) renderHomeSidebar()
     }
 
-    private fun setupOverviewPlaceholder() {
-        val placeholder = findViewById<TextView>(R.id.overviewPlaceholder)
-        placeholder.setOnFocusChangeListener { view, focused ->
-            if (focused && glassActive()) glass.add(view, dp(18).toFloat()) else glass.remove(view)
-            styleOverviewPlaceholder()
-            view.animate().scaleX(if (focused) 1.03f else 1f).scaleY(if (focused) 1.03f else 1f)
-                .setDuration(160).setInterpolator(DECELERATE).start()
+    private fun setupHomeSidebar() {
+        homeSidebar = findViewById(R.id.homeSidebar)
+        homeSidebar.setOnScrollChangeListener { _, _, _, _, _ -> glass.kick(150) }
+        findViewById<TextView>(R.id.overviewAction).apply {
+            style(this, dp(12), card = true, lift = 1.04f)
+            setOnClickListener {
+                sortedApps().firstOrNull { it.pkg == sidebarSelection && inRow(it.pkg, rowHiddenSet()) }
+                    ?.let { app -> launch(app) }
+            }
         }
-        styleOverviewPlaceholder()
     }
 
-    private fun styleOverviewPlaceholder() {
-        val placeholder = findViewById<TextView>(R.id.overviewPlaceholder)
-        placeholder.setTextColor(fg)
-        placeholder.background = GradientDrawable().apply {
-            cornerRadius = dp(18).toFloat()
-            setColor(cardRest[0])
-            if (placeholder.isFocused) setStroke(dp(2), fg)
+    /**
+     * Reuse the existing app model, pinned inputs, order and row_hidden preference. Rebuilding the
+     * rail retains the selected key, and only restores focus when a sidebar entry actually had it.
+     */
+    private fun renderHomeSidebar() {
+        if (!::homeSidebar.isInitialized) return
+        val visibleApps = sortedApps().filter { inRow(it.pkg, rowHiddenSet()) }
+        val items = buildList {
+            add(HomeSidebarView.Item(HomeSidebarView.OVERVIEW,
+                getString(R.string.home_layout_overview), getDrawable(R.drawable.ic_home)!!, tint = true))
+            for (app in visibleApps) {
+                // The same loaded App.icon used by the classic row; no extra PackageManager query.
+                val icon = app.icon.constantState?.newDrawable(resources)?.mutate() ?: app.icon
+                add(HomeSidebarView.Item(app.pkg, app.label, icon))
+            }
+            add(HomeSidebarView.Item(HomeSidebarView.ALL_APPS,
+                getString(R.string.all_apps), getDrawable(R.drawable.ic_apps)!!, tint = true))
         }
+        val hadSidebarFocus = homeSidebar.focusedKey()
+        val action = findViewById<View>(R.id.overviewAction)
+        val hadActionFocus = action.isFocused
+        if (items.none { it.key == sidebarSelection }) sidebarSelection = HomeSidebarView.OVERVIEW
+        homeSidebar.bind(
+            items = items,
+            ink = fg,
+            decorate = { style(it, dp(10), card = true, lift = 1.03f) },
+            onFocused = { key ->
+                sidebarSelection = key
+                updateOverviewPreview(visibleApps)
+            },
+            onOpen = { key ->
+                when (key) {
+                    HomeSidebarView.OVERVIEW -> updateOverviewPreview(visibleApps)
+                    HomeSidebarView.ALL_APPS -> openAllApps()
+                    else -> visibleApps.firstOrNull { it.pkg == key }?.let { launch(it) }
+                }
+            },
+            onDispose = { glass.remove(it) },
+        )
+        updateOverviewPreview(visibleApps)
+        if (hadSidebarFocus != null && homeLayoutMode == HomeLayoutMode.OVERVIEW &&
+            settingsScrim.visibility != View.VISIBLE && allApps.visibility != View.VISIBLE
+        ) {
+            (homeSidebar.viewFor(hadSidebarFocus) ?: homeSidebar.viewFor(sidebarSelection))?.requestFocus()
+        } else if (hadActionFocus && action.visibility != View.VISIBLE) {
+            homeSidebar.viewFor(sidebarSelection)?.requestFocus()
+        }
+    }
+
+    /** Visual preview only; media feeds and per-app cards are introduced by later milestones. */
+    private fun updateOverviewPreview(visibleApps: List<App>) {
+        val heading = findViewById<TextView>(R.id.overviewHeading)
+        val description = findViewById<TextView>(R.id.overviewDescription)
+        val first = findViewById<TextView>(R.id.overviewSectionOne)
+        val second = findViewById<TextView>(R.id.overviewSectionTwo)
+        val action = findViewById<TextView>(R.id.overviewAction)
+        val app = visibleApps.firstOrNull { it.pkg == sidebarSelection }
+        heading.text = when {
+            app != null -> app.label
+            sidebarSelection == HomeSidebarView.ALL_APPS -> getString(R.string.all_apps)
+            else -> getString(R.string.home_layout_overview)
+        }
+        description.setText(when {
+            app != null -> R.string.sidebar_app_info
+            sidebarSelection == HomeSidebarView.ALL_APPS -> R.string.sidebar_all_apps_info
+            else -> R.string.sidebar_overview_info
+        })
+        for (view in listOf(heading, description, first, second, action)) view.setTextColor(fg)
+        val overview = app == null && sidebarSelection != HomeSidebarView.ALL_APPS
+        first.visibility = if (overview) View.VISIBLE else View.GONE
+        second.visibility = if (overview) View.VISIBLE else View.GONE
+        action.visibility = if (app != null) View.VISIBLE else View.GONE
+        action.tag = app?.pkg
     }
 
     /** Overlays (All apps, launcher settings) sit on top of the home rows; keep focus from slipping behind them. */
@@ -4067,7 +4152,9 @@ class MainActivity : Activity() {
                 prefs.edit().putStringSet("row_hidden", rowHiddenSet() - tag).apply()
                 saveOrder(listOf(tag) + sortedApps().map { it.pkg }.filter { it != tag })
                 closeAllApps()
-                appRow.getChildAt(0)?.requestFocus() // show the app just pinned
+                // The new Overview rail uses the same hidden/order settings as the classic row.
+                if (homeLayoutMode == HomeLayoutMode.OVERVIEW) homeSidebar.viewFor(tag)?.requestFocus()
+                else appRow.getChildAt(0)?.requestFocus() // show the app just pinned
             }
             v.parent === wifi.parent -> topMenu(v)
             v.parent === appRow -> appMenu(v)

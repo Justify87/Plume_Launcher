@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="sidebar_overview_info">Hier erscheinen künftig deine letzten Aktivitäten und neue Empfehlungen, sobald die Inhaltsquellen angebunden sind.</string>
+    <string name="sidebar_app_info">Inhalte dieser App folgen in einem späteren Schritt. Mit OK auf der App in der Sidebar startest du sie direkt.</string>
+    <string name="sidebar_all_apps_info">Mit OK öffnest du alle installierten Apps, auch die auf der Startseite ausgeblendeten.</string>
+    <string name="sidebar_new_for_you">Neu für dich</string>
+    <string name="sidebar_open_app">App öffnen</string>
+
     <string name="home_layout">Startseitenlayout</string>
     <string name="home_layout_classic">Klassisch</string>
     <string name="home_layout_overview">Übersicht</string>

@@ -293,20 +293,87 @@
                 android:clipChildren="false"
                 android:visibility="gone">
 
-                <!-- M01 only: M02 replaces this tile with the sidebar and overview rows. -->
-                <TextView
-                    android:id="@+id/overviewPlaceholder"
-                    android:layout_width="420dp"
-                    android:layout_height="144dp"
-                    android:layout_gravity="center"
-                    android:contentDescription="@string/home_layout_placeholder"
-                    android:focusable="true"
-                    android:clickable="true"
-                    android:fontFamily="sans-serif-medium"
-                    android:gravity="center"
-                    android:padding="20dp"
-                    android:text="@string/home_layout_placeholder"
-                    android:textSize="20sp" />
+                <!-- M02: one vertical D-pad rail, with an intentionally empty future media area. -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:clipChildren="false"
+                    android:clipToPadding="false"
+                    android:orientation="horizontal"
+                    android:paddingTop="12dp">
+
+                    <dev.plume.HomeSidebarView
+                        android:id="@+id/homeSidebar"
+                        android:layout_width="240dp"
+                        android:layout_height="match_parent"
+                        android:clipChildren="false"
+                        android:clipToPadding="false"
+                        android:scrollbars="none" />
+
+                    <LinearLayout
+                        android:id="@+id/overviewPreview"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        android:clipChildren="false"
+                        android:clipToPadding="false"
+                        android:orientation="vertical"
+                        android:paddingStart="36dp"
+                        android:paddingTop="12dp">
+
+                        <TextView
+                            android:id="@+id/overviewHeading"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="sans-serif-medium"
+                            android:maxLines="1"
+                            android:ellipsize="end"
+                            android:text="@string/home_layout_overview"
+                            android:textSize="26sp" />
+
+                        <TextView
+                            android:id="@+id/overviewDescription"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="12dp"
+                            android:alpha="0.8"
+                            android:fontFamily="sans-serif"
+                            android:maxLines="3"
+                            android:text="@string/sidebar_overview_info"
+                            android:textSize="15sp" />
+
+                        <TextView
+                            android:id="@+id/overviewSectionOne"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="24dp"
+                            android:fontFamily="sans-serif-medium"
+                            android:text="@string/continue_watching"
+                            android:textSize="18sp" />
+
+                        <TextView
+                            android:id="@+id/overviewSectionTwo"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="24dp"
+                            android:fontFamily="sans-serif-medium"
+                            android:text="@string/sidebar_new_for_you"
+                            android:textSize="18sp" />
+
+                        <TextView
+                            android:id="@+id/overviewAction"
+                            android:layout_width="220dp"
+                            android:layout_height="60dp"
+                            android:layout_marginTop="26dp"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:fontFamily="sans-serif-medium"
+                            android:gravity="center"
+                            android:text="@string/sidebar_open_app"
+                            android:textSize="17sp"
+                            android:visibility="gone" />
+                    </LinearLayout>
+                </LinearLayout>
             </FrameLayout>
         </FrameLayout>
     </LinearLayout>
