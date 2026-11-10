@@ -1,5 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+
+    <!-- M03: nur Offline-Beispiele, keine echten Wiedergabedaten -->
+    <string name="demo_tag">DEMO</string>
+    <string name="demo_continue_title">Weitermachen</string>
+    <string name="demo_overview_info">Nur Beispielkarten. Dies ist nicht dein echter Wiedergabeverlauf.</string>
+    <string name="demo_app_info">Beispielkarten für diese App. Das sind keine echten Wiedergabedaten.</string>
+    <string name="demo_app_empty">Keine Beispielkarten für diese App. Wähle App öffnen, um sie zu starten.</string>
+    <string name="demo_empty_section">Keine Beispielkarten in diesem Bereich.</string>
+    <string name="demo_not_playable">Dies ist eine Beispielkarte. Abspielen ist nicht möglich.</string>
+    <string name="demo_episode">SERIENFOLGE</string>
+    <string name="demo_movie">FILM</string>
+    <string name="demo_video">VIDEO</string>
+    <string name="demo_podcast">PODCAST</string>
+
     <string name="sidebar_overview_info">Hier erscheinen künftig deine letzten Aktivitäten und neue Empfehlungen, sobald die Inhaltsquellen angebunden sind.</string>
     <string name="sidebar_app_info">Inhalte dieser App folgen in einem späteren Schritt. Mit OK auf der App in der Sidebar startest du sie direkt.</string>
     <string name="sidebar_all_apps_info">Mit OK öffnest du alle installierten Apps, auch die auf der Startseite ausgeblendeten.</string>

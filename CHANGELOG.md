@@ -16,6 +16,11 @@ Put changes that are not released under `## Unreleased`. Rename that heading to 
 
 ## Unreleased
 
+
+- **Overview demo cards.** Explore sample videos, films, episodes, and podcasts with the remote. The cards do not use your history.
+- Press Right to open a sample row. Press Up or Down to switch rows. Press Left at the first card to return to the sidebar.
+- Select an app in the Overview sidebar to see sample cards for that app. Press Back to return to Overview.
+
 - **Overview sidebar.** Press Up or Down to choose an app. Press OK to open the app or All apps.
 - Press Right on an app in the Overview sidebar to reach its Open app action. Press Left to return.
 
