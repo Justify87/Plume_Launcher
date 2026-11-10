@@ -32,7 +32,8 @@ class DemoMediaTest {
     @Test fun zeroOneThreeAndManyCardsOnlyMountVisibleAndNextSlots() {
         assertTrue(DemoMedia.visibleWindow(0, 0, 300, 100).isEmpty())
         assertEquals(0..0, DemoMedia.visibleWindow(1, 0, 300, 100))
-        assertEquals(0..2, DemoMedia.visibleWindow(3, 0, 100, 100))
+        assertEquals(0..1, DemoMedia.visibleWindow(3, 0, 100, 100))
+        assertEquals(0..2, DemoMedia.visibleWindow(3, 0, 200, 100))
         assertEquals(0..3, DemoMedia.visibleWindow(30, 100, 200, 100))
         assertEquals(27..29, DemoMedia.visibleWindow(30, 2800, 200, 100))
         assertEquals(0..1, DemoMedia.visibleWindow(30, 0, 0, 100))
