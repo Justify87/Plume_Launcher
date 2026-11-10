@@ -16,6 +16,8 @@ Put changes that are not released under `## Unreleased`. Rename that heading to 
 
 ## Unreleased
 
+- Overview keeps the current demo cards when you return to the same sidebar item.
+
 - **Plume Launcher Advanced.** Install this fork beside the original Plume app with a separate Android app ID.
 - Use the new feather icon and TV banner to identify the Advanced launcher.
 - Check only this fork for app updates. The original Plume APK cannot replace Advanced.
