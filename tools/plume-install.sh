@@ -122,7 +122,7 @@ ENABLED=$(tv settings get secure enabled_accessibility_services)
 [ "$ENABLED" = null ] && ENABLED=
 STATEDATA=$(tv cat $STATE)
 case $STATEDATA in *"No such file"*) STATEDATA= ;; esac
-is_listed() { printf '%s\n' "$ENABLED" | tr ':' '\n' | grep -qF "$SERVICE"; }
+is_listed() { printf '%s\n' "$ENABLED" | tr ':' '\n' | grep -qxF "$SERVICE"; }
 LISTED=0
 is_listed && LISTED=1
 # "services:{" on Fire OS 7 (Android 9), "Bound services:{" later. Fire OS names a service by its label ("Plume Launcher Advanced: Home button").
