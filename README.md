@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/plume-advanced-icon.svg" alt="Plume Launcher Advanced icon" width="128">
+  <img src="app/src/main/res/drawable-nodpi/ic_launcher_advanced.webp" alt="Plume Launcher Advanced icon" width="128">
 </p>
 
 <h1 align="center">Plume Launcher Advanced</h1>
