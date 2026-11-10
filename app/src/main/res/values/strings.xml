@@ -23,7 +23,10 @@
     <string name="tv_feed_permission">Allow TV listings access to show your viewing activity.</string>
     <string name="tv_feed_unavailable">This TV item cannot be opened.</string>
     <string name="tv_app_info">Resumable content published by this app.</string>
-    <string name="tv_app_empty">No resumable items from this app. Select Open app to launch it.</string>
+    <string name="tv_app_empty">No TV items from this app. Select Open app to launch it.</string>
+    <string name="tv_app_new_content">New content</string>
+    <string name="tv_feed_recommendations">Recommendations</string>
+    <string name="tv_feed_other">Other TV content</string>
     <string name="sidebar_open_app">Open app</string>
 
     <string name="home_layout">Home layout</string>
