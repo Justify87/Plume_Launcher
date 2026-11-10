@@ -311,6 +311,7 @@ class MainActivity : Activity() {
     private val io = Executors.newSingleThreadExecutor()
     // One TV query populates both Classic's Prog list and the shared model. Demo remains separate.
     private val mediaFeed = MediaFeedRepository().apply { replaceSource("demo", DemoMedia.asMediaItems()) }
+    private val youtubeSource by lazy { YouTubeRssSource(prefs) }
     /** Small wallpaper pictures for the settings grids, by choice and size; 8 MB holds every built-in twice over. */
     private val thumbCache = object : LruCache<String, Bitmap>(8 * 1024 * 1024) {
         override fun sizeOf(key: String, value: Bitmap) = value.byteCount
@@ -550,6 +551,7 @@ class MainActivity : Activity() {
         // Only rebuild what changed, so focus stays where it was when returning from an app.
         if (appsDirty) refreshApps() else if (appRow.childCount == 0) renderApps()
         refreshWatchNext()
+        refreshYouTubeSubscriptions()
         showWeather()
         ui.removeCallbacks(weatherTick)
         ui.post(weatherTick)
@@ -2654,6 +2656,8 @@ class MainActivity : Activity() {
             },
             R.string.cw_apps to Triple(getString(R.string.cw_apps), if (cwOff == 0) getString(R.string.all_on) else getString(R.string.n_off, cwOff)) { pickWatchSources() },
             R.string.cw_channels to Triple(getString(R.string.cw_channels), getString(R.string.n_on, channelsOn)) { pickChannels() },
+            R.string.youtube_subscriptions to Triple(getString(R.string.youtube_subscriptions),
+                toggle(prefs.getBoolean("yt_new_on", false))) { pickYouTubeSubscriptions() },
             R.string.row_name to Triple(getString(R.string.row_name), rowName()) { pickRowName() },
             R.string.show_icons to Triple(getString(R.string.show_icons), getString(if (cwColour()) R.string.colour else R.string.monochrome)) {
                 steps[R.string.show_icons]!!(1)
@@ -2732,7 +2736,8 @@ class MainActivity : Activity() {
                 listOf(R.string.edit_apps_row, R.string.apps_in_row, R.string.sort_apps, R.string.icon_style, R.string.row_size, R.string.app_names, R.string.row_position)),
             // "When hidden" only means something once the row can hide.
             Triple(R.string.bottom_row, "${rowName()} · ${rows[R.string.show_row]!!.second}", listOfNotNull(R.string.show_row, R.string.apps_when_hidden.takeIf { rowShow() != "always" },
-                R.string.row_name, R.string.show_icons, R.string.cw_apps, R.string.cw_channels, R.string.restore_hidden)),
+                R.string.row_name, R.string.show_icons, R.string.cw_apps, R.string.cw_channels,
+                R.string.youtube_subscriptions, R.string.restore_hidden)),
             Triple(R.string.section_clock_weather, if (weather == "off") on(false) else "${rows[R.string.weather_units]!!.second} · ${prefs.getString("geo_city", null) ?: rows[R.string.weather_location]!!.second}",
                 listOf(R.string.clock_style, R.string.clock_size, R.string.weather, R.string.weather_units, R.string.weather_location)),
             Triple(R.string.section_screensaver, rows[R.string.screensaver]!!.second, listOf(R.string.screensaver, R.string.test_screensaver, R.string.screensaver_timing)),
@@ -4214,7 +4219,7 @@ class MainActivity : Activity() {
         val hasPermission = checkSelfPermission(TV_LISTINGS) == PackageManager.PERMISSION_GRANTED
         description.setText(when {
             all -> R.string.sidebar_all_apps_info
-            !hasPermission -> R.string.tv_feed_permission
+            !hasPermission && !hasItems -> R.string.tv_feed_permission
             app != null && !hasItems -> R.string.tv_app_empty
             app != null -> R.string.tv_app_info
             !hasItems -> R.string.tv_feed_empty
@@ -4267,6 +4272,7 @@ class MainActivity : Activity() {
 
     /** Treat TV intent URIs as untrusted: launch only the publishing app, else use its TV entry. */
     private fun openOverviewMedia(item: MediaItem) {
+        if (item.sourceId == YouTubeSubscriptions.SOURCE_ID) return openYouTubeVideo(item)
         val pkg = item.sourcePackage?.takeIf { it.isNotBlank() } ?: run {
             toast(getString(R.string.tv_feed_unavailable))
             return
@@ -4303,6 +4309,83 @@ class MainActivity : Activity() {
             }
         }
         toast(getString(R.string.tv_feed_unavailable))
+    }
+
+    /** Accept only an exact YouTube video ID; never silently open an unrelated launcher page. */
+    private fun openYouTubeVideo(item: MediaItem) {
+        val id = item.contentId?.takeIf { it.startsWith("yt:") }?.removePrefix("yt:")
+            ?.takeIf { YouTubeSubscriptions.videoId(it) == it }
+            ?: return toast(getString(R.string.tv_feed_unavailable))
+        val url = Uri.parse("https://www.youtube.com/watch?v=$id")
+        for (pkg in YouTubeSubscriptions.packages +
+            listOf("com.google.android.youtube.tv", "com.google.android.youtube")) {
+            val intent = Intent(Intent.ACTION_VIEW, url).setPackage(pkg)
+            if (intent.resolveActivity(packageManager) == null) continue
+            try {
+                startApp(intent, currentFocus)
+                return
+            } catch (e: Exception) {
+                android.util.Log.w("Plume", "YouTube deep link unavailable for $pkg", e)
+            }
+        }
+        toast(getString(R.string.tv_feed_unavailable))
+    }
+
+    private fun pickYouTubeSubscriptions() {
+        val saved = prefs.getString("yt_channel_ids", "").orEmpty()
+        val input = textField(saved, getString(R.string.youtube_ids_hint), 0,
+            EditorInfo.IME_ACTION_DONE) { raw ->
+            val parsed = YouTubeSubscriptions.channelIds(raw)
+            if (parsed == null) toast(getString(R.string.youtube_ids_invalid), long = true)
+            else {
+                prefs.edit().putString("yt_channel_ids", parsed.joinToString(","))
+                    .remove("yt_attempt").apply()
+                refreshYouTubeSubscriptions(force = true)
+                pickYouTubeSubscriptions()
+            }
+        }
+        val enabled = prefs.getBoolean("yt_new_on", false)
+        showPage(getString(R.string.youtube_subscriptions), listOf(
+            page(getString(R.string.youtube_enable), getString(if (enabled) R.string.on else R.string.off)) {
+                prefs.edit().putBoolean("yt_new_on", !enabled).remove("yt_attempt").apply()
+                if (enabled) {
+                    mediaFeed.replaceSource(YouTubeSubscriptions.SOURCE_ID, emptyList())
+                    if (homeLayoutMode == HomeLayoutMode.OVERVIEW)
+                        updateOverviewPreview(sortedApps().filter { inRow(it.pkg, rowHiddenSet()) })
+                } else refreshYouTubeSubscriptions(force = true)
+                refreshWatchNext()
+                pickYouTubeSubscriptions()
+            },
+            page(getString(R.string.youtube_ids_help),
+                getString(R.string.youtube_ids_count, YouTubeSubscriptions.channelIds(saved)?.size ?: 0)) {
+                input.requestFocus()
+            },
+        ), top = input.parent as View) { renderSettings(R.string.youtube_subscriptions) }
+    }
+
+    /** No TV provider permission needed for public RSS; work stays on the existing io executor. */
+    private fun refreshYouTubeSubscriptions(force: Boolean = false) {
+        if (!prefs.getBoolean("yt_new_on", false)) {
+            mediaFeed.replaceSource(YouTubeSubscriptions.SOURCE_ID, emptyList())
+            return
+        }
+        io.execute {
+            val (videos, staleAt) = try { youtubeSource.read(force) }
+                catch (e: Exception) {
+                    android.util.Log.w("Plume", "YouTube RSS read failed", e)
+                    emptyList<YouTubeSubscriptions.Video>() to null
+                }
+            if (!prefs.getBoolean("yt_new_on", false)) return@execute
+            val smartTube = YouTubeSubscriptions.packages.firstOrNull {
+                packageManager.getLeanbackLaunchIntentForPackage(it) != null
+            }
+            val age = staleAt?.let { ((System.currentTimeMillis() - it) / 3600000L).coerceAtLeast(1L) }
+            mediaFeed.replaceSource(YouTubeSubscriptions.SOURCE_ID, YouTubeSubscriptions.media(videos, smartTube, age))
+            ui.post {
+                if (!isDestroyed && homeLayoutMode == HomeLayoutMode.OVERVIEW)
+                    updateOverviewPreview(sortedApps().filter { inRow(it.pkg, rowHiddenSet()) })
+            }
+        }
     }
 
     /** Overlays (All apps, launcher settings) sit on top of the home rows; keep focus from slipping behind them. */
@@ -5622,6 +5705,18 @@ class MainActivity : Activity() {
         }
         // The new Nuvio Next Up channel feeds Overview only. Never add it to Classic's
         // existing row or change Classic's channel defaults and per-app ordering.
+        // SmartTube publishes preview channels on Android TV. The Subscriptions channel
+        // belongs in Overview even if its Classic channel toggle is off.
+        val smartTubeSubs = if (prefs.getBoolean("yt_new_on", false)) discovered.filter { (id, pkg, name) ->
+            YouTubeSubscriptions.isSmartTube(pkg) && YouTubeSubscriptions.isSubscriptions(name) &&
+                on.none { it.first == id }
+        }.flatMap { (id, _, name) ->
+            try { readPrograms(TvContract.buildPreviewProgramsUriForChannel(id), hidden, "ch$id", name) }
+            catch (e: Exception) {
+                android.util.Log.w("Plume", "SmartTube Subscriptions channel $id unavailable", e)
+                emptyList()
+            }
+        } else emptyList()
         val nuvioNextUp = discovered.filter { (id, pkg, name) ->
             AndroidTvMediaSource.isNuvioPackage(pkg) &&
                 name.equals("Next Up", ignoreCase = true) && on.none { it.first == id }
@@ -5635,7 +5730,7 @@ class MainActivity : Activity() {
         }
         val all = watchNext + channels
         android.util.Log.i("Plume", "continue watching: ${watchNext.size} from Watch Next, ${channels.size} from ${on.size} channels")
-        publishingPkgs = (all + nuvioNextUp).mapNotNull { it.second.pkg }.toSet()
+        publishingPkgs = (all + nuvioNextUp + smartTubeSubs).mapNotNull { it.second.pkg }.toSet()
         val off = prefs.getStringSet("cw_off", emptySet())!!
         val visible = all.filter { it.second.pkg !in off }
         // Preserve the legacy title/intent filtering and ordering for Classic.
@@ -5643,7 +5738,8 @@ class MainActivity : Activity() {
             .take(20)
         // Use the same TV query as Classic; do not re-crawl providers or alter Classic's sorting.
         // Only entries with trustworthy Continue evidence appear in the shared Overview.
-        val feedEntries = newestPerApp(visible + nuvioNextUp.filter { it.second.pkg !in off }, PER_APP) { it.group }
+        val feedEntries = newestPerApp(visible + nuvioNextUp.filter { it.second.pkg !in off } +
+            smartTubeSubs.filter { it.second.pkg !in off }, PER_APP) { it.group }
         val candidates = feedEntries.mapIndexed { index, p ->
             AndroidTvProgram(
                 item = MediaItem(
@@ -5666,6 +5762,8 @@ class MainActivity : Activity() {
             )
         }
         val classified = AndroidTvMediaSource.select(candidates, permissionGranted = true)
+            .filter { prefs.getBoolean("yt_new_on", false) ||
+                !(YouTubeSubscriptions.isSmartTube(it.sourcePackage) && it.category == MediaCategory.NEW) }
         // Limit each section independently. A full Continue row must not hide all Next Up.
         mediaFeed.replaceSource("tv",
             classified.filter { it.category == MediaCategory.CONTINUE }.take(20) +
