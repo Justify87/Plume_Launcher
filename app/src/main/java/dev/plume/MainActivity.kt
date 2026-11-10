@@ -5665,7 +5665,12 @@ class MainActivity : Activity() {
                 episodeNumber = p.episodeNumber,
             )
         }
-        mediaFeed.replaceSource("tv", AndroidTvMediaSource.select(candidates, permissionGranted = true).take(20))
+        val classified = AndroidTvMediaSource.select(candidates, permissionGranted = true)
+        // Limit each section independently. A full Continue row must not hide all Next Up.
+        mediaFeed.replaceSource("tv",
+            classified.filter { it.category == MediaCategory.CONTINUE }.take(20) +
+                classified.filter { it.category == MediaCategory.NEW }.take(20)
+        )
         return displayed
     }
 
