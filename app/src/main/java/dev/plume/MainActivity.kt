@@ -359,6 +359,7 @@ class MainActivity : Activity() {
     private var sidebarSelection = HomeSidebarView.OVERVIEW
     private var homePage: HomePageState = HomePageState.Overview
     private var previewPageKey: String? = null
+    private val previewScrollY = mutableMapOf<String, Int>()
 
     private var resumed = false
     private var ready = false // false while the user is still locked: no prefs, files or cache yet
@@ -4182,10 +4183,14 @@ class MainActivity : Activity() {
         }
         val all = homePage == HomePageState.AllApps
         val pageKey = homePage.key
-        if (previewPageKey != pageKey) {
+        val previewScroll = findViewById<android.widget.ScrollView>(R.id.overviewPreviewScroll)
+        val changedPage = previewPageKey != pageKey
+        if (changedPage) {
+            previewPageKey?.let { previewScrollY[it] = previewScroll.scrollY }
             previewPageKey = pageKey
-            findViewById<android.widget.ScrollView>(R.id.overviewPreviewScroll).scrollTo(0, 0)
+            previewScroll.scrollTo(0, 0)
         }
+        val restoreScrollY = previewScrollY[pageKey] ?: previewScroll.scrollY
         heading.text = when {
             app != null -> app.label
             all -> getString(R.string.all_apps)
@@ -4253,6 +4258,10 @@ class MainActivity : Activity() {
         if (hadCardFocus && homeOverview.positionOf(currentFocus) == null) {
             (homeOverview.preferredCard() ?: action.takeIf { it.isShown }
                 ?: homeSidebar.viewFor(sidebarSelection))?.requestFocus()
+        }
+        if (restoreScrollY > 0) previewScroll.post {
+            if (previewPageKey == pageKey && !homeOverview.hasFocus())
+                previewScroll.scrollTo(0, restoreScrollY)
         }
     }
 
