@@ -298,10 +298,15 @@ class MainActivity : Activity() {
     }
     /** [group]: what shares the front places in Continue Watching, the app or, for an app channel, that channel. */
     private class Prog(val title: String, val sub: String, val progress: Int, val image: String?, val intent: String?, val pkg: String?,
-                       val group: String? = pkg, val wide: Boolean = true) // wide: the art can be a wallpaper (see ShowsWall.wide)
+                       val group: String? = pkg, val wide: Boolean = true, // wide: the art can be a wallpaper (see ShowsWall.wide)
+                       val contentId: String? = null, val origin: String = "tv:watchnext",
+                       val category: MediaCategory = MediaCategory.UNKNOWN, val durationMillis: Long? = null,
+                       val playbackPositionMillis: Long? = null, val engagedAtMillis: Long? = null)
 
     private val prefs by lazy { getSharedPreferences("home", MODE_PRIVATE) }
     private val io = Executors.newSingleThreadExecutor()
+    // One TV query populates both Classic's Prog list and the shared model. Demo remains separate.
+    private val mediaFeed = MediaFeedRepository().apply { replaceSource("demo", DemoMedia.asMediaItems()) }
     /** Small wallpaper pictures for the settings grids, by choice and size; 8 MB holds every built-in twice over. */
     private val thumbCache = object : LruCache<String, Bitmap>(8 * 1024 * 1024) {
         override fun sizeOf(key: String, value: Bitmap) = value.byteCount
@@ -4153,7 +4158,7 @@ class MainActivity : Activity() {
         }
     }
 
-    /** M03 contains only named offline demo cards. Production TvContract rows remain in Classic. */
+    /** The Overview still shows named offline examples, now filtered by the shared repository. */
     private fun updateOverviewPreview(visibleApps: List<App>) {
         val heading = findViewById<TextView>(R.id.overviewHeading)
         val description = findViewById<TextView>(R.id.overviewDescription)
@@ -4169,7 +4174,10 @@ class MainActivity : Activity() {
             all -> getString(R.string.all_apps)
             else -> getString(R.string.home_layout_overview)
         }
-        val rows = if (all) listOf(emptyList(), emptyList()) else DemoMedia.rowsFor(app?.pkg)
+        val rows: List<List<MediaItem>> = if (all) listOf(emptyList(), emptyList()) else listOf(
+            mediaFeed.snapshot(sourceId = "demo", packageName = app?.pkg, category = MediaCategory.CONTINUE),
+            mediaFeed.snapshot(sourceId = "demo", packageName = app?.pkg, category = MediaCategory.NEW),
+        )
         description.setText(when {
             all -> R.string.sidebar_all_apps_info
             app == null -> R.string.demo_overview_info
@@ -5460,6 +5468,7 @@ class MainActivity : Activity() {
     private fun refreshWatchNext() {
         if (checkSelfPermission(TV_LISTINGS) != PackageManager.PERMISSION_GRANTED) {
             android.util.Log.w("Plume", "continue watching: no $TV_LISTINGS")
+            mediaFeed.replaceSource("tv", emptyList())
             showWatchNext(emptyList())
             return
         }
@@ -5468,6 +5477,7 @@ class MainActivity : Activity() {
                 queryWatchNext()
             } catch (e: Exception) {
                 android.util.Log.w("Plume", "continue watching failed ($e)")
+                mediaFeed.replaceSource("tv", emptyList())
                 emptyList()
             }
             ui.post { if (!isDestroyed) showWatchNext(list) }
@@ -5490,15 +5500,29 @@ class MainActivity : Activity() {
         val on = continueChannels()
         autoRowName = if (watchNextOn) null
             else on.map { it.third }.distinct().singleOrNull()?.takeUnless { it.equals("Continue Watching", ignoreCase = true) }
-        val channels = on.flatMap { (id) ->
-            readPrograms(TvContract.buildPreviewProgramsUriForChannel(id), hidden, "ch$id")
+        val channels = on.flatMap { (id, _, name) ->
+            readPrograms(TvContract.buildPreviewProgramsUriForChannel(id), hidden, "ch$id", name)
         }
         val all = watchNext + channels
         android.util.Log.i("Plume", "continue watching: ${watchNext.size} from Watch Next, ${channels.size} from ${on.size} channels")
         publishingPkgs = all.mapNotNull { it.second.pkg }.toSet()
         val off = prefs.getStringSet("cw_off", emptySet())!!
-        return newestPerApp(all.filter { it.second.pkg !in off }.distinctBy { it.second.intent ?: it.second.title }, PER_APP) { it.group }
+        val displayed = newestPerApp(all.filter { it.second.pkg !in off }.distinctBy { it.second.intent ?: it.second.title }, PER_APP) { it.group }
             .take(20)
+        // Reuse Classic's exact result, on the existing I/O executor. Never query TvContract twice.
+        mediaFeed.replaceSource("tv", displayed.mapIndexed { index, p ->
+            MediaItem(
+                stableId = MediaFeedRules.stableId(p.origin, p.pkg, p.contentId, p.intent, index),
+                sourceId = "tv", sourcePackage = p.pkg, title = p.title,
+                subtitle = p.sub.takeIf { it.isNotBlank() }, imageUri = p.image,
+                progressPercent = p.progress.takeIf { it > 0 },
+                durationMillis = p.durationMillis, playbackPositionMillis = p.playbackPositionMillis,
+                engagedAtMillis = p.engagedAtMillis, category = p.category,
+                intentUri = p.intent?.takeIf { it.isNotBlank() }, contentId = p.contentId,
+                sourceOrder = index,
+            )
+        })
+        return displayed
     }
 
     /** Apps last seen publishing, so the settings list includes them even without the permission check. */
@@ -5594,13 +5618,14 @@ class MainActivity : Activity() {
     }
 
     /** Pairs of (sort key, item), see [watchSortKey]; a [group] is a channel, its rows sorted by [channelSortKey] and [byWeight]. */
-    private fun readPrograms(uri: Uri, hidden: Set<String>, group: String? = null): List<Pair<Long, Prog>> {
+    private fun readPrograms(uri: Uri, hidden: Set<String>, group: String? = null, channelName: String? = null): List<Pair<Long, Prog>> {
         val out = ArrayList<Triple<Long, Long, Prog>>()
         val cursor = contentResolver.query(uri, null, null, null, null)
         if (cursor == null) android.util.Log.w("Plume", "no TV provider answer for $uri") // provider hidden from us or missing
         cursor?.use { c ->
             fun str(col: String) = c.getColumnIndex(col).let { if (it < 0 || c.isNull(it)) null else c.getString(it) }
             fun num(col: String) = c.getColumnIndex(col).let { if (it < 0 || c.isNull(it)) 0L else c.getLong(it) }
+            fun optionalNum(col: String): Long? = c.getColumnIndex(col).let { if (it < 0 || c.isNull(it)) null else c.getLong(it) }
             while (c.moveToNext()) {
                 if (str("browsable") == "0") continue
                 val title = str("title") ?: continue
@@ -5617,8 +5642,20 @@ class MainActivity : Activity() {
                 val progress = if (duration > 0 && position >= 1000) (position * 100 / duration).toInt().coerceIn(0, 100) else 0
                 val pkg = str("package_name")
                 val wide = ShowsWall.wide(str("thumbnail_uri") != null, num("poster_art_aspect_ratio").toInt())
-                val prog = Prog(title, sub, progress, str("thumbnail_uri") ?: str("poster_art_uri"), str("intent_uri"), pkg, group ?: pkg, wide)
                 val engaged = num("last_engagement_time_utc_millis")
+                val prog = Prog(
+                    title, sub, progress, str("thumbnail_uri") ?: str("poster_art_uri"),
+                    str("intent_uri"), pkg, group ?: pkg, wide,
+                    contentId = str("_id"), origin = if (group == null) "tv:watchnext" else "tv:$group",
+                    category = MediaFeedRules.classify(
+                        if (group == null) optionalNum("watch_next_type") else null,
+                        position.takeIf { it > 0 },
+                        channelName.equals("Continue Watching", ignoreCase = true),
+                    ),
+                    durationMillis = duration.takeIf { it > 0 },
+                    playbackPositionMillis = position.takeIf { it > 0 },
+                    engagedAtMillis = engaged.takeIf { it > 0 },
+                )
                 out += Triple(num("weight"),
                     if (group == null) watchSortKey(num("watch_next_type"), engaged) else channelSortKey(engaged, prefs.getLong("t_$pkg", 0)), prog)
             }
