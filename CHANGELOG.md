@@ -16,6 +16,9 @@ Put changes that are not released under `## Unreleased`. Rename that heading to 
 
 ## Unreleased
 
+- **Overview sidebar.** Press Up or Down to choose an app. Press OK to open the app or All apps.
+- Press Right on an app in the Overview sidebar to reach its Open app action. Press Left to return.
+
 - **Home layout.** Select **Plume settings → Style → Home layout** to switch between Classic and the Overview preview.
 
 - **Custom app pictures.** Hold **OK** on an app, then select **Change picture**. Upload an icon or banner from your phone.
