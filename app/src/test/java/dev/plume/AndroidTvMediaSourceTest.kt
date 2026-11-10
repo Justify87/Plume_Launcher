@@ -233,4 +233,22 @@ class AndroidTvMediaSourceTest {
         assertTrue(!AndroidTvMediaSource.isNuvioPackage("com.nuvio.tv"))
         assertTrue(!AndroidTvMediaSource.isNuvioPackage("com.justify87.nuviotv.wireguard.fake"))
     }
+    @Test fun smartTubeOnlyPublishesVerifiedSubscriptionVideosAsNew() {
+        val smartTube = "org.smarttube.beta"
+        val id = "abcDEF12345"
+        val selected = AndroidTvMediaSource.select(listOf(
+            record("subscription", app = smartTube, watchNext = false, channel = "Subscriptions",
+                providerId = id, progress = null, type = null),
+            record("history", app = smartTube, watchNext = false, channel = "History",
+                providerId = "history1234", progress = null, type = null),
+            record("recommendations", app = smartTube, watchNext = false, channel = "Recommended",
+                providerId = "recommend12", progress = null, type = null),
+            record("unknown", app = smartTube, watchNext = false, channel = "Subscriptions",
+                providerId = "invalid", progress = null, type = null),
+        ), true)
+        assertEquals(1, selected.size)
+        assertEquals(MediaCategory.NEW, selected.single().category)
+        assertEquals("yt:$id", selected.single().contentId)
+        assertEquals(MediaKind.VIDEO, selected.single().kind)
+    }
 }
