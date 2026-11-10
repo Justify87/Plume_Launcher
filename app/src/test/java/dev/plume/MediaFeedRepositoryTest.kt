@@ -115,7 +115,7 @@ class MediaFeedRepositoryTest {
         assertTrue(repo.snapshot().isEmpty())
         assertEquals(1, old.size)
         try {
-            (old as MutableList).clear()
+            (old as MutableList<MediaItem>).clear()
             throw AssertionError("Published snapshot is mutable")
         } catch (_: UnsupportedOperationException) { }
     }
