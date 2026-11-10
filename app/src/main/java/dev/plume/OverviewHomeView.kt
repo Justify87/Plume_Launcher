@@ -10,6 +10,7 @@ import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
 import android.graphics.drawable.Drawable
 import android.widget.FrameLayout
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
@@ -42,6 +43,8 @@ class OverviewHomeView @JvmOverloads constructor(
     private var dispose: (View) -> Unit = {}
     private var selected: (MediaItem) -> Unit = {}
     private var progressArtwork: () -> Drawable = { android.graphics.drawable.ColorDrawable(0) }
+    private var artwork: (ImageView, String?) -> Unit = { _, _ -> }
+    private var sourceMark: (String?) -> Drawable? = { null }
     private var onScrolled: () -> Unit = {}
     private var tileWidth = dp(196)
 
@@ -70,11 +73,14 @@ class OverviewHomeView @JvmOverloads constructor(
         newTitle: String,
         exampleTag: String,
         emptyLabel: String,
+        newEmptyLabel: String = emptyLabel,
         decorateCard: (View) -> Unit,
         tintLabel: (TextView) -> Unit,
         disposeCard: (View) -> Unit,
         onSelect: (MediaItem) -> Unit,
         makeProgress: () -> Drawable,
+        loadArtwork: (ImageView, String?) -> Unit = { _, _ -> },
+        sourceMark: (String?) -> Drawable? = { null },
         onScroll: () -> Unit,
     ) {
         val focusedBefore = positionOf(findFocus())
@@ -90,6 +96,8 @@ class OverviewHomeView @JvmOverloads constructor(
         dispose = disposeCard
         selected = onSelect
         progressArtwork = makeProgress
+        artwork = loadArtwork
+        this.sourceMark = sourceMark
         onScrolled = onScroll
 
         val assembled = mutableListOf<Lane>()
@@ -102,7 +110,7 @@ class OverviewHomeView @JvmOverloads constructor(
                 if (section > 0) topMargin = dp(12)
             })
             if (cards.isEmpty()) {
-                addView(title(emptyLabel, 13f, 0.8f), LayoutParams(MATCH_PARENT, dp(35)))
+                addView(title(if (section == 0) emptyLabel else newEmptyLabel, 13f, 0.8f), LayoutParams(MATCH_PARENT, dp(35)))
                 continue
             }
 
@@ -192,7 +200,10 @@ class OverviewHomeView @JvmOverloads constructor(
         }
         val cover = FrameLayout(context).apply {
             tag = item.stableId
-            contentDescription = "$demoLabel: ${item.title}, ${item.sourceLabel ?: item.sourcePackage.orEmpty()}, ${item.subtitle.orEmpty()}"
+            contentDescription = listOfNotNull(
+                demoLabel.takeIf { it.isNotBlank() }, item.title, item.sourceLabel ?: item.sourcePackage,
+                item.subtitle?.takeIf { it.isNotBlank() },
+            ).joinToString(", ")
         }
         decorate(cover)
         val kind = when (item.kind) {
@@ -202,9 +213,18 @@ class OverviewHomeView @JvmOverloads constructor(
             MediaKind.PODCAST -> context.getString(R.string.demo_podcast)
             MediaKind.UNKNOWN -> ""
         }
-        if (kind.isNotEmpty()) cover.addView(title(kind, 16f), FrameLayout.LayoutParams(
-            MATCH_PARENT, MATCH_PARENT, Gravity.CENTER,
-        ).apply { leftMargin = dp(10); rightMargin = dp(10) })
+        if (item.imageUri != null) {
+            val image = ImageView(context).apply {
+                scaleType = ImageView.ScaleType.CENTER_CROP
+                setBackgroundColor(0xFF343A44.toInt())
+            }
+            cover.addView(image, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT))
+            artwork(image, item.imageUri)
+        } else if (kind.isNotEmpty()) {
+            cover.addView(title(kind, 16f), FrameLayout.LayoutParams(
+                MATCH_PARENT, MATCH_PARENT, Gravity.CENTER,
+            ).apply { leftMargin = dp(10); rightMargin = dp(10) })
+        }
         cover.setOnClickListener { selected(item) }
         column.addView(cover, LayoutParams(MATCH_PARENT, dp(78)))
         column.addView(ProgressBar(context, null, android.R.attr.progressBarStyleHorizontal).apply {
@@ -215,7 +235,15 @@ class OverviewHomeView @JvmOverloads constructor(
         }, LayoutParams(MATCH_PARENT, dp(3)).apply { topMargin = dp(4) })
         column.addView(title(item.title, 14f), LayoutParams(MATCH_PARENT, dp(19)).apply { topMargin = dp(2) })
         column.addView(title(item.subtitle.orEmpty(), 12f, 0.8f), LayoutParams(MATCH_PARENT, dp(17)))
-        column.addView(title("$demoLabel · ${item.sourceLabel ?: item.sourcePackage.orEmpty()}", 11f, 0.72f), LayoutParams(MATCH_PARENT, dp(16)))
+        val sourceText = listOfNotNull(demoLabel.takeIf { it.isNotBlank() },
+            item.sourceLabel ?: item.sourcePackage).joinToString(" · ")
+        column.addView(title(sourceText, 11f, 0.72f).apply {
+            sourceMark(item.sourcePackage)?.let { mark ->
+                mark.setBounds(0, 0, dp(12), dp(12))
+                setCompoundDrawablesRelative(mark, null, null, null)
+                compoundDrawablePadding = dp(5)
+            }
+        }, LayoutParams(MATCH_PARENT, dp(16)))
         slot.addView(column, FrameLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT))
         val position = Position(row, index)
         mounted[cover] = position
