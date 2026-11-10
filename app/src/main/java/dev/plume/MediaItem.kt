@@ -37,7 +37,6 @@ internal data class MediaItem(
 ) {
     init {
         require(stableId.isNotBlank() && sourceId.isNotBlank())
-        require(title.isNotBlank())
         require(progressPercent == null || progressPercent in 0..100)
         require(durationMillis == null || durationMillis >= 0)
         require(playbackPositionMillis == null || playbackPositionMillis >= 0)

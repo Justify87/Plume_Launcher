@@ -38,7 +38,7 @@ internal object MediaFeedRules {
         fun part(s: String) = "${s.length}:$s"
         val seen = HashSet<String>()
         return items.filter { item ->
-            val owner = item.sourcePackage?.takeIf { it.isNotBlank() } ?: "source:${item.sourceId}"
+            val owner = item.sourcePackage?.takeIf { it.isNotBlank() } ?: "unknown:${item.stableId}"
             val key = when {
                 !item.intentUri.isNullOrBlank() -> "intent:${part(owner)}:${part(item.intentUri)}"
                 !item.contentId.isNullOrBlank() -> "content:${part(owner)}:${part(item.contentId)}"

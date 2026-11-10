@@ -5507,15 +5507,19 @@ class MainActivity : Activity() {
         android.util.Log.i("Plume", "continue watching: ${watchNext.size} from Watch Next, ${channels.size} from ${on.size} channels")
         publishingPkgs = all.mapNotNull { it.second.pkg }.toSet()
         val off = prefs.getStringSet("cw_off", emptySet())!!
-        val displayed = newestPerApp(all.filter { it.second.pkg !in off }.distinctBy { it.second.intent ?: it.second.title }, PER_APP) { it.group }
+        val visible = all.filter { it.second.pkg !in off }
+        // Preserve the legacy title/intent filtering and ordering for Classic.
+        val displayed = newestPerApp(visible.distinctBy { it.second.intent ?: it.second.title }, PER_APP) { it.group }
             .take(20)
-        // Reuse Classic's exact result, on the existing I/O executor. Never query TvContract twice.
-        mediaFeed.replaceSource("tv", displayed.mapIndexed { index, p ->
+        // The new feed must not inherit Classic's title-only dedupe: distinct shows can share a title.
+        // Reuse the same TvContract result and executor, with no second query or poster cache.
+        val feedItems = newestPerApp(visible, PER_APP) { it.group }.take(20)
+        mediaFeed.replaceSource("tv", feedItems.mapIndexed { index, p ->
             MediaItem(
                 stableId = MediaFeedRules.stableId(p.origin, p.pkg, p.contentId, p.intent, index),
                 sourceId = "tv", sourcePackage = p.pkg, title = p.title,
                 subtitle = p.sub.takeIf { it.isNotBlank() }, imageUri = p.image,
-                progressPercent = p.progress.takeIf { it > 0 },
+                progressPercent = p.progress.takeIf { p.durationMillis != null && (p.playbackPositionMillis ?: 0L) >= 1000L },
                 durationMillis = p.durationMillis, playbackPositionMillis = p.playbackPositionMillis,
                 engagedAtMillis = p.engagedAtMillis, category = p.category,
                 intentUri = p.intent?.takeIf { it.isNotBlank() }, contentId = p.contentId,
