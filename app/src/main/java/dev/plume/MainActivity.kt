@@ -6126,7 +6126,7 @@ class MainActivity : Activity() {
         const val FIRST_WALLPAPER = "res:Arctic Aurora"
         // ponytail: pinned to today's blob; if the photo changes on main the fetch fails and the 1080p copy stays.
         val FIRST_WALLPAPER_4K = PackPhoto("05_Arctic_Aurora.webp", 1_145_394, "fb288f54f21328355cf2d2c0cb23148069888628")
-        const val PACK_URL = "https://raw.githubusercontent.com/aradhyas8/Plume_Launcher/main/wallpapers/"
+        const val PACK_URL = "https://raw.githubusercontent.com/Justify87/Plume_Launcher/main/wallpapers/"
         val PIN_KEYS = setOf(
             KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN, KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT,
             KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_NUMPAD_ENTER,

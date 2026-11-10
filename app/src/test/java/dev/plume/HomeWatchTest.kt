@@ -59,15 +59,21 @@ class HomeWatchTest {
         w.opened("com.amazon.tv.settings.v2", "Settings", 1_000)
         assertEquals(HomeWatch.SETTINGS_WAIT_MS, w.opened(amazon, amazonHome, 2_000))
         w.jumped()
-        w.opened("dev.plume", "dev.plume.MainActivity", 3_000)
+        w.opened("dev.plume.advanced", "dev.plume.MainActivity", 3_000)
         assertEquals(HomeWatch.SETTINGS_WAIT_MS, w.opened(amazon, amazonHome, 4_000))
+    }
+
+    @Test fun originalPlumeIsAnotherAppNotAdvanced() {
+        val w = watch()
+        assertNull(w.opened("dev.plume", "dev.plume.MainActivity", 1_000))
+        assertEquals(0L, w.opened(amazon, amazonHome, 2_000))
     }
 
     @Test fun theWaitIsOnlyForFireTv() {
         val w = watch(fire = false)
-        w.opened("dev.plume", "dev.plume.MainActivity", 1_000)
+        w.opened("dev.plume.advanced", "dev.plume.MainActivity", 1_000)
         assertEquals(0L, w.opened(gtv, gtvHome, 2_000))
-        w.opened("dev.plume", "dev.plume.MainActivity", 3_000)
+        w.opened("dev.plume.advanced", "dev.plume.MainActivity", 3_000)
         assertEquals(0L, w.opened(amazon, amazonHome, 4_000))
     }
 
@@ -77,7 +83,7 @@ class HomeWatchTest {
 
     @Test fun googleTvHomeJumpsAtOnce() {
         val w = watch(fire = false)
-        w.opened("dev.plume", "dev.plume.MainActivity", 2_000)
+        w.opened("dev.plume.advanced", "dev.plume.MainActivity", 2_000)
         assertEquals(0L, w.opened(gtv, gtvHome, 3_000))
         assertEquals(0L, w.opened(gtv, gtvKids, 4_000))
     }
@@ -134,7 +140,7 @@ class HomeWatchTest {
             entry(gtv, gtvKids),
             entry(atv, atvHome),
             entry(amazon, amazonHome),
-            entry("dev.plume", "dev.plume.MainActivity"),
+            entry("dev.plume.advanced", "dev.plume.MainActivity"),
         )
         assertEquals(mapOf(gtv to setOf(gtvHome, gtvKids), atv to setOf(atvHome)), stockHomes(found))
     }
@@ -159,23 +165,23 @@ class HomeWatchTest {
     // A second Home window must leave the jump waiting when Home is pressed from Plume.
     @Test fun moreWindowsOfTheSamePressKeepTheWaitingJump() {
         val w = watch()
-        w.opened("dev.plume", "dev.plume.MainActivity", 1_000)
+        w.opened("dev.plume.advanced", "dev.plume.MainActivity", 1_000)
         assertEquals(HomeWatch.SETTINGS_WAIT_MS, w.opened(amazon, amazonHome, 2_000))
         assertEquals(HomeWatch.KEEP, w.opened(amazon, amazonHome, 2_100))
         assertEquals(HomeWatch.KEEP, w.opened("com.android.systemui", "Panel", 2_200))
-        assertEquals(HomeWatch.KEEP, w.opened("dev.plume", "dev.plume.MainActivity", 2_300))
+        assertEquals(HomeWatch.KEEP, w.opened("dev.plume.advanced", "dev.plume.MainActivity", 2_300))
     }
 
     @Test fun anotherAppOpeningDropsTheWaitingJump() { // Settings on top of Amazon's home
         val w = watch()
-        w.opened("dev.plume", "dev.plume.MainActivity", 1_000)
+        w.opened("dev.plume.advanced", "dev.plume.MainActivity", 1_000)
         assertEquals(HomeWatch.SETTINGS_WAIT_MS, w.opened(amazon, amazonHome, 2_000))
         assertNull(w.opened("com.amazon.tv.settings.v2", "Settings", 2_200))
     }
 
     @Test fun waitingJumpSurvivesTheGapUntilItRuns() {
         val w = watch()
-        w.opened("dev.plume", "dev.plume.MainActivity", 1_000)
+        w.opened("dev.plume.advanced", "dev.plume.MainActivity", 1_000)
         assertEquals(HomeWatch.SETTINGS_WAIT_MS, w.opened(amazon, amazonHome, 2_000))
         assertEquals(HomeWatch.KEEP, w.opened(amazon, amazonHome, 2_000 + HomeWatch.SETTINGS_WAIT_MS))
         assertEquals(HomeWatch.KEEP, w.opened(amazon, amazonHome, 2_575))
@@ -185,14 +191,14 @@ class HomeWatchTest {
 
     @Test fun anotherAmazonLauncherScreenDropsTheWaitingJump() {
         val w = watch()
-        w.opened("dev.plume", "dev.plume.MainActivity", 1_000)
+        w.opened("dev.plume.advanced", "dev.plume.MainActivity", 1_000)
         assertEquals(HomeWatch.SETTINGS_WAIT_MS, w.opened(amazon, amazonHome, 2_000))
         assertNull(w.opened(amazon, "com.amazon.tv.launcher.ui.QuickSettingsActivity", 2_200))
     }
 
     @Test fun androidWindowDoesNotDropTheWaitingJump() {
         val w = watch()
-        w.opened("dev.plume", "dev.plume.MainActivity", 1_000)
+        w.opened("dev.plume.advanced", "dev.plume.MainActivity", 1_000)
         assertEquals(HomeWatch.SETTINGS_WAIT_MS, w.opened(amazon, amazonHome, 2_000))
         assertEquals(HomeWatch.KEEP, w.opened("android", "Dialog", 2_200))
         assertEquals(HomeWatch.KEEP, w.opened(amazon, amazonHome, 2_300))

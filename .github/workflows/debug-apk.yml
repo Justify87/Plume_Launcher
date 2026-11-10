@@ -40,6 +40,12 @@ jobs:
           apk_dir=app/build/outputs/apk/debug
           mv "$apk_dir/app-debug.apk" "$apk_dir/Plume-Launcher-Advanced-debug.apk"
           test -s "$apk_dir/Plume-Launcher-Advanced-debug.apk"
+          # Reject an accidentally un-rebranded APK, even if Gradle succeeds.
+          aapt="$(find "$ANDROID_HOME/build-tools" -maxdepth 2 -type f -name aapt | sort -V | tail -n 1)"
+          test -n "$aapt"
+          "$aapt" dump badging "$apk_dir/Plume-Launcher-Advanced-debug.apk" > "$apk_dir/badging.txt"
+          grep -Fq "package: name='dev.plume.advanced'" "$apk_dir/badging.txt"
+          grep -Fq "application-label:'Plume Launcher Advanced'" "$apk_dir/badging.txt"
           (cd "$apk_dir" && sha256sum Plume-Launcher-Advanced-debug.apk > SHA256SUMS)
           {
             echo "### Debug APK ready"
