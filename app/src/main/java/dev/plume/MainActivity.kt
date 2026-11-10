@@ -1043,11 +1043,12 @@ class MainActivity : Activity() {
     @Deprecated("Home screen: Back only closes overlays")
     override fun onBackPressed() {
         if (!ready) return
+        val backPage = homePage.backTarget()
         when {
             settingsScrim.visibility == View.VISIBLE -> pageBack?.invoke() ?: closeLauncherSettings()
             allApps.visibility == View.VISIBLE -> closeAllApps()
-            homeLayoutMode == HomeLayoutMode.OVERVIEW && homePage is HomePageState.App -> {
-                homePage = HomePageState.Overview
+            homeLayoutMode == HomeLayoutMode.OVERVIEW && backPage != null -> {
+                homePage = backPage
                 sidebarSelection = HomeSidebarView.OVERVIEW
                 updateOverviewPreview(sortedApps().filter { inRow(it.pkg, rowHiddenSet()) })
                 homeSidebar.viewFor(HomeSidebarView.OVERVIEW)?.requestFocus()
@@ -4248,7 +4249,7 @@ class MainActivity : Activity() {
             sourceMark = { pkg -> sourceIcon(pkg) },
             onScroll = { glass.kick(150) },
         )
-        if (hadCardFocus && currentFocus?.isAttachedToWindow != true) {
+        if (hadCardFocus && homeOverview.positionOf(currentFocus) == null) {
             (homeOverview.preferredCard() ?: action.takeIf { it.isShown }
                 ?: homeSidebar.viewFor(sidebarSelection))?.requestFocus()
         }
