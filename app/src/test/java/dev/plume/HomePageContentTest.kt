@@ -51,8 +51,7 @@ class HomePageContentTest {
         assertTrue(HomePageContent.sections(repo, HomePageState.App("app.empty")).isEmpty())
         assertTrue(HomePageContent.sections(repo, HomePageState.AllApps).isEmpty())
         val overview = HomePageContent.sections(MediaFeedRepository(), HomePageState.Overview)
-        assertEquals(listOf(MediaCategory.CONTINUE, MediaCategory.NEW), overview.map { it.category })
-        assertTrue(overview.all { it.items.isEmpty() })
+        assertTrue(overview.isEmpty())
     }
 
     @Test fun unknownContentNeverPretendsToBeNewOrRecommended() {
@@ -89,9 +88,8 @@ class HomePageContentTest {
             HomePageContent.restoreFocus(rows, MediaCategory.CONTINUE, retained.stableId, 0))
         assertEquals(HomePageContent.FocusTarget(0, 2),
             HomePageContent.restoreFocus(rows, MediaCategory.CONTINUE, "deleted", 100))
-        assertEquals(HomePageContent.FocusTarget(1, 0),
-            HomePageContent.restoreFocus(rows.drop(1), MediaCategory.CONTINUE, "deleted", 2)
-                ?.let { it.copy(row = 1) })
+        assertEquals(HomePageContent.FocusTarget(0, 0),
+            HomePageContent.restoreFocus(rows.drop(1), MediaCategory.CONTINUE, "deleted", 2))
     }
 
     @Test fun removingLastCardLeavesNoInvalidFocusTarget() {
