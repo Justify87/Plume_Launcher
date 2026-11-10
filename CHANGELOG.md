@@ -16,6 +16,9 @@ Put changes that are not released under `## Unreleased`. Rename that heading to 
 
 ## Unreleased
 
+- **SmartTube subscriptions.** Turn on SmartTube / YouTube in settings to show videos from SmartTube's Subscriptions channel.
+- Add public YouTube channel IDs to show recent videos from selected channels. No account login is required.
+
 - **Nuvio Next Up.** Overview shows aired next episodes from Nuvio's separate Next Up channel.
 - **Nuvio Continue Watching.** Only started Nuvio items appear in Weitermachen. Older Nuvio versions still work.
 - Classic keeps its previous Watch Next row. Check Nuvio's channel visibility on your TV.
