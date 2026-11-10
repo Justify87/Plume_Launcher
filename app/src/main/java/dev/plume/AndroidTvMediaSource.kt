@@ -45,6 +45,10 @@ internal object AndroidTvMediaSource {
                     if (!nuvio || started) MediaCategory.CONTINUE else null
                 !program.watchNext && program.channelName.equals("Continue Watching", ignoreCase = true) ->
                     if (!nuvio || started) MediaCategory.CONTINUE else null
+                !program.watchNext && YouTubeSubscriptions.isSmartTube(program.item.sourcePackage) &&
+                    YouTubeSubscriptions.isSubscriptions(program.channelName) &&
+                    (YouTubeSubscriptions.videoId(program.internalProviderId)
+                        ?: YouTubeSubscriptions.videoId(program.item.intentUri)) != null -> MediaCategory.NEW
                 !program.watchNext && nuvio && program.channelName.equals("Next Up", ignoreCase = true) &&
                     (program.seasonNumber?.toIntOrNull() ?: -1) >= 0 &&
                     (program.episodeNumber?.toIntOrNull() ?: 0) > 0 && !started -> MediaCategory.NEW
@@ -59,7 +63,12 @@ internal object AndroidTvMediaSource {
                 val keys = duplicateKeys(program)
                 if (keys.any { it in seen }) return@mapNotNull null
                 seen.addAll(keys)
-                program.item.copy(category = category)
+                if (category == MediaCategory.NEW && YouTubeSubscriptions.isSmartTube(program.item.sourcePackage)) {
+                    val id = YouTubeSubscriptions.videoId(program.internalProviderId)
+                        ?: YouTubeSubscriptions.videoId(program.item.intentUri)!!
+                    program.item.copy(category = category, stableId = "yt:$id",
+                        contentId = "yt:$id", kind = MediaKind.VIDEO)
+                } else program.item.copy(category = category)
             }
     }
 
