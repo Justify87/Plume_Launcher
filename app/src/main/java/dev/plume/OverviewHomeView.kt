@@ -160,6 +160,14 @@ class OverviewHomeView @JvmOverloads constructor(
     fun counts(): List<Int> = lanes.map { it.cards.size }
     fun lastIndex(row: Int): Int? = lastPerRow[page]?.get(row)
 
+    /** Reuse Classic's poster cache when two mounted cards request the same URI concurrently. */
+    internal fun retryArtwork() {
+        for (cover in mounted.keys) {
+            val image = (cover as? FrameLayout)?.getChildAt(0) as? ImageView ?: continue
+            if (image.drawable == null) artwork(image, image.tag as? String)
+        }
+    }
+
     /** Restore a previous media target for this page, or choose the first available row. */
     fun preferredCard(): View? {
         val saved = lastPerPage[page]
