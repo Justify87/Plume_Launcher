@@ -18,6 +18,12 @@
     <string name="sidebar_app_info">Content from this app will appear here in a later step. Press OK on the sidebar app to launch it directly.</string>
     <string name="sidebar_all_apps_info">Press OK to browse all installed apps, including apps hidden from Home.</string>
     <string name="sidebar_new_for_you">New for you</string>
+    <string name="tv_feed_empty">No resumable TV items published yet. Check your apps and channel settings.</string>
+    <string name="tv_feed_new_empty">No confirmed new releases are available yet.</string>
+    <string name="tv_feed_permission">Allow TV listings access to show your viewing activity.</string>
+    <string name="tv_feed_unavailable">This TV item cannot be opened.</string>
+    <string name="tv_app_info">Resumable content published by this app.</string>
+    <string name="tv_app_empty">No resumable items from this app. Select Open app to launch it.</string>
     <string name="sidebar_open_app">Open app</string>
 
     <string name="home_layout">Home layout</string>
