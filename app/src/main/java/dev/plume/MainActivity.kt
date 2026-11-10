@@ -4380,7 +4380,12 @@ class MainActivity : Activity() {
                 packageManager.getLeanbackLaunchIntentForPackage(it) != null
             }
             val age = staleAt?.let { ((System.currentTimeMillis() - it) / 3600000L).coerceAtLeast(1L) }
-            mediaFeed.replaceSource(YouTubeSubscriptions.SOURCE_ID, YouTubeSubscriptions.media(videos, smartTube, age))
+            // Keep the RSS record distinct until the Overview can prefer its verified publication date.
+            // Package aliases still make it visible on the installed SmartTube app page.
+            mediaFeed.replaceSource(YouTubeSubscriptions.SOURCE_ID,
+                YouTubeSubscriptions.media(videos, null, age).map { item ->
+                    item.copy(packageAliases = smartTube?.let { setOf(it) } ?: emptySet())
+                })
             ui.post {
                 if (!isDestroyed && homeLayoutMode == HomeLayoutMode.OVERVIEW)
                     updateOverviewPreview(sortedApps().filter { inRow(it.pkg, rowHiddenSet()) })
