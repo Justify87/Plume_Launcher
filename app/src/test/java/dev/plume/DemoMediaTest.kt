@@ -29,6 +29,23 @@ class DemoMediaTest {
         assertTrue(DemoMedia.rowsFor("").flatten().isEmpty())
     }
 
+    @Test fun offlineDemoUsesSharedRepositoryWithTwoCategoriesAndAppAliases() {
+        val repo = MediaFeedRepository()
+        repo.replaceSource("demo", DemoMedia.asMediaItems())
+        val overview = repo.snapshot(sourceId = "demo")
+        assertEquals(DemoMedia.examples.size, overview.size)
+        assertEquals(DemoMedia.rowsFor(null)[0].size,
+            repo.snapshot(sourceId = "demo", category = MediaCategory.CONTINUE).size)
+        assertEquals(DemoMedia.rowsFor(null)[1].size,
+            repo.snapshot(sourceId = "demo", category = MediaCategory.NEW).size)
+        for (pkg in listOf("com.plexapp.android", "com.plexapp.android.tv", "com.google.android.youtube.tv")) {
+            assertEquals(DemoMedia.rowsFor(pkg).flatten().size,
+                repo.snapshot(sourceId = "demo", packageName = pkg).size)
+        }
+        assertTrue(overview.all { it.intentUri == null && it.imageUri == null })
+        assertTrue(repo.snapshot(sourceId = "demo", packageName = "inactive.app").isEmpty())
+    }
+
     @Test fun zeroOneThreeAndManyCardsOnlyMountVisibleAndNextSlots() {
         assertTrue(DemoMedia.visibleWindow(0, 0, 300, 100).isEmpty())
         assertEquals(0..0, DemoMedia.visibleWindow(1, 0, 300, 100))
