@@ -653,7 +653,7 @@ class MainActivity : Activity() {
         Settings.Secure.putInt(contentResolver, Settings.Secure.ACCESSIBILITY_ENABLED, 1)
     }
 
-    /** Compared as components: Settings may store us in short form (dev.plume/.HomeOverride). */
+    /** Compared as components: Settings may store us in short form (dev.plume.advanced/dev.plume.HomeOverride). */
     private fun homeServiceOn(): Boolean {
         val me = ComponentName(this, HomeOverride::class.java)
         return Settings.Secure.getString(contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES).orEmpty()
@@ -768,7 +768,7 @@ class MainActivity : Activity() {
 
     /**
      * Debug builds: act as another TV and start setup as on a first launch, to walk each device's popups here.
-     * adb shell am start -n dev.plume/.MainActivity --es fake_device fire|google|stock|real --ei fake_sdk 33
+     * adb shell am start -n dev.plume.advanced/dev.plume.MainActivity --es fake_device fire|google|stock|real --ei fake_sdk 33
      * Only the setup's choices change; the TV's own screens and Home key stay what they are.
      */
     private fun fakeSetup(intent: Intent?): Boolean {
@@ -1205,7 +1205,7 @@ class MainActivity : Activity() {
 
     // ---------- wallpapers ----------
     // Shown as they are: Plume never paints over the picture, the text and the glass adapt to it instead.
-    // Your own go in Android/data/dev.plume/files/wallpapers/ (adb push, no permission needed). A folder on the TV
+    // Your own go in Android/data/dev.plume.advanced/files/wallpapers/ (adb push, no permission needed). A folder on the TV
     // (MediaStore, so USB drives too) shows its photos in shuffled turns, one decoded at a time.
     // Decoded off the UI thread, max 1080p (~8 MB). Full colour, not RGB_565:
     // 565 rounds a smooth sky's 1-2 level JPEG ripples into visible grey and green blocks.
@@ -2688,7 +2688,7 @@ class MainActivity : Activity() {
                 HomeOverride.running?.applyKeyFilter()
                 renderSettings(R.string.smooth_volume)
             },
-            R.string.default_launcher to Triple(getString(R.string.default_launcher), if (isDefaultHome()) "Plume" else getString(R.string.press_to_set)) { makeDefaultHome() },
+            R.string.default_launcher to Triple(getString(R.string.default_launcher), if (isDefaultHome()) getString(R.string.app_name) else getString(R.string.press_to_set)) { makeDefaultHome() },
             R.string.updates to Triple(getString(R.string.updates), when {
                 updating -> getString(R.string.updating)
                 checking -> getString(R.string.checking)
@@ -5185,7 +5185,7 @@ class MainActivity : Activity() {
         io.execute {
             val ok = try {
                 apk.delete()
-                openStream("https://github.com/$REPO/releases/download/v$ver/Plume.apk").use { input ->
+                openStream("https://github.com/$REPO/releases/download/v$ver/Plume-Launcher-Advanced.apk").use { input ->
                     apk.outputStream().use { input.copyTo(it) }
                 }
                 val params = PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL)
@@ -5196,7 +5196,7 @@ class MainActivity : Activity() {
                 installer.openSession(id).use { session ->
                     try {
                         apk.inputStream().use { input ->
-                            session.openWrite("Plume.apk", 0, apk.length()).use { out ->
+                            session.openWrite(ApkProvider.NAME, 0, apk.length()).use { out ->
                                 input.copyTo(out)
                                 session.fsync(out)
                             }
@@ -6081,7 +6081,7 @@ class MainActivity : Activity() {
         const val RIM_TOP_LIT = 0x38FFFFFF // white 22%
         const val RIM_SIDE_LIT = 0x17FFFFFF
         const val PANEL_EDGE = 0x0FFFFFFF // white 6%, the settings panel's left edge
-        const val HELP_URL = "https://github.com/aradhyas8/Plume_Launcher#home-button-on-android-13-and-newer"
+        const val HELP_URL = "https://github.com/Justify87/Plume_Launcher#home-button-on-android-13-and-newer"
         const val TOGGLE_ON = "\u0000on" // row values drawn as a switch instead of text
         const val TOGGLE_OFF = "\u0000off"
         const val BANNER_DIM = 0.3f // black laid over a colour banner at rest, so the selected one stands out
@@ -6101,8 +6101,8 @@ class MainActivity : Activity() {
             60 to R.string.every_60, 1440 to R.string.every_1440,
         )
         const val CHOSEN = "✓"
-        const val REPO = "aradhyas8/Plume_Launcher"
-        const val UPDATE_STATUS = "dev.plume.UPDATE_STATUS"
+        const val REPO = "Justify87/Plume_Launcher"
+        const val UPDATE_STATUS = "dev.plume.advanced.UPDATE_STATUS"
         const val WRITE_EPG ="com.android.providers.tv.permission.WRITE_EPG_DATA"
         const val TV_SETTINGS = "com.android.tv.settings"
         const val HDMI = "hdmi:" // App.pkg prefix for HDMI device tiles; the rest is the TV input id

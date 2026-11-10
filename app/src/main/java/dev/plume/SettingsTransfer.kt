@@ -33,7 +33,7 @@ internal object SettingsTransfer {
 
     @Suppress("DEPRECATION")
     fun file(context: Context): File = File(context.externalMediaDirs.firstOrNull()
-        ?: throw IOException("External media storage is unavailable"), "backup/plume-settings.json")
+        ?: throw IOException("External media storage is unavailable"), "backup/plume-advanced-settings.json")
 
     fun portable(all: Map<String, *>): Map<String, Any> {
         val values = all.filterKeys { it in keys }.toMutableMap()

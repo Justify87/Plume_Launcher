@@ -1,20 +1,24 @@
 <p align="center">
-  <img src="docs/plume-icon.png" alt="Plume logo" width="128">
+  <img src="docs/plume-advanced-icon.svg" alt="Plume Launcher Advanced icon" width="128">
 </p>
 
-<h1 align="center">Plume Launcher</h1>
+<h1 align="center">Plume Launcher Advanced</h1>
 
 <p align="center">
-  <em>Light as a feather.</em> A minimal, ad-free home screen for Android TV and Google TV.
+  <em>A distinct Plume fork.</em> A minimal, ad-free home screen for Android TV and Google TV.
 </p>
 
 <p align="center">
-  <a href="https://github.com/aradhyas8/Plume_Launcher/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/aradhyas8/Plume_Launcher?label=release"></a>
+  <a href="https://github.com/Justify87/Plume_Launcher/actions/workflows/debug-apk.yml"><img alt="Build Debug APK" src="https://img.shields.io/badge/Debug_APK-GitHub_Actions-7C3AED"></a>
   <img alt="Android 8.0+" src="https://img.shields.io/badge/Android-8.0%2B-3ddc84">
-  <img alt="APK size" src="https://img.shields.io/badge/APK-0.4%20MB-blue">
-  <a href="https://github.com/aradhyas8/Plume_Launcher/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/aradhyas8/Plume_Launcher/total"></a>
-  <a href="LICENSE"><img alt="GPL-3.0 License" src="https://img.shields.io/github/license/aradhyas8/Plume_Launcher"></a>
+  <a href="LICENSE"><img alt="GPL-3.0 License" src="https://img.shields.io/github/license/Justify87/Plume_Launcher"></a>
 </p>
+
+**Plume Launcher Advanced is an independently installable fork of [Plume Launcher](https://github.com/aradhyas8/Plume_Launcher).** Its Android app ID is `dev.plume.advanced`, not `dev.plume`: both apps can be installed side by side, with their own app data, Home button service and settings. Its launcher icon and TV banner are different. To create a debug APK, run the [manual build workflow](https://github.com/Justify87/Plume_Launcher/actions/workflows/debug-apk.yml) and download `Plume-Launcher-Advanced-debug.apk` from the run's Artifacts. Do not expect settings to migrate automatically. Only enable one launcher's accessibility Home service at a time.
+
+**Updates:** This fork checks **this repository**, not upstream, for future releases. Publish a versioned release with an asset named `Plume-Launcher-Advanced.apk` to enable in-app updates. Debug APKs from Actions do not count as releases.
+
+
 
 <p align="center">
   <img src="docs/home-forest-dark-frosted.png" alt="Plume home screen with Forest Mist wallpaper, dark theme and frosted glass tiles" width="100%">

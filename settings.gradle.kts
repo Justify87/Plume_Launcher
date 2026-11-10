@@ -13,5 +13,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "plume-launcher"
+rootProject.name = "plume-launcher-advanced"
 include(":app")
