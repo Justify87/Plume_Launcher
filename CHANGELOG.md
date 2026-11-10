@@ -16,6 +16,8 @@ Put changes that are not released under `## Unreleased`. Rename that heading to 
 
 ## Unreleased
 
+- **Shared media feed.** Overview sample cards and app previews now use one media model. Classic stays unchanged.
+
 - Overview keeps the current demo cards when you return to the same sidebar item.
 
 - **Plume Launcher Advanced.** Install this fork beside the original Plume app with a separate Android app ID.

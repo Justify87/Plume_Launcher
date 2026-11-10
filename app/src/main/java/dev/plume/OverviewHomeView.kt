@@ -26,7 +26,7 @@ class OverviewHomeView @JvmOverloads constructor(
     data class Position(val row: Int, val index: Int)
 
     private class Lane(
-        val cards: List<DemoMedia.Card>,
+        val cards: List<MediaItem>,
         val scroller: SnapScrollView,
         val slots: List<FrameLayout>,
     )
@@ -40,7 +40,7 @@ class OverviewHomeView @JvmOverloads constructor(
     private var decorate: (View) -> Unit = {}
     private var tint: (TextView) -> Unit = {}
     private var dispose: (View) -> Unit = {}
-    private var selected: (DemoMedia.Card) -> Unit = {}
+    private var selected: (MediaItem) -> Unit = {}
     private var progressArtwork: () -> Drawable = { android.graphics.drawable.ColorDrawable(0) }
     private var onScrolled: () -> Unit = {}
     private var tileWidth = dp(196)
@@ -65,7 +65,7 @@ class OverviewHomeView @JvmOverloads constructor(
 
     internal fun bind(
         pageKey: String,
-        rows: List<List<DemoMedia.Card>>,
+        rows: List<List<MediaItem>>,
         continueTitle: String,
         newTitle: String,
         exampleTag: String,
@@ -73,7 +73,7 @@ class OverviewHomeView @JvmOverloads constructor(
         decorateCard: (View) -> Unit,
         tintLabel: (TextView) -> Unit,
         disposeCard: (View) -> Unit,
-        onSelect: (DemoMedia.Card) -> Unit,
+        onSelect: (MediaItem) -> Unit,
         makeProgress: () -> Drawable,
         onScroll: () -> Unit,
     ) {
@@ -192,29 +192,30 @@ class OverviewHomeView @JvmOverloads constructor(
         }
         val cover = FrameLayout(context).apply {
             tag = item.id
-            contentDescription = "$demoLabel: ${item.title}, ${item.source}, ${item.subtitle}"
+            contentDescription = "$demoLabel: ${item.title}, ${item.sourceLabel ?: item.sourcePackage.orEmpty()}, ${item.subtitle.orEmpty()}"
         }
         decorate(cover)
         val kind = when (item.kind) {
-            DemoMedia.Kind.EPISODE -> context.getString(R.string.demo_episode)
-            DemoMedia.Kind.MOVIE -> context.getString(R.string.demo_movie)
-            DemoMedia.Kind.VIDEO -> context.getString(R.string.demo_video)
-            DemoMedia.Kind.PODCAST -> context.getString(R.string.demo_podcast)
+            MediaKind.EPISODE -> context.getString(R.string.demo_episode)
+            MediaKind.MOVIE -> context.getString(R.string.demo_movie)
+            MediaKind.VIDEO -> context.getString(R.string.demo_video)
+            MediaKind.PODCAST -> context.getString(R.string.demo_podcast)
+            MediaKind.UNKNOWN -> ""
         }
-        cover.addView(title(kind, 16f), FrameLayout.LayoutParams(
+        if (kind.isNotEmpty()) cover.addView(title(kind, 16f), FrameLayout.LayoutParams(
             MATCH_PARENT, MATCH_PARENT, Gravity.CENTER,
         ).apply { leftMargin = dp(10); rightMargin = dp(10) })
         cover.setOnClickListener { selected(item) }
         column.addView(cover, LayoutParams(MATCH_PARENT, dp(78)))
         column.addView(ProgressBar(context, null, android.R.attr.progressBarStyleHorizontal).apply {
             max = 100
-            progress = item.progress ?: 0
+            progress = item.progressPercent ?: 0
             progressDrawable = progressArtwork()
-            visibility = if (item.progress != null) View.VISIBLE else View.INVISIBLE
+            visibility = if (item.progressPercent != null) View.VISIBLE else View.INVISIBLE
         }, LayoutParams(MATCH_PARENT, dp(3)).apply { topMargin = dp(4) })
         column.addView(title(item.title, 14f), LayoutParams(MATCH_PARENT, dp(19)).apply { topMargin = dp(2) })
-        column.addView(title(item.subtitle, 12f, 0.8f), LayoutParams(MATCH_PARENT, dp(17)))
-        column.addView(title("$demoLabel · ${item.source}", 11f, 0.72f), LayoutParams(MATCH_PARENT, dp(16)))
+        column.addView(title(item.subtitle.orEmpty(), 12f, 0.8f), LayoutParams(MATCH_PARENT, dp(17)))
+        column.addView(title("$demoLabel · ${item.sourceLabel ?: item.sourcePackage.orEmpty()}", 11f, 0.72f), LayoutParams(MATCH_PARENT, dp(16)))
         slot.addView(column, FrameLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT))
         val position = Position(row, index)
         mounted[cover] = position

@@ -39,6 +39,28 @@ internal object DemoMedia {
         Card("new-video-2", Section.NEW, Kind.VIDEO, "Why the night sky changes", "Video · Just added", "YouTube", youtube),
     )
 
+    /** The prototype reads the same MediaItem shape as future live sources. No provider queries. */
+    fun asMediaItems(): List<MediaItem> = examples.mapIndexed { index, card ->
+        val pkg = card.packages.firstOrNull()
+        MediaItem(
+            stableId = MediaFeedRules.stableId("demo", pkg, card.id, null, index),
+            sourceId = "demo", sourcePackage = pkg, packageAliases = card.packages,
+            contentId = card.id, title = card.title, subtitle = card.subtitle,
+            progressPercent = card.progress,
+            category = when (card.section) {
+                Section.CONTINUE -> MediaCategory.CONTINUE
+                Section.NEW -> MediaCategory.NEW
+            },
+            kind = when (card.kind) {
+                Kind.EPISODE -> MediaKind.EPISODE
+                Kind.MOVIE -> MediaKind.MOVIE
+                Kind.VIDEO -> MediaKind.VIDEO
+                Kind.PODCAST -> MediaKind.PODCAST
+            },
+            sourceLabel = card.source, sourceOrder = index,
+        )
+    }
+
     /** Null means the common Overview. A package shows only its own example cards. */
     fun rowsFor(packageName: String?): List<List<Card>> {
         val selected = examples.filter { packageName == null || packageName in it.packages }
