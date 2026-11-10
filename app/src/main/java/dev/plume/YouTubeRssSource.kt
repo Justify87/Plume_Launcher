@@ -66,11 +66,13 @@ internal class YouTubeRssSource(private val prefs: SharedPreferences) {
         prefs.edit().putLong("yt_attempt", now).apply()
         val fresh = mutableListOf<YouTubeSubscriptions.Video>()
         var succeeded = false
+        var allSucceeded = true
         for (id in ids) {
             try {
                 fresh += fetch(id, now)
                 succeeded = true
             } catch (e: Exception) {
+                allSucceeded = false
                 Log.w("Plume", "YouTube RSS unavailable for $id", e)
                 fresh += old?.first.orEmpty().filter { it.channelId == id }
             }
@@ -80,8 +82,10 @@ internal class YouTubeRssSource(private val prefs: SharedPreferences) {
         val arr = JSONArray()
         items.forEach { v -> arr.put(JSONObject().put("channel", v.channelId)
             .put("id", v.id).put("title", v.title).put("author", v.author).put("published", v.published)) }
+        // A partial success must not renew old failed-channel entries as if they were fetched today.
+        val successfulAt = if (allSucceeded) now else old?.second ?: now
         prefs.edit().putString("yt_cache", arr.toString()).putString("yt_cache_ids", ids.joinToString(","))
-            .putLong("yt_cache_at", now).apply()
-        return items to null
+            .putLong("yt_cache_at", successfulAt).apply()
+        return items to (if (allSucceeded) null else old?.second)
     }
 }
