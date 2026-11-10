@@ -5580,7 +5580,7 @@ class MainActivity : Activity() {
         // Use the same TV query as Classic; do not re-crawl providers or alter Classic's sorting.
         // Only entries with trustworthy Continue evidence appear in the shared Overview.
         val feedEntries = newestPerApp(visible, PER_APP) { it.group }.take(20)
-        val candidates = feedEntries.mapIndexed { index, (_, p) ->
+        val candidates = feedEntries.mapIndexed { index, p ->
             AndroidTvProgram(
                 item = MediaItem(
                     stableId = MediaFeedRules.stableId(p.origin, p.pkg, p.contentId, p.intent, index),
