@@ -5607,7 +5607,9 @@ class MainActivity : Activity() {
             android.util.Log.w("Plume", "Watch Next query unavailable", e)
             emptyList()
         } else emptyList()
-        val on = continueChannels()
+        val discovered = appChannels()
+        val flippedChannels = prefs.getStringSet("ch_flip", emptySet())!!
+        val on = discovered.filter { (_, pkg, name) -> channelOn(name, channelKey(pkg, name), flippedChannels) }
         autoRowName = if (watchNextOn) null
             else on.map { it.third }.distinct().singleOrNull()?.takeUnless { it.equals("Continue Watching", ignoreCase = true) }
         val channels = on.flatMap { (id, _, name) ->
@@ -5618,9 +5620,22 @@ class MainActivity : Activity() {
                 emptyList()
             }
         }
+        // The new Nuvio Next Up channel feeds Overview only. Never add it to Classic's
+        // existing row or change Classic's channel defaults and per-app ordering.
+        val nuvioNextUp = discovered.filter { (id, pkg, name) ->
+            AndroidTvMediaSource.isNuvioPackage(pkg) &&
+                name.equals("Next Up", ignoreCase = true) && on.none { it.first == id }
+        }.flatMap { (id, _, name) ->
+            try {
+                readPrograms(TvContract.buildPreviewProgramsUriForChannel(id), hidden, "ch$id", name)
+            } catch (e: Exception) {
+                android.util.Log.w("Plume", "Nuvio Next Up channel $id unavailable", e)
+                emptyList()
+            }
+        }
         val all = watchNext + channels
         android.util.Log.i("Plume", "continue watching: ${watchNext.size} from Watch Next, ${channels.size} from ${on.size} channels")
-        publishingPkgs = all.mapNotNull { it.second.pkg }.toSet()
+        publishingPkgs = (all + nuvioNextUp).mapNotNull { it.second.pkg }.toSet()
         val off = prefs.getStringSet("cw_off", emptySet())!!
         val visible = all.filter { it.second.pkg !in off }
         // Preserve the legacy title/intent filtering and ordering for Classic.
@@ -5628,7 +5643,7 @@ class MainActivity : Activity() {
             .take(20)
         // Use the same TV query as Classic; do not re-crawl providers or alter Classic's sorting.
         // Only entries with trustworthy Continue evidence appear in the shared Overview.
-        val feedEntries = newestPerApp(visible, PER_APP) { it.group }
+        val feedEntries = newestPerApp(visible + nuvioNextUp.filter { it.second.pkg !in off }, PER_APP) { it.group }
         val candidates = feedEntries.mapIndexed { index, p ->
             AndroidTvProgram(
                 item = MediaItem(
@@ -5650,7 +5665,12 @@ class MainActivity : Activity() {
                 episodeNumber = p.episodeNumber,
             )
         }
-        mediaFeed.replaceSource("tv", AndroidTvMediaSource.select(candidates, permissionGranted = true).take(20))
+        val classified = AndroidTvMediaSource.select(candidates, permissionGranted = true)
+        // Limit each section independently. A full Continue row must not hide all Next Up.
+        mediaFeed.replaceSource("tv",
+            classified.filter { it.category == MediaCategory.CONTINUE }.take(20) +
+                classified.filter { it.category == MediaCategory.NEW }.take(20)
+        )
         return displayed
     }
 
