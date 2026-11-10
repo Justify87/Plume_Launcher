@@ -19,6 +19,15 @@
     <string name="sidebar_all_apps_info">Mit OK öffnest du alle installierten Apps, auch die auf der Startseite ausgeblendeten.</string>
     <string name="sidebar_new_for_you">Neu für dich</string>
     <string name="sidebar_open_app">App öffnen</string>
+    <string name="tv_app_info">Inhalte, die diese App auf Android TV bereitstellt.</string>
+    <string name="tv_app_empty">Keine TV-Inhalte dieser App verfügbar. Wähle App öffnen.</string>
+    <string name="tv_app_new_content">Neue Inhalte</string>
+    <string name="tv_feed_recommendations">Empfehlungen</string>
+    <string name="tv_feed_other">Weitere TV-Inhalte</string>
+    <string name="tv_feed_empty">Noch keine fortsetzbaren TV-Inhalte vorhanden. Prüfe die Kanäle deiner Apps.</string>
+    <string name="tv_feed_new_empty">Noch keine bestätigten neuen Veröffentlichungen vorhanden.</string>
+    <string name="tv_feed_permission">Erlaube den Zugriff auf TV-Inhalte, um deinen Verlauf anzuzeigen.</string>
+    <string name="tv_feed_unavailable">Dieser TV-Inhalt kann nicht geöffnet werden.</string>
 
     <string name="home_layout">Startseitenlayout</string>
     <string name="home_layout_classic">Klassisch</string>

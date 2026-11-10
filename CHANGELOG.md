@@ -16,6 +16,10 @@ Put changes that are not released under `## Unreleased`. Rename that heading to 
 
 ## Unreleased
 
+- **App TV pages.** Press Up or Down in Overview to preview TV content from each app.
+- Empty media rows stay hidden. Press Right for an app page or OK to launch the app.
+- Press Back on an app page to return to Overview. Media focus stays on the same item after a refresh.
+
 - **TV Continue Watching.** Overview now shows real Watch Next and app channel items.
 - Press **OK** on a TV item to open it in its source app.
 - Overview shows no new titles without confirmed new-release data.

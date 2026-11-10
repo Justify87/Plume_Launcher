@@ -16,9 +16,8 @@ import android.widget.ProgressBar
 import android.widget.TextView
 
 /**
- * M03's offline right-hand content column. Ordinary Views, existing SnapScrollView and the same
- * card decorator as Classic. Slots reserve geometry; only visible and adjacent cards get Views.
- * No media-provider calls, bitmap requests, timers or background work.
+ * Right-hand TV media column. Ordinary Views, existing SnapScrollView and Classic's card decorator.
+ * Slots reserve geometry; only visible and adjacent cards get Views. No provider queries or timers.
  */
 class OverviewHomeView @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null,
@@ -27,6 +26,7 @@ class OverviewHomeView @JvmOverloads constructor(
     data class Position(val row: Int, val index: Int)
 
     private class Lane(
+        val category: MediaCategory,
         val cards: List<MediaItem>,
         val scroller: SnapScrollView,
         val slots: List<FrameLayout>,
@@ -34,8 +34,10 @@ class OverviewHomeView @JvmOverloads constructor(
 
     private var lanes: List<Lane> = emptyList()
     private val mounted = mutableMapOf<View, Position>()
-    private val lastPerPage = mutableMapOf<String, Position>()
-    private val lastPerRow = mutableMapOf<String, MutableMap<Int, Int>>()
+    private data class Bookmark(val category: MediaCategory, val stableId: String, val index: Int)
+    private val lastPerPage = mutableMapOf<String, Bookmark>()
+    private val lastPerRow = mutableMapOf<String, MutableMap<MediaCategory, Int>>()
+    private val scrollPositions = mutableMapOf<String, MutableMap<MediaCategory, Int>>()
     private var page = HomeSidebarView.OVERVIEW
     private var demoLabel = ""
     private var decorate: (View) -> Unit = {}
@@ -68,12 +70,10 @@ class OverviewHomeView @JvmOverloads constructor(
 
     internal fun bind(
         pageKey: String,
-        rows: List<List<MediaItem>>,
-        continueTitle: String,
-        newTitle: String,
+        sections: List<HomeMediaSection>,
+        sectionTitle: (MediaCategory) -> String,
+        emptyLabel: (MediaCategory) -> String,
         exampleTag: String,
-        emptyLabel: String,
-        newEmptyLabel: String = emptyLabel,
         decorateCard: (View) -> Unit,
         tintLabel: (TextView) -> Unit,
         disposeCard: (View) -> Unit,
@@ -83,9 +83,16 @@ class OverviewHomeView @JvmOverloads constructor(
         sourceMark: (String?) -> Drawable? = { null },
         onScroll: () -> Unit,
     ) {
-        val focusedBefore = positionOf(findFocus())
+        val focusedBefore = positionOf(findFocus())?.let { position ->
+            val lane = lanes[position.row]
+            Bookmark(lane.category, lane.cards[position.index].stableId, position.index)
+        }
         val previousPage = page
-        for (lane in lanes) for (slot in lane.slots) unmount(slot)
+        val rememberedScroll = scrollPositions.getOrPut(page) { mutableMapOf() }
+        for (lane in lanes) {
+            rememberedScroll[lane.category] = lane.scroller.scrollX
+            for (slot in lane.slots) unmount(slot)
+        }
         removeAllViews()
         lanes = emptyList()
         mounted.clear()
@@ -101,16 +108,14 @@ class OverviewHomeView @JvmOverloads constructor(
         onScrolled = onScroll
 
         val assembled = mutableListOf<Lane>()
-        for (section in 0..1) {
-            val cards = rows.getOrElse(section) { emptyList() }
-            // The common Overview always shows exactly two sections. App previews hide empty ones.
-            if (pageKey != HomeSidebarView.OVERVIEW && cards.isEmpty()) continue
-            val heading = title(if (section == 0) continueTitle else newTitle, 18f)
+        for ((section, group) in sections.withIndex()) {
+            val cards = group.items
+            val heading = title(sectionTitle(group.category), 18f)
             addView(heading, LayoutParams(MATCH_PARENT, dp(24)).apply {
                 if (section > 0) topMargin = dp(12)
             })
             if (cards.isEmpty()) {
-                addView(title(if (section == 0) emptyLabel else newEmptyLabel, 13f, 0.8f), LayoutParams(MATCH_PARENT, dp(35)))
+                addView(title(emptyLabel(group.category), 13f, 0.8f), LayoutParams(MATCH_PARENT, dp(35)))
                 continue
             }
 
@@ -136,20 +141,30 @@ class OverviewHomeView @JvmOverloads constructor(
                     })
                 }
             }
-            val lane = Lane(cards, scroller, slots)
+            val lane = Lane(group.category, cards, scroller, slots)
             assembled += lane
+            val savedScroll = scrollPositions[pageKey]?.get(group.category) ?: 0
+            var restoredScroll = false
             scroller.setOnScrollChangeListener { _, _, _, _, _ ->
                 updateWindow(lane)
                 onScrolled()
             }
-            scroller.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ -> updateWindow(lane) }
+            scroller.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
+                if (!restoredScroll) {
+                    restoredScroll = true
+                    if (savedScroll > 0) scroller.scrollTo(savedScroll, 0)
+                }
+                updateWindow(lane)
+            }
             addView(scroller, LayoutParams(MATCH_PARENT, dp(149)))
         }
         lanes = assembled
         resizeTiles()
         lanes.forEach(::updateWindow)
         if (focusedBefore != null && previousPage == pageKey) {
-            focusAt(focusedBefore.row, focusedBefore.index)?.requestFocus()
+            val target = HomePageContent.restoreFocus(visibleSections(), focusedBefore.category,
+                focusedBefore.stableId, focusedBefore.index)
+            target?.let { focusAt(it.row, it.index)?.requestFocus() }
         }
     }
 
@@ -158,7 +173,9 @@ class OverviewHomeView @JvmOverloads constructor(
         v?.takeIf { it.isAttachedToWindow && it.isShown }?.let { mounted[it] }
 
     fun counts(): List<Int> = lanes.map { it.cards.size }
-    fun lastIndex(row: Int): Int? = lastPerRow[page]?.get(row)
+    fun lastIndex(row: Int): Int? = lanes.getOrNull(row)?.category?.let { lastPerRow[page]?.get(it) }
+
+    private fun visibleSections() = lanes.map { HomeMediaSection(it.category, it.cards) }
 
     /** Reuse Classic's poster cache when two mounted cards request the same URI concurrently. */
     internal fun retryArtwork() {
@@ -171,8 +188,9 @@ class OverviewHomeView @JvmOverloads constructor(
     /** Restore a previous media target for this page, or choose the first available row. */
     fun preferredCard(): View? {
         val saved = lastPerPage[page]
-        if (saved != null) focusAt(saved.row, saved.index)?.let { return it }
-        return lanes.indices.firstNotNullOfOrNull { focusAt(it, 0) }
+        val target = HomePageContent.restoreFocus(visibleSections(), saved?.category,
+            saved?.stableId, saved?.index ?: 0)
+        return target?.let { focusAt(it.row, it.index) }
     }
 
     /**
@@ -259,8 +277,8 @@ class OverviewHomeView @JvmOverloads constructor(
         cover.setOnFocusChangeListener { v, focused ->
             focusTreatment?.onFocusChange(v, focused)
             if (focused) {
-                lastPerPage[page] = position
-                lastPerRow.getOrPut(page) { mutableMapOf() }[row] = index
+                lastPerPage[page] = Bookmark(lane.category, item.stableId, index)
+                lastPerRow.getOrPut(page) { mutableMapOf() }[lane.category] = index
                 updateWindow(lane)
             }
         }
