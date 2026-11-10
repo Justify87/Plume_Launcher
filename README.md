@@ -102,17 +102,17 @@ Development milestones and changes are tracked in [pull requests](https://github
 There is a manual GitHub Actions build for installing and testing the latest code:
 
 1. Open **[Build Plume Launcher Advanced Debug APK](https://github.com/Justify87/Plume_Launcher/actions/workflows/debug-apk.yml)**.
-2. Select **Run workflow**, choose \`main\` and start the build.
-3. Open the successful run. Under **Artifacts**, download the \`Plume-Launcher-Advanced-Debug-APK-…\` ZIP.
-4. Extract \`Plume-Launcher-Advanced-debug.apk\` and install it on the TV using a file manager, USB transfer or ADB.
+2. Select **Run workflow**, choose `main` and start the build.
+3. Open the successful run. Under **Artifacts**, download the `Plume-Launcher-Advanced-Debug-APK-…` ZIP.
+4. Extract `Plume-Launcher-Advanced-debug.apk` and install it on the TV using a file manager, USB transfer or ADB.
 
 For ADB installation:
 
-\`\`\`bash
+```bash
 adb install Plume-Launcher-Advanced-debug.apk
-\`\`\`
+```
 
-The workflow runs unit tests and lint, assembles the APK and verifies that its Android package is \`dev.plume.advanced\` and its label is **Plume Launcher Advanced**. It also provides a SHA-256 checksum. **A workflow artifact is a test build, not a published release.**
+The workflow runs unit tests and lint, assembles the APK and verifies that its Android package is `dev.plume.advanced` and its label is **Plume Launcher Advanced**. It also provides a SHA-256 checksum. **A workflow artifact is a test build, not a published release.**
 
 > [!NOTE]
 > GitHub-hosted debug builds may be signed with different debug keys between runs. If Android rejects a later debug APK because its signature differs, you may need to uninstall the earlier **Advanced** build and reinstall. **Back up your Advanced settings first**; uninstalling removes that app's local data. Do not uninstall original Plume by mistake.
@@ -121,7 +121,7 @@ The workflow runs unit tests and lint, assembles the APK and verifies that its A
 
 | | Original Plume | Plume Launcher Advanced |
 | --- | --- | --- |
-| Android application ID | \`dev.plume\` | \`dev.plume.advanced\` |
+| Android application ID | `dev.plume` | `dev.plume.advanced` |
 | Installed app and icon | Original branding | Separate name and feather-and-A icon |
 | Settings and app data | Original app's storage | Independent Advanced storage |
 | Updates | Original project's releases | This fork's releases only |
@@ -132,11 +132,11 @@ When you first open Advanced, follow its Home setup. On supported Android TV dev
 
 If the TV blocks restricted settings for sideloaded apps, consult Android's app settings first. An advanced ADB setup may require:
 
-\`\`\`bash
+```bash
 adb shell pm grant dev.plume.advanced android.permission.WRITE_SECURE_SETTINGS
-\`\`\`
+```
 
-This is a privileged system-setting grant, **not** part of normal APK installation. Grant it only if you understand the effect and need the associated Home / screensaver functions. An interactive setup helper is provided at [tools/plume-install.sh](tools/plume-install.sh); run it without \`--disable-stock-launcher\` unless you deliberately accept the device-specific risks.
+This is a privileged system-setting grant, **not** part of normal APK installation. Grant it only if you understand the effect and need the associated Home / screensaver functions. An interactive setup helper is provided at [tools/plume-install.sh](tools/plume-install.sh); run it without `--disable-stock-launcher` unless you deliberately accept the device-specific risks.
 
 ## Settings and data
 
@@ -144,9 +144,9 @@ Advanced stores its preferences separately from the original app. **An installat
 
 Advanced supports a selective backup in **Settings → Backup → Save backup / Restore backup**. On many devices, the resulting file is located at:
 
-\`\`\`text
+```text
 /sdcard/Android/media/dev.plume.advanced/backup/plume-advanced-settings.json
-\`\`\`
+```
 
 The export covers supported display and layout preferences, **not** everything. It does not copy the PIN, all media files, custom app picture files, system Home selection, remote mappings or permissions. Treat exported files as personal data if they include your configured location or application list.
 
@@ -156,13 +156,13 @@ This fork deliberately keeps the same simple technology base as Plume: **Kotlin,
 
 Requirements: **JDK 17**, an installed Android SDK for the project's configured compile SDK, and a working Gradle wrapper.
 
-\`\`\`bash
+```bash
 git clone https://github.com/Justify87/Plume_Launcher.git
 cd Plume_Launcher
 ./gradlew testDebugUnitTest lintDebug assembleDebug
-\`\`\`
+```
 
-Local output: \`app/build/outputs/apk/debug/app-debug.apk\`. The manual GitHub Actions workflow renames the uploaded APK to \`Plume-Launcher-Advanced-debug.apk\`.
+Local output: `app/build/outputs/apk/debug/app-debug.apk`. The manual GitHub Actions workflow renames the uploaded APK to `Plume-Launcher-Advanced-debug.apk`.
 
 Useful starting points in the code:
 
@@ -176,7 +176,7 @@ Useful starting points in the code:
 | [SettingsTransfer.kt](app/src/main/java/dev/plume/SettingsTransfer.kt) | Selective settings backup/restore |
 | [HomeOverride.kt](app/src/main/java/dev/plume/HomeOverride.kt) | Optional Home-button accessibility integration |
 
-The **Kotlin namespace remains \`dev.plume\`** to avoid an unnecessary source-wide refactor. Android identifies the separately installable app by its **application ID \`dev.plume.advanced\`**.
+The **Kotlin namespace remains `dev.plume`** to avoid an unnecessary source-wide refactor. Android identifies the separately installable app by its **application ID `dev.plume.advanced`**.
 
 CI runs pull request checks, unit tests, lint, APK assembly and installation-helper regression tests. Hardware and remote-control behavior still deserve hands-on validation.
 
@@ -191,7 +191,7 @@ Future integrations should be evaluated individually for availability, consent, 
 ## Updates and project status
 
 - **Current testing distribution:** build a debug APK using the manual GitHub Actions workflow.
-- **In-app update checks:** look at **[releases in this fork](https://github.com/Justify87/Plume_Launcher/releases)**, not upstream. A future release must use the expected \`Plume-Launcher-Advanced.apk\` asset name for the current updater.
+- **In-app update checks:** look at **[releases in this fork](https://github.com/Justify87/Plume_Launcher/releases)**, not upstream. A future release must use the expected `Plume-Launcher-Advanced.apk` asset name for the current updater.
 - **Breaking changes and progress:** see [CHANGELOG.md](CHANGELOG.md) and merged PRs.
 - **Support:** use [this fork's issues](https://github.com/Justify87/Plume_Launcher/issues). Issues with the unmodified original should go to the original project.
 
