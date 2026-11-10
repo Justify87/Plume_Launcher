@@ -60,13 +60,14 @@ internal object AndroidTvMediaSource {
         val season = program.seasonNumber?.trim()?.takeIf { it.isNotEmpty() }
         val episode = program.episodeNumber?.trim()?.takeIf { it.isNotEmpty() }
         program.internalProviderId?.trim()?.takeIf { it.isNotEmpty() }?.let { id ->
-            // Internal IDs can identify an entire series. Add the episode coordinates when known.
+            // Internal IDs can identify an entire series. Never merge other episodes or series.
             val suffix = when {
                 season != null && episode != null -> ":${part(season)}:${part(episode)}"
                 program.episodeTitle != null -> ":${part(program.episodeTitle)}"
                 else -> ""
             }
-            keys += "provider:$prefix:${part(id)}$suffix"
+            if (seriesNames.isEmpty()) keys += "provider:$prefix:${part(id)}$suffix"
+            else for (series in seriesNames) keys += "provider:$prefix:${part(id)}:${part(series)}$suffix"
         }
         for (series in seriesNames) {
             if (season != null && episode != null) {
@@ -76,7 +77,9 @@ internal object AndroidTvMediaSource {
             // Do not match plain launcher intents or match across unknown series.
             val uri = program.item.intentUri
             if (uri != null && uri.isNotBlank() && hasContentDeepLink(uri)) {
-                keys += "link:$prefix:${part(series)}:${part(uri)}"
+                val episodeSuffix = if (season != null && episode != null)
+                    ":${part(season)}:${part(episode)}" else ""
+                keys += "link:$prefix:${part(series)}$episodeSuffix:${part(uri)}"
             }
         }
         return keys
