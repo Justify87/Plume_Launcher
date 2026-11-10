@@ -65,6 +65,25 @@ class AndroidTvMediaSourceTest {
         assertEquals(listOf("watch", "next-episode"), AndroidTvMediaSource.select(records, true).map { it.contentId })
     }
 
+    @Test fun sharedProviderSeriesIdDoesNotCollapseDifferentEpisodes() {
+        val records = listOf(
+            record("episode1", providerId = "series-id", series = "The Series", season = "1", episode = "1"),
+            record("episode2", watchNext = false, channel = "Continue Watching",
+                providerId = "series-id", series = "The Series", season = "1", episode = "2"),
+        )
+        assertEquals(2, AndroidTvMediaSource.select(records, true).size)
+    }
+
+    @Test fun scopedTvRowIdsDoNotCollapseUnrelatedProviderTables() {
+        val repo = MediaFeedRepository()
+        val first = record("1", series = "Show A", season = "1", episode = "1").item
+            .copy(contentId = "tv:watchnext:1")
+        val second = record("1", series = "Show B", season = "1", episode = "1").item
+            .copy(contentId = "tv:ch42:1")
+        repo.replaceSource("tv", listOf(first, second))
+        assertEquals(2, repo.snapshot().size)
+    }
+
     @Test fun sameProviderIdsInDifferentAppsAreNotDuplicates() {
         val records = listOf(
             record("nuvio", providerId = "same-id"),
