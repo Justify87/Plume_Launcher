@@ -54,6 +54,16 @@ class AndroidTvMediaSourceTest {
         assertEquals(listOf("watch"), AndroidTvMediaSource.select(records, true).map { it.contentId })
     }
 
+    @Test fun sharedSeriesDeepLinkKeepsDifferentEpisodes() {
+        val sameSeriesLink = "https://provider.example/series/9"
+        val records = listOf(
+            record("one", series = "Series Nine", season = "1", episode = "1", intent = sameSeriesLink),
+            record("two", watchNext = false, channel = "Continue Watching", series = "Series Nine",
+                season = "1", episode = "2", intent = sameSeriesLink),
+        )
+        assertEquals(2, AndroidTvMediaSource.select(records, true).size)
+    }
+
     @Test fun knownSeriesAndEpisodeDedupeEvenWithDifferentDatabaseIds() {
         val records = listOf(
             record("watch", series = "Series Seven", season = "2", episode = "9"),
