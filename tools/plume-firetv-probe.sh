@@ -236,7 +236,7 @@ step "HOME double press" "Get ready to press HOME TWICE quickly. Press Enter, th
 # What is in front now ($TO, after the double press) tells which step makes sense, not whether the service is on:
 # Plume Launcher Advanced can be on and still not be in front.
 case $TO in
-  dev.plume.advanced/*|dev.plume.advanced/*)
+  dev.plume.advanced/*)
     # Plume Launcher Advanced's own home is in front: the common case, and one where Plume Launcher Advanced's jump may not happen (see HomeWatch).
     step "HOME from Plume Launcher Advanced's home" "Plume Launcher Advanced is on screen. Get ready to press HOME once, then wait 10 seconds without touching anything. Press Enter, then do it." 44 ;;
   *)
