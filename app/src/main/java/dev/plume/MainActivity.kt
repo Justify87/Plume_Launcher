@@ -5962,7 +5962,12 @@ class MainActivity : Activity() {
                 loading.remove(uri)
             } ?: return@execute
             posters.put(uri, bmp)
-            ui.post { if (!isDestroyed && v.tag == uri) v.setImageBitmap(bmp) }
+            ui.post {
+                if (!isDestroyed && v.tag == uri) {
+                    v.setImageBitmap(bmp)
+                    if (::homeOverview.isInitialized) homeOverview.retryArtwork()
+                }
+            }
         }
     }
 
