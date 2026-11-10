@@ -18,6 +18,12 @@
     <string name="sidebar_app_info">Inhalte dieser App folgen in einem späteren Schritt. Mit OK auf der App in der Sidebar startest du sie direkt.</string>
     <string name="sidebar_all_apps_info">Mit OK öffnest du alle installierten Apps, auch die auf der Startseite ausgeblendeten.</string>
     <string name="sidebar_new_for_you">Neu für dich</string>
+    <string name="tv_feed_empty">Noch keine fortsetzbaren TV-Inhalte. Prüfe deine Apps und Kanäle.</string>
+    <string name="tv_feed_new_empty">Noch keine bestätigten neuen Veröffentlichungen verfügbar.</string>
+    <string name="tv_feed_permission">Erlaube den Zugriff auf TV-Programmdaten, um deine Inhalte anzuzeigen.</string>
+    <string name="tv_feed_unavailable">Dieser TV-Inhalt kann nicht geöffnet werden.</string>
+    <string name="tv_app_info">Fortsetzbare Inhalte aus dieser App.</string>
+    <string name="tv_app_empty">Keine fortsetzbaren Inhalte aus dieser App. Wähle App öffnen, um sie zu starten.</string>
     <string name="sidebar_open_app">App öffnen</string>
 
     <string name="home_layout">Startseitenlayout</string>
