@@ -16,23 +16,23 @@ Put changes that are not released under `## Unreleased`. Rename that heading to 
 
 ## Unreleased
 
-- **Shared media feed.** Overview sample cards and app previews now use one media model. Classic stays unchanged.
-
-- Overview keeps the current demo cards when you return to the same sidebar item.
+- **TV Continue Watching.** Overview now shows real Watch Next and app channel items.
+- Press **OK** on a TV item to open it in its source app.
+- Overview shows no new titles without confirmed new-release data.
+- App pages show only items from that app. Classic keeps its settings and Watch Next row.
 
 - **Plume Launcher Advanced.** Install this fork beside the original Plume app with a separate Android app ID.
 - Use the new feather icon and TV banner to identify the Advanced launcher.
 - Check only this fork for app updates. The original Plume APK cannot replace Advanced.
 
 
-- **Overview demo cards.** Explore sample videos, films, episodes, and podcasts with the remote. The cards do not use your history.
-- Press Right to open a sample row. Press Up or Down to switch rows. Press Left at the first card to return to the sidebar.
-- Select an app in the Overview sidebar to see sample cards for that app. Press Back to return to Overview.
+- Press Right to open an Overview media row. Press Up or Down to switch rows. Press Left to return to the sidebar.
+- Select an app in the Overview sidebar to see its available TV items. Press Back to return to Overview.
 
 - **Overview sidebar.** Press Up or Down to choose an app. Press OK to open the app or All apps.
 - Press Right on an app in the Overview sidebar to reach its Open app action. Press Left to return.
 
-- **Home layout.** Select **Plume settings → Style → Home layout** to switch between Classic and the Overview preview.
+- **Home layout.** Select **Plume settings → Style → Home layout** to switch between Classic and Overview.
 
 - **Custom app pictures.** Hold **OK** on an app, then select **Change picture**. Upload an icon or banner from your phone.
 - Press Right on the last app tile to select the first app tile.
