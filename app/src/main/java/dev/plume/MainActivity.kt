@@ -4152,7 +4152,9 @@ class MainActivity : Activity() {
                 prefs.edit().putStringSet("row_hidden", rowHiddenSet() - tag).apply()
                 saveOrder(listOf(tag) + sortedApps().map { it.pkg }.filter { it != tag })
                 closeAllApps()
-                appRow.getChildAt(0)?.requestFocus() // show the app just pinned
+                // The new Overview rail uses the same hidden/order settings as the classic row.
+                if (homeLayoutMode == HomeLayoutMode.OVERVIEW) homeSidebar.viewFor(tag)?.requestFocus()
+                else appRow.getChildAt(0)?.requestFocus() // show the app just pinned
             }
             v.parent === wifi.parent -> topMenu(v)
             v.parent === appRow -> appMenu(v)
