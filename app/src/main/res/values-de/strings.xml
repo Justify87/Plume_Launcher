@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="home_layout">Startseitenlayout</string>
+    <string name="home_layout_classic">Klassisch</string>
+    <string name="home_layout_overview">Übersicht</string>
+    <string name="home_layout_placeholder">Die neue Übersicht kommt bald</string>
+    <string name="help_home_layout">Wähle Klassisch für die bisherige Startseite oder Übersicht, um den neuen Modus anzusehen.</string>
+</resources>

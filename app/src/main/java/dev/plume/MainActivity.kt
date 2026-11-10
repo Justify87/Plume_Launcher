@@ -344,6 +344,7 @@ class MainActivity : Activity() {
     private lateinit var wifi: ImageView
     private lateinit var glass: GlassLayer // paints the blurred wallpaper under glass tiles
     private lateinit var videoWallpaper: VideoWallpaper
+    private var homeLayoutMode = HomeLayoutMode.CLASSIC
 
     private var resumed = false
     private var ready = false // false while the user is still locked: no prefs, files or cache yet
@@ -430,6 +431,8 @@ class MainActivity : Activity() {
         }
         applyTopBar()
         applyTheme()
+        setupOverviewPlaceholder()
+        applyHomeLayoutMode()
         glassShown = glassLook() to null // the tiles are built for this look; only the blur is still to come
         loadWallpaper()
         // "Show row: On Down": the row slides in while one of its cards has focus, however focus got there.
@@ -1013,6 +1016,10 @@ class MainActivity : Activity() {
         if (allApps.visibility == View.VISIBLE) closeAllApps()
         // Home from an app goes back to the tile or card it was started from, wherever focus is now. If Plume did not start the app,
         // or the tile or card is gone, Home starts again at the first tile.
+        if (homeLayoutMode == HomeLayoutMode.OVERVIEW) {
+            findViewById<View>(R.id.overviewPlaceholder).requestFocus()
+            return
+        }
         if (back?.let { homeViewFor(it) }?.requestFocus() == true) return
         watchScroll.scrollTo(0, 0)
         appRow.getChildAt(0)?.requestFocus()
@@ -2486,7 +2493,7 @@ class MainActivity : Activity() {
         pageBack = null
         settingsScrim.visibility = View.GONE
         homeFocusable(allApps.visibility != View.VISIBLE) // the PIN can open over All apps
-        (panelFrom?.takeIf { it.isAttachedToWindow } ?: findViewById(R.id.launcherSettings)).requestFocus()
+        (panelFrom?.takeIf { it.isAttachedToWindow && it.isShown } ?: findViewById(R.id.launcherSettings)).requestFocus()
         panelFrom = null
     }
 
@@ -2510,6 +2517,12 @@ class MainActivity : Activity() {
         val names = rowNames()
         // Rows with more than two values also step back with Left; two-value rows flip either way.
         val steps = mutableMapOf<Int, (Int) -> Unit>(
+            R.string.home_layout to { d ->
+                val next = HomeLayoutMode.values().toList().step(homeLayoutMode, d)
+                prefs.edit().putString(HomeLayoutMode.PREF_KEY, next.key).apply()
+                applyHomeLayoutMode()
+                renderSettings(R.string.home_layout)
+            },
             R.string.clock_size to { d ->
                 prefs.edit().putString("clock_size", CLOCK_SIZES.keys.toList().step(clockSize(), d).toString()).apply()
                 findViewById<TextView>(R.id.clock).textSize = clockSize().toFloat()
@@ -2568,10 +2581,15 @@ class MainActivity : Activity() {
                 // Clear's sharp picture is made only while Clear is the style: load the wallpaper again to make it.
                 if (glassStyle() == GlassStyle.CLEAR && sharpPixels == null && Backdrop.of(currentWallpaper()) == Backdrop.PICTURE) loadWallpaper()
                 else applyGlass()
+                styleOverviewPlaceholder()
                 renderSettings(R.string.glass)
             },
         )
         val rows = linkedMapOf<Int, Triple<String, String, () -> Unit>>(
+            R.string.home_layout to Triple(getString(R.string.home_layout),
+                getString(if (homeLayoutMode == HomeLayoutMode.CLASSIC) R.string.home_layout_classic else R.string.home_layout_overview)) {
+                steps[R.string.home_layout]!!(1)
+            },
             R.string.edit_apps_row to Triple(getString(R.string.edit_apps_row), "") { closeLauncherSettings(); startEdit(grab = null) },
             R.string.theme to Triple(getString(R.string.theme), getString(mapOf("light" to R.string.theme_light, "dark" to R.string.theme_dark, "wallpaper" to R.string.theme_wallpaper, "auto" to R.string.theme_auto)[theme] ?: R.string.theme_light)) {
                 steps[R.string.theme]!!(1)
@@ -2686,7 +2704,7 @@ class MainActivity : Activity() {
         // In the order things sit on the home screen, top to bottom, then the TV itself.
         val sections = listOf(
             Triple(R.string.section_style, "${rows[R.string.theme]!!.second} · ${getString(glassName())}",
-                listOf(R.string.theme, R.string.glass, R.string.app_animations)),
+                listOf(R.string.home_layout, R.string.theme, R.string.glass, R.string.app_animations)),
             Triple(R.string.section_app_row, "${rows[R.string.apps_in_row]!!.second} · ${rows[R.string.row_position]!!.second}",
                 listOf(R.string.edit_apps_row, R.string.apps_in_row, R.string.sort_apps, R.string.icon_style, R.string.row_size, R.string.app_names, R.string.row_position)),
             // "When hidden" only means something once the row can hide.
@@ -2715,6 +2733,8 @@ class MainActivity : Activity() {
             }
             // Choices show side by side (or under the title when long); the row's value is the picked one's name.
             val choices = mapOf(
+                R.string.home_layout to listOf(R.string.home_layout_classic to R.drawable.ms_view_carousel,
+                    R.string.home_layout_overview to R.drawable.ms_widgets).map { (s, i) -> getString(s) to i },
                 R.string.theme to listOf(R.string.theme_light to R.drawable.ms_light_mode, R.string.theme_dark to R.drawable.ms_dark_mode,
                     R.string.theme_wallpaper to R.drawable.ms_wallpaper, R.string.theme_auto to R.drawable.ms_routine).map { (s, i) -> getString(s) to i },
                 R.string.glass to listOf(R.string.off, R.string.glass_frosted, R.string.glass_clear).map { getString(it) to null },
@@ -3567,7 +3587,7 @@ class MainActivity : Activity() {
         // Rebuilds can happen in the background (an app or HDMI device added); only take focus if the row had it.
         // First fill after a cold start: Android already gave the default focus to the top bar's first icon.
         val firstFill = appRow.childCount == 0 && currentFocus?.parent === wifi.parent
-        val takeFocus = currentFocus == null || currentFocus?.parent === appRow || firstFill
+        val takeFocus = homeLayoutMode == HomeLayoutMode.CLASSIC && (currentFocus == null || currentFocus?.parent === appRow || firstFill)
         val gap = dp(GRID_GAP)
         val width = rowTileWidth()
         val tileH = if (isBannerStyle(iconStyle())) width * 9 / 16 else (dp(76) * rowScale()).toInt() // 16:9 like a banner
@@ -3935,6 +3955,7 @@ class MainActivity : Activity() {
      * Returns the view to focus (itself = stay), or null to let Android handle the key.
      */
     private fun homeNav(v: View, key: Int): View? {
+        if (homeLayoutMode == HomeLayoutMode.OVERVIEW) return overviewNav(v, key)
         fun alive(x: View?) = x?.takeIf { it.isAttachedToWindow }
         val apps = alive(lastApp)?.takeIf { it.parent === appRow } ?: appRow.getChildAt(0)
         val cards = if (watchScroll.visibility != View.VISIBLE) null
@@ -3966,6 +3987,62 @@ class MainActivity : Activity() {
                 }
             }
             else -> null
+        }
+    }
+
+    /** The overview has one focusable placeholder until M02 adds its own navigation. */
+    private fun overviewNav(v: View, key: Int): View? {
+        val placeholder = findViewById<View>(R.id.overviewPlaceholder)
+        val top = lastTop?.takeIf { it.isAttachedToWindow && it.isShown } ?: findViewById(R.id.launcherSettings)
+        return when {
+            v.parent === wifi.parent -> when (key) {
+                KeyEvent.KEYCODE_DPAD_DOWN -> placeholder
+                KeyEvent.KEYCODE_DPAD_UP -> v
+                KeyEvent.KEYCODE_DPAD_LEFT -> if (v.id == shownTop().first()) v else null
+                KeyEvent.KEYCODE_DPAD_RIGHT -> if (v.id == shownTop().last()) v else null
+                else -> null
+            }
+            v === placeholder -> when (key) {
+                KeyEvent.KEYCODE_DPAD_UP -> top
+                KeyEvent.KEYCODE_DPAD_DOWN, KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT -> v
+                else -> null
+            }
+            else -> null
+        }
+    }
+
+    /** Shared top bar, separate bodies. Never touch the classic row IDs or their navigation. */
+    private fun applyHomeLayoutMode() {
+        val old = homeLayoutMode
+        homeLayoutMode = HomeLayoutMode.fromPreference(prefs.getString(HomeLayoutMode.PREF_KEY, null))
+        val classic = homeLayoutMode == HomeLayoutMode.CLASSIC
+        findViewById<View>(R.id.classicHome).visibility = if (classic) View.VISIBLE else View.GONE
+        findViewById<View>(R.id.overviewHome).visibility = if (classic) View.GONE else View.VISIBLE
+        lastTop = null
+        lastApp = null
+        lastCard = null
+        rowOut = false
+        if (classic && old != homeLayoutMode) placeRow(animate = false)
+    }
+
+    private fun setupOverviewPlaceholder() {
+        val placeholder = findViewById<TextView>(R.id.overviewPlaceholder)
+        placeholder.setOnFocusChangeListener { view, focused ->
+            if (focused && glassActive()) glass.add(view, dp(18).toFloat()) else glass.remove(view)
+            styleOverviewPlaceholder()
+            view.animate().scaleX(if (focused) 1.03f else 1f).scaleY(if (focused) 1.03f else 1f)
+                .setDuration(160).setInterpolator(DECELERATE).start()
+        }
+        styleOverviewPlaceholder()
+    }
+
+    private fun styleOverviewPlaceholder() {
+        val placeholder = findViewById<TextView>(R.id.overviewPlaceholder)
+        placeholder.setTextColor(fg)
+        placeholder.background = GradientDrawable().apply {
+            cornerRadius = dp(18).toFloat()
+            setColor(cardRest[0])
+            if (placeholder.isFocused) setStroke(dp(2), fg)
         }
     }
 
@@ -5793,6 +5870,7 @@ class MainActivity : Activity() {
         )
         val ROW_ART = mapOf(R.string.row_size to "size", R.string.row_position to "position")
         val ROW_ICONS = mapOf(
+            R.string.home_layout to R.drawable.ms_view_carousel,
             R.string.theme to R.drawable.ms_contrast, R.string.glass to R.drawable.ms_blur_on, R.string.app_animations to R.drawable.ms_open_in_full,
             R.string.edit_apps_row to R.drawable.ms_swap_horiz, R.string.apps_in_row to R.drawable.ms_checklist, R.string.sort_apps to R.drawable.ms_sort,
             R.string.icon_style to R.drawable.ms_apps, R.string.row_size to R.drawable.ms_format_size, R.string.app_names to R.drawable.ms_label,
@@ -5812,6 +5890,7 @@ class MainActivity : Activity() {
         )
         /** The help line shown at the bottom of Plume settings while a row is selected. */
         val ROW_HELP = mapOf(
+            R.string.home_layout to R.string.help_home_layout,
             R.string.section_style to R.string.help_style, R.string.section_clock_weather to R.string.help_clock_weather,
             R.string.theme to R.string.help_theme, R.string.glass to R.string.help_glass, R.string.app_animations to R.string.help_app_animations,
             R.string.app_names to R.string.help_app_names, R.string.row_position to R.string.help_row_position, R.string.show_row to R.string.help_show_row,

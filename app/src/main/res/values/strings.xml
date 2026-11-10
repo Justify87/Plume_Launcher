@@ -1,4 +1,9 @@
 <resources>
+    <string name="home_layout">Home layout</string>
+    <string name="home_layout_classic">Classic</string>
+    <string name="home_layout_overview">Overview</string>
+    <string name="home_layout_placeholder">Overview is coming soon</string>
+    <string name="help_home_layout">Choose Classic for the original home screen or Overview to preview the new layout.</string>
     <string name="change_app_picture">Change picture</string>
     <string name="app_picture_icon">Icon</string>
     <string name="app_picture_icon_hint">Used with Monochrome and Colour styles</string>
