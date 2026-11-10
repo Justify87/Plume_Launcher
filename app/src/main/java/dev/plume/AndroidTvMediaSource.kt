@@ -73,17 +73,21 @@ internal object AndroidTvMediaSource {
         fun part(value: String) = "${value.length}:$value"
         val prefix = part(pkg)
         val keys = ArrayList<String>()
+        val season = program.seasonNumber?.trim()?.takeIf { it.isNotEmpty() }
+        val episode = program.episodeNumber?.trim()?.takeIf { it.isNotEmpty() }
         val seriesNames = listOfNotNull(
             program.seriesId?.trim()?.takeIf { it.isNotEmpty() },
             program.seriesTitle?.trim()?.takeIf { it.isNotEmpty() },
             // Some providers put the series name in title and the episode in episode_title.
             program.item.title.takeIf {
-                !program.episodeTitle.isNullOrBlank() && it != program.episodeTitle
+                (!program.episodeTitle.isNullOrBlank() && it != program.episodeTitle) ||
+                    (isNuvioPackage(pkg) && season != null && episode != null && it.isNotBlank())
             },
         ).distinct()
-        val season = program.seasonNumber?.trim()?.takeIf { it.isNotEmpty() }
-        val episode = program.episodeNumber?.trim()?.takeIf { it.isNotEmpty() }
-        program.internalProviderId?.trim()?.takeIf { it.isNotEmpty() }?.let { id ->
+        program.internalProviderId?.trim()?.takeIf { it.isNotEmpty() }?.let { rawId ->
+            // Nuvio prefixes Watch Next IDs with "wn_" but not Preview IDs.
+            // Nuvio also scopes TV-episode keys to season/episode itself.
+            val id = if (isNuvioPackage(pkg)) rawId.removePrefix("wn_") else rawId
             // Internal IDs can identify an entire series. Never merge other episodes or series.
             val suffix = when {
                 season != null && episode != null -> ":${part(season)}:${part(episode)}"
