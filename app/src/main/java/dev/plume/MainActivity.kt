@@ -4127,8 +4127,12 @@ class MainActivity : Activity() {
             ink = fg,
             decorate = { style(it, dp(10), card = true, lift = 1.03f) },
             onFocused = { key ->
-                sidebarSelection = key
-                updateOverviewPreview(visibleApps)
+                // Rebinding the sidebar already refreshed this page. Restoring its focus must not
+                // build the same media rows a second time (or discard a focused demo card).
+                if (sidebarSelection != key) {
+                    sidebarSelection = key
+                    updateOverviewPreview(visibleApps)
+                }
             },
             onOpen = { key ->
                 when (key) {
