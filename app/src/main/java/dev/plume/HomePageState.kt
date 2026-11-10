@@ -37,7 +37,8 @@ internal object HomePageContent {
     fun sections(feed: MediaFeedRepository, page: HomePageState): List<HomeMediaSection> {
         if (page == HomePageState.AllApps) return emptyList()
         val pkg = (page as? HomePageState.App)?.packageName
-        val items = feed.snapshot(sourceId = "tv", packageName = pkg)
+        val items = YouTubeSubscriptions.dedupe(feed.snapshot(packageName = pkg)
+            .filter { it.sourceId == "tv" || it.sourceId == YouTubeSubscriptions.SOURCE_ID })
         return MediaCategory.values().mapNotNull { category ->
             val group = items.filter { it.category == category }
             if (group.isEmpty()) null else HomeMediaSection(category, group)

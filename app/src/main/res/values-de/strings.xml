@@ -34,4 +34,10 @@
     <string name="home_layout_overview">Übersicht</string>
     <string name="home_layout_placeholder">Die neue Übersicht kommt bald</string>
     <string name="help_home_layout">Wähle Klassisch für die bisherige Startseite oder Übersicht, um den neuen Modus anzusehen.</string>
+    <string name="youtube_subscriptions">SmartTube / YouTube</string>
+    <string name="youtube_enable">Neue Abo-Videos anzeigen</string>
+    <string name="youtube_ids_hint">Kanal-IDs: UC… , UC…</string>
+    <string name="youtube_ids_help">Öffentliche Kanäle auswählen</string>
+    <string name="youtube_ids_count">%1$d Kanal-IDs</string>
+    <string name="youtube_ids_invalid">Ungültige Kanal-ID oder mehr als 12 Kanäle</string>
 </resources>
