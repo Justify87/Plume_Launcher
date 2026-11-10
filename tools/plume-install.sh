@@ -1,5 +1,5 @@
 #!/bin/sh
-# plume-install.sh: set Plume up over adb for the TV it finds, and put everything back with --undo.
+# plume-install.sh: set Plume Launcher Advanced up over adb for the TV it finds, and put everything back with --undo.
 #
 # It looks at the TV first (Fire TV and its Fire OS version, Google TV, or Android TV, and the Android version),
 # tells you what it found and what it is going to change, and asks before it changes anything. Then it runs only
@@ -7,27 +7,27 @@
 # network as the TV.
 #
 # Usage:   ./plume-install.sh [options] [TV_IP[:PORT]]
-#   -a APK                  install this Plume APK first (adb install -r)
+#   -a APK                  install this Plume Launcher Advanced APK first (adb install -r)
 #   -n                      only show what was found and what would change
 #   -y                      do not ask before changing
 #   --disable-stock-launcher  also turn off the TV's own launcher (Fire TV only). Off unless you ask for it.
 #   --undo                  put back what this script changed, and only that: it turns the stock launcher on again
 #                           (if this script turned it off), turns the Home button service off (if this script
-#                           turned it on) and waits until Plume has put its alarm setting back, and takes back the
+#                           turned it on) and waits until Plume Launcher Advanced has put its alarm setting back, and takes back the
 #                           grant (if this script gave it). A service that was already on stays on. The APK
-#                           stays installed: uninstall Plume in Settings > Apps if you want it gone.
+#                           stays installed: uninstall Plume Launcher Advanced in Settings > Apps if you want it gone.
 #   -h                      this help
 #
 # What the steps are:
-#   all TVs        give Plume the WRITE_SECURE_SETTINGS grant, turn on its Home button service, wait until
+#   all TVs        give Plume Launcher Advanced the WRITE_SECURE_SETTINGS grant, turn on its Home button service, wait until
 #                  the TV says the service is running
-#   Fire TV        Android 9 to 11 (Fire OS 7 and 8): a Plume with the alarm change sets the alarm timing
-#                  (min_futurity) by itself when its service starts. The script looks whether it did. A Plume
+#   Fire TV        Android 9 to 11 (Fire OS 7 and 8): a Plume Launcher Advanced with the alarm change sets the alarm timing
+#                  (min_futurity) by itself when its service starts. The script looks whether it did. A Plume Launcher Advanced
 #                  without that change leaves it, and Home then takes about 5 seconds. See CONTRIBUTING.md, "alarms".
 #   Fire TV, --disable-stock-launcher: the script first writes a recovery record on the TV, turns the launcher
-#                  off, checks that Plume's service runs and that Home opens Plume, and turns the launcher on
+#                  off, checks that Plume Launcher Advanced's service runs and that Home opens Plume Launcher Advanced, and turns the launcher on
 #                  again if either check fails.
-#   Google TV      Plume's service takes the Home button before Google TV sees it. Nothing else is needed.
+#   Google TV      Plume Launcher Advanced's service takes the Home button before Google TV sees it. Nothing else is needed.
 #                  The script never turns off Google TV's launcher: that can stop the TV from starting.
 #
 # On the TV: turn ADB debugging on. Fire TV: Settings > My Fire TV > Developer options > ADB debugging
@@ -36,10 +36,10 @@
 # Settings > System > Developer options > USB debugging or Network debugging. The first connection shows
 # "Allow USB debugging?" on the TV: tick "Always allow" and accept.
 
-PKG=dev.plume
-SERVICE=$PKG/$PKG.HomeOverride
+PKG=dev.plume.advanced
+SERVICE=$PKG/dev.plume.HomeOverride
 GRANT=android.permission.WRITE_SECURE_SETTINGS
-STATE=/data/local/tmp/plume-install.state
+STATE=/data/local/tmp/plume-advanced-install.state
 FIRE_LAUNCHER=com.amazon.tv.launcher
 
 APK= DRYRUN=0 YES=0 UNDO=0 STOCK=0 ADDR=
@@ -122,20 +122,20 @@ ENABLED=$(tv settings get secure enabled_accessibility_services)
 [ "$ENABLED" = null ] && ENABLED=
 STATEDATA=$(tv cat $STATE)
 case $STATEDATA in *"No such file"*) STATEDATA= ;; esac
-is_listed() { printf '%s\n' "$ENABLED" | tr ':' '\n' | grep -qE "^($SERVICE|$PKG/\.HomeOverride)\$"; }
+is_listed() { printf '%s\n' "$ENABLED" | tr ':' '\n' | grep -qxF "$SERVICE"; }
 LISTED=0
 is_listed && LISTED=1
-# "services:{" on Fire OS 7 (Android 9), "Bound services:{" later. Fire OS names a service by its label ("Plume: Home button").
-bound() { tv dumpsys accessibility | grep -E 'Bound services|^ *services:\{' | grep -qi plume; }
+# "services:{" on Fire OS 7 (Android 9), "Bound services:{" later. Fire OS names a service by its label ("Plume Launcher Advanced: Home button").
+bound() { tv dumpsys accessibility | grep -E 'Bound services|^ *services:\{' | grep -qi "Plume Launcher Advanced"; }
 MINFUT() { tv settings get global alarm_manager_constants | tr ',' '\n' | sed -n 's/^min_futurity=//p' | head -1; }
 
 say "Found: $MAKER $MODEL, $KINDNAME"
-if [ $INSTALLED = 1 ]; then say "Plume: installed${VERSION:+, version $VERSION}"; else say "Plume: not installed"; fi
+if [ $INSTALLED = 1 ]; then say "Plume Launcher Advanced: installed${VERSION:+, version $VERSION}"; else say "Plume Launcher Advanced: not installed"; fi
 [ $INSTALLED = 1 ] && say "WRITE_SECURE_SETTINGS grant: $([ $GRANTED = 1 ] && echo given || echo "not given")"
 [ $INSTALLED = 1 ] && say "Home button service: $([ $LISTED = 1 ] && echo "switched on$(bound && echo ' and running')" || echo "off")"
 say
 
-[ "$SDK" -ge 26 ] || die "Plume needs Android 8 or newer. This TV has Android $ANDROID."
+[ "$SDK" -ge 26 ] || die "Plume Launcher Advanced needs Android 8 or newer. This TV has Android $ANDROID."
 
 # ---- Undo ---------------------------------------------------------------------------------------------------------
 if [ $UNDO = 1 ]; then
@@ -144,15 +144,15 @@ if [ $UNDO = 1 ]; then
   U_GRANT=0; has granted=1 && U_GRANT=1
   if [ -z "$U_STOCK" ] && [ $U_SERVICE = 0 ] && [ $U_GRANT = 0 ]; then
     say "Nothing to undo: this script has not changed anything on this TV."
-    [ $LISTED = 1 ] && say "Plume's Home button service is on, and stays on: it was not this script that turned it on."
+    [ $LISTED = 1 ] && say "Plume Launcher Advanced's Home button service is on, and stays on: it was not this script that turned it on."
     exit 0
   fi
   say "This will:"
   [ -n "$U_STOCK" ] && say "  - turn the stock launcher on again ($U_STOCK; this script turned it off)"
-  [ $U_SERVICE = 1 ] && say "  - turn off Plume's Home button service (this script turned it on; Plume then puts its alarm setting back)"
+  [ $U_SERVICE = 1 ] && say "  - turn off Plume Launcher Advanced's Home button service (this script turned it on; Plume Launcher Advanced then puts its alarm setting back)"
   [ $U_GRANT = 1 ] && say "  - take back the $GRANT grant (this script gave it)"
-  [ $U_SERVICE = 0 ] && [ $LISTED = 1 ] && say "  - leave Plume's Home button service on (it was on before this script)"
-  say "  - leave Plume installed (uninstall it in Settings > Apps if you want it gone)"
+  [ $U_SERVICE = 0 ] && [ $LISTED = 1 ] && say "  - leave Plume Launcher Advanced's Home button service on (it was on before this script)"
+  say "  - leave Plume Launcher Advanced installed (uninstall it in Settings > Apps if you want it gone)"
   say
   [ $DRYRUN = 1 ] && exit 0
   if [ $YES = 0 ]; then
@@ -171,7 +171,7 @@ if [ $UNDO = 1 ]; then
       else tvok settings delete secure enabled_accessibility_services && tvok settings put secure accessibility_enabled 0; fi
       ENABLED=$(tv settings get secure enabled_accessibility_services); [ "$ENABLED" = null ] && ENABLED=
       n=0; while bound && [ $n -lt 15 ]; do sleep 1; n=$((n + 1)); done
-      if is_listed || bound; then bad "the TV still runs Plume's service. Turn it off in Settings > Accessibility."
+      if is_listed || bound; then bad "the TV still runs Plume Launcher Advanced's service. Turn it off in Settings > Accessibility."
       else ok "Home button service off"; unrecord service=1 || bad "could not update the record on the TV"; fi
     else
       ok "Home button service was already off"; unrecord service=1
@@ -188,7 +188,7 @@ if [ $UNDO = 1 ]; then
     else bad "could not take the grant back"; fi
   fi
   [ $FAILED = 0 ] && tv rm -f $STATE >/dev/null
-  [ $FAILED = 0 ] && say "Done. Plume is still installed." || say "Done, with problems (see above). The record on the TV is kept, so you can run --undo again."
+  [ $FAILED = 0 ] && say "Done. Plume Launcher Advanced is still installed." || say "Done, with problems (see above). The record on the TV is kept, so you can run --undo again."
   exit $FAILED
 fi
 
@@ -197,24 +197,24 @@ if [ $STOCK = 1 ]; then
   [ "$KIND" = fire ] || die "--disable-stock-launcher is for a Fire TV only. On $KINDNAME the stock launcher must stay on: turning it off can stop the TV from starting."
 fi
 if [ $INSTALLED = 0 ] && [ -z "$APK" ]; then
-  die "Plume is not installed on this TV. Give the APK with -a plume.apk, or install it first."
+  die "Plume Launcher Advanced is not installed on this TV. Give the APK with -a plume.apk, or install it first."
 fi
 
 say "This will:"
 [ -n "$APK" ] && say "  - install $APK"
-[ $GRANTED = 0 ] && say "  - give Plume the $GRANT grant (lets it keep its Home button service on)"
-[ $LISTED = 0 ] && say "  - switch on Plume's Home button service in Android's Accessibility settings"
-[ $LISTED = 1 ] && say "  - leave Plume's Home button service as it is (it is on already; --undo will leave it on)"
+[ $GRANTED = 0 ] && say "  - give Plume Launcher Advanced the $GRANT grant (lets it keep its Home button service on)"
+[ $LISTED = 0 ] && say "  - switch on Plume Launcher Advanced's Home button service in Android's Accessibility settings"
+[ $LISTED = 1 ] && say "  - leave Plume Launcher Advanced's Home button service as it is (it is on already; --undo will leave it on)"
 if [ $STOCK = 1 ]; then
-  say "  - write a recovery record on the TV, then turn off the Fire TV launcher ($FIRE_LAUNCHER). Home then opens Plume and not Amazon's home."
-  say "  - check that Plume's service runs and that Home opens Plume (this opens Settings and presses Home on the TV)."
+  say "  - write a recovery record on the TV, then turn off the Fire TV launcher ($FIRE_LAUNCHER). Home then opens Plume Launcher Advanced and not Amazon's home."
+  say "  - check that Plume Launcher Advanced's service runs and that Home opens Plume Launcher Advanced (this opens Settings and presses Home on the TV)."
   say "    If either check fails, the launcher is turned on again."
 fi
 if [ "$KIND" = fire ] && [ "$SDK" -le 30 ]; then
-  say "  - look whether Plume has set min_futurity to 0. A Plume with the alarm change does it by itself when its"
-  say "    service starts, so Home does not wait 5 seconds. A Plume without it does not, and Home takes about 5 seconds."
+  say "  - look whether Plume Launcher Advanced has set min_futurity to 0. A Plume Launcher Advanced with the alarm change does it by itself when its"
+  say "    service starts, so Home does not wait 5 seconds. A Plume Launcher Advanced without it does not, and Home takes about 5 seconds."
 elif [ "$KIND" = fire ]; then
-  say "  Note: this Android is newer than 11. Plume does not use its alarm here, so Home may take about 5 seconds."
+  say "  Note: this Android is newer than 11. Plume Launcher Advanced does not use its alarm here, so Home may take about 5 seconds."
 fi
 [ "$KIND" = google ] && say "  Note: Google TV's launcher stays on. Holding Home still opens the Google TV dashboard."
 say "  - then wait until the TV says the service is running"
@@ -227,7 +227,7 @@ fi
 # ---- Install: the steps ------------------------------------------------------------------------------------------
 say "Setting up:"
 if [ -n "$APK" ]; then
-  if adb -s "$D" install -r "$APK" >/dev/null 2>&1; then ok "Plume installed"; else bad "could not install $APK"; fi
+  if adb -s "$D" install -r "$APK" >/dev/null 2>&1; then ok "Plume Launcher Advanced installed"; else bad "could not install $APK"; fi
 fi
 if [ $GRANTED = 0 ]; then
   if ! record granted=1; then bad "could not write the recovery record on the TV, so the grant is not given"
@@ -246,26 +246,26 @@ if [ $LISTED = 0 ]; then
     ENABLED=$(tv settings get secure enabled_accessibility_services); [ "$ENABLED" = null ] && ENABLED=
     if [ $PUT = 1 ] && is_listed && [ "$(tv settings get secure accessibility_enabled)" = 1 ]; then ok "service switched on in settings"
     else
-      bad "the TV did not keep the setting that turns Plume's service on. Check Settings > Accessibility."
+      bad "the TV did not keep the setting that turns Plume Launcher Advanced's service on. Check Settings > Accessibility."
       is_listed || unrecord service=1
     fi
   fi
 fi
 n=0; while ! bound && [ $n -lt 20 ]; do sleep 1; n=$((n + 1)); done
-if bound; then ok "the TV says Plume's Home button service is running"
-else bad "the TV does not show Plume's service as running. Open Plume once, or check Settings > Accessibility."; fi
+if bound; then ok "the TV says Plume Launcher Advanced's Home button service is running"
+else bad "the TV does not show Plume Launcher Advanced's service as running. Open Plume Launcher Advanced once, or check Settings > Accessibility."; fi
 if [ "$KIND" = fire ] && [ "$SDK" -le 30 ]; then
   n=0; while [ "$(MINFUT)" != 0 ] && [ $n -lt 10 ]; do sleep 1; n=$((n + 1)); done
   if [ "$(MINFUT)" = 0 ]; then ok "alarm timing set (min_futurity=0)"
-  else note "min_futurity is not 0. This Plume does not have the alarm change, so Home takes about 5 seconds. Nothing is wrong."; fi
+  else note "min_futurity is not 0. This Plume Launcher Advanced does not have the alarm change, so Home takes about 5 seconds. Nothing is wrong."; fi
 fi
 
-# The stock launcher goes last, and only when Plume's service runs: with the launcher off and no service, Home goes nowhere.
+# The stock launcher goes last, and only when Plume Launcher Advanced's service runs: with the launcher off and no service, Home goes nowhere.
 resumed() { tv dumpsys activity activities | grep ResumedActivity; }
 home_opens_plume() {
   tv am start -a android.settings.SETTINGS >/dev/null
   n=0; while resumed | grep -q "$PKG/" && [ $n -lt 5 ]; do sleep 1; n=$((n + 1)); done
-  resumed | grep -q "$PKG/" && return 1 # Plume is still in front: Settings did not open, so the test would prove nothing
+  resumed | grep -q "$PKG/" && return 1 # Plume Launcher Advanced is still in front: Settings did not open, so the test would prove nothing
   tv input keyevent KEYCODE_HOME >/dev/null
   n=0; while [ $n -lt 12 ]; do sleep 1; resumed | grep -q "$PKG/" && return 0; n=$((n + 1)); done
   return 1
@@ -283,8 +283,8 @@ if [ $STOCK = 1 ]; then
     restore_launcher; bad "could not turn off $FIRE_LAUNCHER"
   else
     ok "Fire TV launcher off"
-    if bound && home_opens_plume; then ok "Home opens Plume"
-    else restore_launcher; bad "Plume's service or Home did not work without the Fire TV launcher, so the launcher is on again"; fi
+    if bound && home_opens_plume; then ok "Home opens Plume Launcher Advanced"
+    else restore_launcher; bad "Plume Launcher Advanced's service or Home did not work without the Fire TV launcher, so the launcher is on again"; fi
   fi
 fi
 say

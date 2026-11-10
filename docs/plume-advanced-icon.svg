@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 192 192" role="img" aria-label="Plume Launcher Advanced feather and A">
+<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#2C165B"/><stop offset="1" stop-color="#110A30"/></linearGradient><linearGradient id="pl" x1=".1" y1=".9" x2=".9" y2=".1"><stop stop-color="#53E6FF"/><stop offset=".5" stop-color="#F6E9FF"/><stop offset="1" stop-color="#D842FA"/></linearGradient></defs>
+<rect x="2" y="2" width="188" height="188" rx="38" fill="url(#bg)"/>
+<path d="M96 21 C104 21 112 24 118 31 L169 82 C177 90 177 104 169 112 L115 165 C106 174 92 175 84 167 L26 109 C18 101 19 90 27 82 L82 28 C86 24 92 21 96 21 Z" fill="none" stroke="#7436F6" stroke-width="7"/>
+<path d="M28 82 L82 28 Q90 20 97 21" fill="none" stroke="#2ACBFF" stroke-width="7"/>
+<path d="M151 30 Q158 68 137 96 Q114 126 67 135 Q86 99 114 79 Q137 61 151 30 Z" fill="#D951F9"/>
+<path d="M151 30 Q144 62 113 82 Q89 99 67 135 Q59 148 47 164 Q56 126 71 100 Q90 65 122 57 Q143 49 151 30 Z" fill="url(#pl)"/>
+<path d="M91 120 Q111 101 139 93 Q127 113 108 121 Q87 132 67 135 Z" fill="#B79AFD"/>
+<path d="M47 165 Q91 97 145 53 Q106 96 47 165 Z" fill="#1B0D43"/>
+<path d="M116 123 H164 Q174 123 172 135 L166 158 Q164 168 153 168 H102 Z" fill="#AD21E6"/>
+<path d="M133 131 H145 L159 158 H150 L147 151 H130 L126 158 H117 Z M138 138 L133 145 H144 Z" fill="#fff"/>
+</svg>

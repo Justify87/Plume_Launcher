@@ -54,7 +54,7 @@ class HomeWatch(private val fire: Boolean, private val homes: () -> Map<String, 
     }
 
     companion object {
-        private const val PLUME = "dev.plume"
+        private const val PLUME = "dev.plume.advanced"
         const val GOOGLE_TV = "com.google.android.apps.tv.launcherx"
         const val ANDROID_TV = "com.google.android.tvlauncher"
         private const val AMAZON = "com.amazon.tv.launcher"

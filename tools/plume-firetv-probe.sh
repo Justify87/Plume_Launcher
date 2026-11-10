@@ -1,6 +1,6 @@
 #!/bin/sh
-# plume-firetv-probe.sh: collect what Plume needs to know about how a Fire TV (or any Android TV) handles the Home
-# button, into one text file you can paste into https://github.com/aradhyas8/Plume_Launcher/issues/153
+# plume-firetv-probe.sh: collect what Plume Launcher Advanced needs to know about how a Fire TV (or any Android TV) handles the Home
+# button, into one text file you can paste into https://github.com/Justify87/Plume_Launcher/issues
 #
 # It installs nothing and changes no setting on the TV. It reads settings, listens to the system log and the
 # remote's key events while you press a few buttons, and opens the Accessibility settings page once to see
@@ -8,8 +8,8 @@
 # short-lived buffer), so that the lines it keeps all come from your button presses. Run it from a computer on the
 # same network.
 #
-# The file ends with a short summary: what the TV is, whether Plume sees it as a Fire TV, where each button press
-# landed, and how many milliseconds went by between Home and Plume. Post that part if you post nothing else.
+# The file ends with a short summary: what the TV is, whether Plume Launcher Advanced sees it as a Fire TV, where each button press
+# landed, and how many milliseconds went by between Home and Plume Launcher Advanced. Post that part if you post nothing else.
 #
 # Usage:   ./plume-firetv-probe.sh [options] [TV_IP[:PORT]]
 #   -l LABEL  name for this run, e.g. "stock" or "with-plume" (goes in the file name; default: run)
@@ -83,7 +83,7 @@ wait_step() { # $1 = what to do
 
 gist() { printf '%s\n' "$*" >>"$TMP/summary.txt"; } # lines of the summary printed at the end
 
-section "Plume Fire TV probe ($LABEL), $(date '+%Y-%m-%d %H:%M')"
+section "Plume Launcher Advanced Fire TV probe ($LABEL), $(date '+%Y-%m-%d %H:%M')"
 note "Script version: 2"
 
 # --- 1. device -----------------------------------------------------------------------------------
@@ -98,14 +98,14 @@ done
 gist "TV: $BRAND $MODEL_RAW, Android $ANDROID (sdk $SDK), build $BUILD"
 printf 'seconds since boot = %s\n' "$(tv cat /proc/uptime | cut -d' ' -f1)" | tee -a "$OUT"
 note "--- launcher and Home-related packages"
-devgrep "amazon.tv.launcher|amazon.tahoe|firehomestarter|amazon.tv.quicksettings|tv.settings|launcherx|dev.plume|projectivy|wolf|homeonfire|toolicious" pm list packages
+devgrep "amazon.tv.launcher|amazon.tahoe|firehomestarter|amazon.tv.quicksettings|tv.settings|launcherx|dev.plume.advanced|projectivy|wolf|homeonfire|toolicious" pm list packages
 PKGS=$R
 devgrep "versionName|versionCode" dumpsys package com.amazon.tv.launcher
-note "--- System features: Plume treats a TV as a Fire TV when amazon.hardware.fire_tv is listed"
+note "--- System features: Plume Launcher Advanced treats a TV as a Fire TV when amazon.hardware.fire_tv is listed"
 devgrep "amazon|fire" pm list features
 if printf '%s\n' "$R" | grep -q 'amazon.hardware.fire_tv'; then FIRE=yes; else FIRE=no; fi
-note "Plume sees a Fire TV: $FIRE"
-gist "Plume sees a Fire TV (amazon.hardware.fire_tv): $FIRE"
+note "Plume Launcher Advanced sees a Fire TV: $FIRE"
+gist "Plume Launcher Advanced sees a Fire TV (amazon.hardware.fire_tv): $FIRE"
 
 # --- 2. ADB from the TV itself ------------------------------------------------------------------
 section "2. ADB reachable from the TV itself (loopback)"
@@ -130,14 +130,14 @@ tv input keyevent KEYCODE_BACK >/dev/null
 sleep 1
 devgrep "Bound services|Enabled services|^ *services:\{" dumpsys accessibility
 ACC=$R
-case $ENABLED in *dev.plume/*) PLUME_SET=yes ;; *) PLUME_SET=no ;; esac
+case $ENABLED in *dev.plume.advanced/*) PLUME_SET=yes ;; *) PLUME_SET=no ;; esac
 # The list of bound services starts on a line "Bound services:{" (Android 10 and later) or "services:{" (Fire OS 7,
 # Android 9) and can go on over the next lines. It ends at the line that closes it ("}" or "}]"), at the next list
 # ("Enabled services:{"...), or after 20 lines, so that a word further down the dump is never taken for a service.
 BOUNDLIST=$(printf '%s\n' "$ACC" | awk '/Bound services|^ *services:\{/ { on = 1; n = 0 } on && n > 0 && /^ *[A-Za-z][A-Za-z ]*:[{[]/ { on = 0 } on { print; n++; if (/\}\]?[ \t]*$/ || n >= 20) on = 0 }')
 if [ -n "$BOUNDLIST" ]; then
-  # Fire OS names a bound service by its label ("Plume: Home button"), not by its package: look for the name.
-  if printf '%s\n' "$BOUNDLIST" | grep -qi plume; then PLUME_BOUND=yes; else PLUME_BOUND=no; fi
+  # Fire OS names a bound service by its label ("Plume Launcher Advanced: Home button"), not by its package: look for the name.
+  if printf '%s\n' "$BOUNDLIST" | grep -qi "Plume Launcher Advanced"; then PLUME_BOUND=yes; else PLUME_BOUND=no; fi
 else
   PLUME_BOUND=unknown # this Android's dumpsys has no line of bound services
   note "--- This Android's dumpsys has no line of bound services. First lines of what it prints instead:"
@@ -145,8 +145,8 @@ else
 fi
 # "On" is what the steps below act on: bound if the TV says so; else, when it does not say, switched on in settings.
 if [ "$PLUME_BOUND" = yes ] || { [ "$PLUME_BOUND" = unknown ] && [ "$PLUME_SET" = yes ]; }; then PLUME_ON=yes; else PLUME_ON=no; fi
-note "Plume's Home button service: switched on in Android's settings: $PLUME_SET; bound, as dumpsys says: $PLUME_BOUND"
-gist "Plume's Home button service: switched on in settings: $PLUME_SET; bound (dumpsys): $PLUME_BOUND"
+note "Plume Launcher Advanced's Home button service: switched on in Android's settings: $PLUME_SET; bound, as dumpsys says: $PLUME_BOUND"
+gist "Plume Launcher Advanced's Home button service: switched on in settings: $PLUME_SET; bound (dumpsys): $PLUME_BOUND"
 
 # --- 4. Home role ---------------------------------------------------------------------------------
 section "4. Who handles Home, and what limits launching an app after Home"
@@ -234,11 +234,11 @@ step "HOME short press" "Get ready to press HOME on the REMOTE (short press, one
 step "HOME long press"  "Get ready to LONG-press HOME on the remote (hold about 2 seconds). Press Enter, then do it."
 step "HOME double press" "Get ready to press HOME TWICE quickly. Press Enter, then do it." 40
 # What is in front now ($TO, after the double press) tells which step makes sense, not whether the service is on:
-# Plume can be on and still not be in front.
+# Plume Launcher Advanced can be on and still not be in front.
 case $TO in
-  dev.plume/*|dev.plume.*/*)
-    # Plume's own home is in front: the common case, and one where Plume's jump may not happen (see HomeWatch).
-    step "HOME from Plume's home" "Plume is on screen. Get ready to press HOME once, then wait 10 seconds without touching anything. Press Enter, then do it." 44 ;;
+  dev.plume.advanced/*)
+    # Plume Launcher Advanced's own home is in front: the common case, and one where Plume Launcher Advanced's jump may not happen (see HomeWatch).
+    step "HOME from Plume Launcher Advanced's home" "Plume Launcher Advanced is on screen. Get ready to press HOME once, then wait 10 seconds without touching anything. Press Enter, then do it." 44 ;;
   *)
     step "HOME again on Amazon's home" "Get ready to press HOME, wait 2 seconds on Amazon's own home screen without opening anything, then press HOME again. Press Enter, then do it." ;;
 esac
@@ -263,8 +263,8 @@ cat "$TMP/marks.txt" 2>/dev/null | tee -a "$OUT"
 grep -E 'cat=\[android\.intent\.category\.HOME\]|HomeActivity|HudActivity|quicksettings|KeyPolicy|handleShortPressOnHome|handleLongPressOnHome|KeyEventDispatcher|AccessibilityManagerService|Background activity start|callingUidHasAnyVisibleWindow|A11yAuthorizer|am_new_intent|resumed_activity|resume_activity|app-switch|Displayed .*(launcher|tahoe|plume)' "$TMP/log.txt" \
   | grep -v ' I/Vlog' | head -400 | redact | tee -a "$OUT"
 
-# For each Home step: when Android started the Home launch, when Amazon's home came to the front, when Plume asked
-# for its home, and when Plume came to the front. Android holds a launch back for about 5 s after Home.
+# For each Home step: when Android started the Home launch, when Amazon's home came to the front, when Plume Launcher Advanced asked
+# for its home, and when Plume Launcher Advanced came to the front. Android holds a launch back for about 5 s after Home.
 lag() { # $1 = HH:MM:SS the step started at (on the TV's clock), $2 = HH:MM:SS the next step started at (or empty)
   awk -v s="$1" -v e="$2" '
     function ms(t,  a) { split(t, a, /[:.]/); return ((a[1] * 60 + a[2]) * 60 + a[3]) * 1000 + a[4] }
@@ -272,21 +272,21 @@ lag() { # $1 = HH:MM:SS the step started at (on the TV's clock), $2 = HH:MM:SS t
     function rel(t) { return ((ms(t) - lo) % 86400000 + 86400000) % 86400000 }
     BEGIN { lo = ms(s ".000"); hi = 25000; if (e != "") { n = rel(e ".000"); if (n < hi) hi = n } }
     { t = rel($2); if (t > hi) next }
-    # The system starts Home from a uid below 10000 (1000, or 0 on Android 10 and later). A start of Plume from an
-    # app uid (10000 and above) is Plume asking for its home.
+    # The system starts Home from a uid below 10000 (1000, or 0 on Android 10 and later). A start of Plume Launcher Advanced from an
+    # app uid (10000 and above) is Plume Launcher Advanced asking for its home.
     function uid(l) { if (match(l, /from uid [0-9]+/)) return substr(l, RSTART + 9, RLENGTH - 9) + 0; return -1 }
-    { own = /cmp=dev\.plume/ && uid($0) >= 10000 }
-    h == "" && /cat=\[android\.intent\.category\.HOME\]/ && !own { h = t; hp = /cmp=dev\.plume/ }
+    { own = /cmp=dev\.plume\.advanced/ && uid($0) >= 10000 }
+    h == "" && /cat=\[android\.intent\.category\.HOME\]/ && !own { h = t; hp = /cmp=dev\.plume\.advanced/ }
     h != "" && a == "" && /(resumed_activity|resume_activity).*(amazon\.tv\.launcher|firehomestarter|firelauncher)/ { a = t }
     h != "" && q == "" && own && /START u0 .*from uid/ { q = t }
-    h != "" && p == "" && /(resumed_activity|resume_activity).*dev\.plume/ { p = t }
+    h != "" && p == "" && /(resumed_activity|resume_activity).*dev\.plume\.advanced/ { p = t }
     END {
       if (h == "") { print "no Home launch in the log"; exit }
-      r = "Home launch seen" (hp ? " (Android started Plume itself: it is the home app)" : "")
+      r = "Home launch seen" (hp ? " (Android started Plume Launcher Advanced itself: it is the home app)" : "")
       if (a != "") r = r "; Amazon home in front " (a - h) " ms later"
-      if (q != "") r = r "; Plume asked to start " (q - h) " ms after Home"; else r = r "; Plume never asked to start"
-      if (p != "") r = r "; Plume in front " (p - h) " ms after Home" (a != "" ? " (Amazon home visible about " (p - a) " ms)" : "")
-      else r = r "; Plume did not come to the front"
+      if (q != "") r = r "; Plume Launcher Advanced asked to start " (q - h) " ms after Home"; else r = r "; Plume Launcher Advanced never asked to start"
+      if (p != "") r = r "; Plume Launcher Advanced in front " (p - h) " ms after Home" (a != "" ? " (Amazon home visible about " (p - a) " ms)" : "")
+      else r = r "; Plume Launcher Advanced did not come to the front"
       print r
     }' "$TMP/log.txt"
 }
@@ -304,36 +304,36 @@ if [ -s "$TMP/marks.txt" ]; then
   [ -n "$prev" ] && report_lag "$prev" ""
 fi
 
-# --- 8. Plume, if present -------------------------------------------------------------------------
-if printf '%s\n' "$PKGS" | grep -q '^package:dev\.plume$'; then
-  section "8. Plume on this TV"
-  devgrep "versionName|installerPackageName|packageSource|WRITE_SECURE_SETTINGS" dumpsys package dev.plume
+# --- 8. Plume Launcher Advanced, if present -------------------------------------------------------------------------
+if printf '%s\n' "$PKGS" | grep -q '^package:dev\.plume\.advanced$'; then
+  section "8. Plume Launcher Advanced on this TV"
+  devgrep "versionName|installerPackageName|packageSource|WRITE_SECURE_SETTINGS" dumpsys package dev.plume.advanced
   PLV=$(printf '%s\n' "$R" | grep -m1 versionName | sed 's/^ *//')
-  [ -n "$PLV" ] || { sleep 1; PLV=$(tv dumpsys package dev.plume | grep -m1 versionName | sed 's/^ *//'); } # the TV answered nothing: ask once more
-  devrun appops get dev.plume ACCESS_RESTRICTED_SETTINGS
-  note "--- Is Plume exempt from Doze? (a line with Plume = yes)"
+  [ -n "$PLV" ] || { sleep 1; PLV=$(tv dumpsys package dev.plume.advanced | grep -m1 versionName | sed 's/^ *//'); } # the TV answered nothing: ask once more
+  devrun appops get dev.plume.advanced ACCESS_RESTRICTED_SETTINGS
+  note "--- Is Plume Launcher Advanced exempt from Doze? (a line with Plume Launcher Advanced = yes)"
   devgrep "plume" dumpsys deviceidle whitelist
-  gist "Plume ${PLV:-version not read} installed"
+  gist "Plume Launcher Advanced ${PLV:-version not read} installed"
 fi
 
 # --- 9. one check by eye ----------------------------------------------------------------------------
 if [ $NOPROMPT -eq 0 ] && [ "$FIRE" = yes ]; then
   section "9. One check on Amazon's Network status screen"
-  note "(Asked in every run, so that the answers with Plume's Home button on and off can be compared. It is on: $PLUME_ON.)"
+  note "(Asked in every run, so that the answers with Plume Launcher Advanced's Home button on and off can be compared. It is on: $PLUME_ON.)"
   note "Another Fire TV launcher (dumbtv) reported that on Fire OS 8, while an accessibility service is on, Amazon's"
   note "Network status screen shows no highlighted button, so Advanced and Run Speed Test can't be reached."
   note "On the TV: Settings > Network > your network > Network status. Is one button highlighted?"
   printf '    y = yes, n = no, anything else = skip: '
   read -r ans </dev/tty || ans=
   case $ans in
-    y|Y) note "Network status: a button is highlighted."; gist "Network status screen: a button is highlighted (Plume's service on: $PLUME_ON)" ;;
-    n|N) note "Network status: NO button is highlighted."; gist "Network status screen: NO button highlighted (Plume's service on: $PLUME_ON)" ;;
+    y|Y) note "Network status: a button is highlighted."; gist "Network status screen: a button is highlighted (Plume Launcher Advanced's service on: $PLUME_ON)" ;;
+    n|N) note "Network status: NO button is highlighted."; gist "Network status screen: NO button highlighted (Plume Launcher Advanced's service on: $PLUME_ON)" ;;
     *)   note "Network status: not checked." ;;
   esac
 fi
 
 section "Summary (this part is enough to post)"
-note "Script version 2, run '$LABEL'"
+note "Script version 3, run '$LABEL'"
 cat "$TMP/summary.txt" 2>/dev/null | redact | tee -a "$OUT"
 
 section "Done"

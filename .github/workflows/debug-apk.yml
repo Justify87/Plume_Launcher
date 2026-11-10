@@ -1,5 +1,5 @@
 # Build an installable debug APK on demand. No release keystore or secrets required.
-name: Build Debug APK
+name: Build Plume Launcher Advanced Debug APK
 
 on:
   workflow_dispatch:
@@ -13,7 +13,7 @@ concurrency:
 
 jobs:
   build-debug:
-    name: Build and upload Debug APK
+    name: Build and upload Advanced Debug APK
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -38,14 +38,21 @@ jobs:
         run: |
           set -euo pipefail
           apk_dir=app/build/outputs/apk/debug
-          test -s "$apk_dir/app-debug.apk"
-          (cd "$apk_dir" && sha256sum app-debug.apk > SHA256SUMS)
+          mv "$apk_dir/app-debug.apk" "$apk_dir/Plume-Launcher-Advanced-debug.apk"
+          test -s "$apk_dir/Plume-Launcher-Advanced-debug.apk"
+          # Reject an accidentally un-rebranded APK, even if Gradle succeeds.
+          aapt="$(find "$ANDROID_HOME/build-tools" -maxdepth 2 -type f -name aapt | sort -V | tail -n 1)"
+          test -n "$aapt"
+          "$aapt" dump badging "$apk_dir/Plume-Launcher-Advanced-debug.apk" > "$apk_dir/badging.txt"
+          grep -Fq "package: name='dev.plume.advanced'" "$apk_dir/badging.txt"
+          grep -Fq "application-label:'Plume Launcher Advanced'" "$apk_dir/badging.txt"
+          (cd "$apk_dir" && sha256sum Plume-Launcher-Advanced-debug.apk > SHA256SUMS)
           {
             echo "### Debug APK ready"
             echo ""
             echo "- Build: \`$GITHUB_RUN_NUMBER\`"
             echo "- Commit: \`$GITHUB_SHA\`"
-            echo "- APK: \`app-debug.apk\`"
+            echo "- APK: \`Plume-Launcher-Advanced-debug.apk\`"
             echo "- SHA-256: \`$(cut -d' ' -f1 "$apk_dir/SHA256SUMS")\`"
             echo "- Download: **Artifacts** section of this workflow run."
           } >> "$GITHUB_STEP_SUMMARY"
@@ -53,9 +60,9 @@ jobs:
       - name: Upload Debug APK and checksum
         uses: actions/upload-artifact@v5
         with:
-          name: Plume-Debug-APK-${{ github.run_number }}
+          name: Plume-Launcher-Advanced-Debug-APK-${{ github.run_number }}
           path: |
-            app/build/outputs/apk/debug/app-debug.apk
+            app/build/outputs/apk/debug/Plume-Launcher-Advanced-debug.apk
             app/build/outputs/apk/debug/SHA256SUMS
           if-no-files-found: error
           retention-days: 14

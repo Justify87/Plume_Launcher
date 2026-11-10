@@ -5,13 +5,13 @@
 #   FAKE_INIT         a JSON object merged into the TV's first state (for example a service that is on already)
 #   FAKE_FAIL         substrings, separated by |: a shell command that has one fails, with a message and exit status 1
 #   FAKE_FAIL_SILENT  the same, but with no message at all (only the exit status says it failed)
-#   FAKE_NOALARM      Plume does not have the alarm change: it never sets min_futurity
-#   FAKE_HOME_BROKEN  Home does not open Plume, whatever the service does
+#   FAKE_NOALARM      Plume Launcher Advanced does not have the alarm change: it never sets min_futurity
+#   FAKE_HOME_BROKEN  Home does not open Plume Launcher Advanced, whatever the service does
 import json, os, re, sys
 
 SP = os.environ["FAKE_STATE"]
 KIND = os.environ.get("FAKE_KIND", "fire7")
-SVC = "dev.plume/dev.plume.HomeOverride"
+SVC = "dev.plume.advanced/dev.plume.HomeOverride"
 STOCK = "com.amazon.tv.launcher"
 FIRE = KIND.startswith("fire")
 if os.path.exists(SP):
@@ -31,7 +31,7 @@ def service_on():
 
 
 def app_sync():
-    # What Plume does: set min_futurity when its service runs and the grant is there, put the old value back when it stops.
+    # What Plume Launcher Advanced does: set min_futurity when its service runs and the grant is there, put the old value back when it stops.
     if FIRE and "FAKE_NOALARM" not in os.environ:
         if service_on() and st["granted"] and "min_futurity=0" not in st["global"]:
             st["alarm_saved"] = st["global"]
@@ -70,9 +70,9 @@ elif line.startswith("getprop ro.build.version.release"): out = rel
 elif line.startswith("getprop ro.build.version.sdk"): out = sdk
 elif line == "pm list features": out = "feature:android.software.leanback" + ("\nfeature:amazon.hardware.fire_tv" if FIRE else "")
 elif line == "pm list packages":
-    out = "package:com.android.settings" + ("\npackage:dev.plume" if st["installed"] else "") + ("\npackage:com.google.android.apps.tv.launcherx" if KIND == "google" else "")
+    out = "package:com.android.settings" + ("\npackage:dev.plume.advanced" if st["installed"] else "") + ("\npackage:com.google.android.apps.tv.launcherx" if KIND == "google" else "")
 elif line == "pm list packages -d": out = "\n".join("package:" + p for p in st["disabled"])
-elif line == "dumpsys package dev.plume":
+elif line == "dumpsys package dev.plume.advanced":
     out = "    versionName=1.6\n" + ("    android.permission.WRITE_SECURE_SETTINGS: granted=true" if st["granted"] else "")
 elif line == "settings get secure enabled_accessibility_services": out = st["enabled"] or "null"
 elif line == "settings get secure accessibility_enabled": out = "1" if st["enabled"] else "0"
@@ -83,7 +83,7 @@ elif line.startswith("settings delete secure enabled_accessibility_services"): s
 elif line.startswith("settings put secure accessibility_enabled"): pass
 elif line == "dumpsys accessibility":
     pre = "Bound services:{" if KIND != "fire7" else "services:{"
-    out = "  " + pre + ("Service[label=Plume: Home button,feedbackType[]]}" if service_on() else "}")
+    out = "  " + pre + ("Service[label=Plume Launcher Advanced: Home button,feedbackType[]]}" if service_on() else "}")
 elif line == "dumpsys activity activities": out = "  mResumedActivity: ActivityRecord{1 u0 %s t1}" % st["top"]
 elif line.startswith("pm grant"): st["granted"] = st["installed"]
 elif line.startswith("pm revoke"): st["granted"] = False
@@ -96,7 +96,7 @@ elif line.startswith("pm enable"):
     out = "Package %s new state: enabled" % pkg
 elif line.startswith("am start"): st["top"] = "com.android.settings/.Settings"
 elif line == "input keyevent KEYCODE_HOME":
-    if service_on() and "FAKE_HOME_BROKEN" not in os.environ: st["top"] = "dev.plume/.MainActivity"
+    if service_on() and "FAKE_HOME_BROKEN" not in os.environ: st["top"] = "dev.plume.advanced/dev.plume.MainActivity"
     elif STOCK not in st["disabled"]: st["top"] = (STOCK if FIRE else "launcherx") + "/.Home"
 elif line.startswith("cat "): out = st["files"].get(line.split()[1], "cat: %s: No such file or directory" % line.split()[1])
 elif line.startswith("rm -f "): st["files"].pop(line.split()[2], None)

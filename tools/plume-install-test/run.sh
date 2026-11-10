@@ -15,8 +15,8 @@ chmod +x "$WORK/bin/adb" "$WORK/bin/sleep"
 PATH=$WORK/bin:$PATH
 FAKE_STATE=$WORK/tv.json
 export PATH FAKE_STATE
-STATE=/data/local/tmp/plume-install.state
-SVC=dev.plume/dev.plume.HomeOverride
+STATE=/data/local/tmp/plume-advanced-install.state
+SVC=dev.plume.advanced/dev.plume.HomeOverride
 OTHER=com.example/com.example.Other
 N=0 BAD=0
 
@@ -48,7 +48,7 @@ new fire7
 run
 check "install on Fire OS 7 works" '[ $RC = 0 ] && ! has "$OUT" FAILED'
 check "install: service listed, grant given" 'has "$(st enabled)" $SVC && [ "$(st granted)" = True ]'
-check "install: Plume set min_futurity" 'has "$(st global)" min_futurity=0'
+check "install: Plume Launcher Advanced set min_futurity" 'has "$(st global)" min_futurity=0'
 check "install: the record lists service and grant" 'has "$(record)" service=1 && has "$(record)" granted=1'
 run --undo
 check "undo works" '[ $RC = 0 ] && ! has "$OUT" FAILED'
@@ -100,7 +100,7 @@ run
 run --undo
 check "a min_futurity that was 0 before is not reported as a problem" '[ $RC = 0 ] && ! has "$OUT" FAILED'
 
-# ---- a Plume without the alarm change -----------------------------------------------------------------------------
+# ---- a Plume Launcher Advanced without the alarm change -----------------------------------------------------------------------------
 new fire7
 FAKE_NOALARM=1; export FAKE_NOALARM
 run
@@ -146,7 +146,7 @@ check "undo can be run again after a failure" '[ $RC = 0 ] && [ "$(st granted)" 
 # ---- the stock launcher -------------------------------------------------------------------------------------------
 new fire7
 run --disable-stock-launcher
-check "stock launcher off: Plume answers Home" '[ $RC = 0 ] && has "$OUT" "Home opens Plume" && has "$(st disabled)" com.amazon.tv.launcher'
+check "stock launcher off: Plume Launcher Advanced answers Home" '[ $RC = 0 ] && has "$OUT" "Home opens Plume Launcher Advanced" && has "$(st disabled)" com.amazon.tv.launcher'
 check "stock launcher off: the record names it" 'has "$(record)" stock=com.amazon.tv.launcher'
 run --undo
 check "undo turns the stock launcher on again" '[ $RC = 0 ] && [ "$(st disabled)" = "[]" ] && [ -z "$(st enabled)" ]'
@@ -168,8 +168,8 @@ check "a launcher that cannot be turned off leaves no record" '[ $RC = 1 ] && [ 
 new fire7
 FAKE_HOME_BROKEN=1; export FAKE_HOME_BROKEN
 run --disable-stock-launcher
-check "Home does not open Plume: the stock launcher is on again" '[ $RC = 1 ] && has "$OUT" "launcher is on again" && [ "$(st disabled)" = "[]" ] && ! has "$(record)" stock='
-check "Home does not open Plume: the service stays on, as asked" 'has "$(st enabled)" $SVC'
+check "Home does not open Plume Launcher Advanced: the stock launcher is on again" '[ $RC = 1 ] && has "$OUT" "launcher is on again" && [ "$(st disabled)" = "[]" ] && ! has "$(record)" stock='
+check "Home does not open Plume Launcher Advanced: the service stays on, as asked" 'has "$(st enabled)" $SVC'
 
 new fire7
 FAKE_HOME_BROKEN=1; FAKE_FAIL="pm enable"; export FAKE_HOME_BROKEN FAKE_FAIL
@@ -188,7 +188,7 @@ check "Google TV refuses to turn its launcher off" '[ $RC != 0 ] && has "$OUT" "
 # ---- the questions the script asks -------------------------------------------------------------------------------
 new fire7 '{"installed": false}'
 run
-check "Plume not installed and no -a: the script stops and changes nothing" '[ $RC != 0 ] && has "$OUT" "not installed" && [ -z "$(st enabled)" ]'
+check "Plume Launcher Advanced not installed and no -a: the script stops and changes nothing" '[ $RC != 0 ] && has "$OUT" "not installed" && [ -z "$(st enabled)" ]'
 
 new fire7
 OUT=$(printf 'n\n' | sh "$SCRIPT" 10.0.0.2 2>&1); RC=$?
