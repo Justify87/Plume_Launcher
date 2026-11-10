@@ -346,7 +346,9 @@ class MainActivity : Activity() {
     private lateinit var videoWallpaper: VideoWallpaper
     private var homeLayoutMode = HomeLayoutMode.CLASSIC
     private lateinit var homeSidebar: HomeSidebarView
+    private lateinit var homeOverview: OverviewHomeView
     private var sidebarSelection = HomeSidebarView.OVERVIEW
+    private var previewPageKey: String? = null
 
     private var resumed = false
     private var ready = false // false while the user is still locked: no prefs, files or cache yet
@@ -1034,6 +1036,13 @@ class MainActivity : Activity() {
         when {
             settingsScrim.visibility == View.VISIBLE -> pageBack?.invoke() ?: closeLauncherSettings()
             allApps.visibility == View.VISIBLE -> closeAllApps()
+            homeLayoutMode == HomeLayoutMode.OVERVIEW &&
+                sidebarSelection != HomeSidebarView.OVERVIEW &&
+                sidebarSelection != HomeSidebarView.ALL_APPS -> {
+                sidebarSelection = HomeSidebarView.OVERVIEW
+                updateOverviewPreview(sortedApps().filter { inRow(it.pkg, rowHiddenSet()) })
+                homeSidebar.viewFor(HomeSidebarView.OVERVIEW)?.requestFocus()
+            }
         }
     }
 
@@ -3994,7 +4003,7 @@ class MainActivity : Activity() {
         }
     }
 
-    /** The optional layout has one physical focus owner: the Android view tree. */
+    /** Return only actual, attached and visible focus targets. The classic navigation is unchanged. */
     private fun overviewNav(v: View, key: Int): View? {
         val direction = when (key) {
             KeyEvent.KEYCODE_DPAD_UP -> HomeFocusNavigator.Direction.UP
@@ -4003,10 +4012,39 @@ class MainActivity : Activity() {
             KeyEvent.KEYCODE_DPAD_RIGHT -> HomeFocusNavigator.Direction.RIGHT
             else -> return null
         }
+        val top = lastTop?.takeIf { it.isAttachedToWindow && it.isShown }
+            ?: findViewById(R.id.launcherSettings)
+        val activeCard = homeOverview.positionOf(v)
+        val sidebar = { homeSidebar.viewFor(sidebarSelection)?.takeIf { it.isAttachedToWindow && it.isShown } }
+        if (activeCard != null) {
+            val counts = homeOverview.counts()
+            val other = when (direction) {
+                HomeFocusNavigator.Direction.UP -> (activeCard.row - 1 downTo 0).firstOrNull { counts[it] > 0 }
+                HomeFocusNavigator.Direction.DOWN -> (activeCard.row + 1 until counts.size).firstOrNull { counts[it] > 0 }
+                else -> null
+            }
+            val move = OverviewRowsNavigator.next(
+                activeCard.row, activeCard.index, counts,
+                OverviewRowsNavigator.Direction.valueOf(direction.name),
+                other?.let { homeOverview.lastIndex(it) },
+            )
+            return when (move) {
+                OverviewRowsNavigator.Target.Stay -> v
+                OverviewRowsNavigator.Target.Top -> top
+                OverviewRowsNavigator.Target.Sidebar -> sidebar() ?: v
+                is OverviewRowsNavigator.Target.Card ->
+                    homeOverview.focusAt(move.row, move.index) ?: v
+            }
+        }
+        val action = findViewById<View>(R.id.overviewAction)
+        // On an app page, Down from Open app reaches any available sample row.
+        if (v === action && direction == HomeFocusNavigator.Direction.DOWN) {
+            return homeOverview.preferredCard() ?: v
+        }
         val zone = when {
             v.parent === wifi.parent -> HomeFocusNavigator.Zone.TOP
             homeSidebar.indexOf(v) >= 0 -> HomeFocusNavigator.Zone.SIDEBAR
-            v === findViewById<View>(R.id.overviewAction) -> HomeFocusNavigator.Zone.CONTENT
+            v === action -> HomeFocusNavigator.Zone.CONTENT
             else -> return null
         }
         if (zone == HomeFocusNavigator.Zone.TOP) {
@@ -4014,18 +4052,21 @@ class MainActivity : Activity() {
             if (direction == HomeFocusNavigator.Direction.RIGHT && v.id == shownTop().last()) return v
         }
         val index = if (zone == HomeFocusNavigator.Zone.SIDEBAR) homeSidebar.indexOf(v)
-            else homeSidebar.viewFor(sidebarSelection)?.let { homeSidebar.indexOf(it) } ?: 0
-        val action = findViewById<View>(R.id.overviewAction)
+            else sidebar()?.let { homeSidebar.indexOf(it) } ?: 0
+        if (zone == HomeFocusNavigator.Zone.SIDEBAR && direction == HomeFocusNavigator.Direction.RIGHT) {
+            return homeOverview.takeIf { it.isShown }?.preferredCard()
+                ?: action.takeIf { it.isAttachedToWindow && it.isShown }
+                ?: v
+        }
         val target = HomeFocusNavigator.next(zone, direction, index, homeSidebar.itemCount,
-            contentAvailable = action.visibility == View.VISIBLE)
-        val top = lastTop?.takeIf { it.isAttachedToWindow && it.isShown }
-            ?: findViewById(R.id.launcherSettings)
+            contentAvailable = action.visibility == View.VISIBLE || homeOverview.counts().any { it > 0 })
         return when (target) {
             HomeFocusNavigator.Target.Stay -> v
             HomeFocusNavigator.Target.Framework -> null
             HomeFocusNavigator.Target.Top -> top
             is HomeFocusNavigator.Target.Sidebar -> homeSidebar.viewAt(target.index) ?: v
-            HomeFocusNavigator.Target.Content -> action
+            HomeFocusNavigator.Target.Content ->
+                homeOverview.preferredCard() ?: action.takeIf { it.isShown } ?: v
         }
     }
 
@@ -4046,6 +4087,7 @@ class MainActivity : Activity() {
 
     private fun setupHomeSidebar() {
         homeSidebar = findViewById(R.id.homeSidebar)
+        homeOverview = findViewById(R.id.overviewMedia)
         homeSidebar.setOnScrollChangeListener { _, _, _, _, _ -> glass.kick(150) }
         findViewById<TextView>(R.id.overviewAction).apply {
             style(this, dp(12), card = true, lift = 1.04f)
@@ -4105,30 +4147,50 @@ class MainActivity : Activity() {
         }
     }
 
-    /** Visual preview only; media feeds and per-app cards are introduced by later milestones. */
+    /** M03 contains only named offline demo cards. Production TvContract rows remain in Classic. */
     private fun updateOverviewPreview(visibleApps: List<App>) {
         val heading = findViewById<TextView>(R.id.overviewHeading)
         val description = findViewById<TextView>(R.id.overviewDescription)
-        val first = findViewById<TextView>(R.id.overviewSectionOne)
-        val second = findViewById<TextView>(R.id.overviewSectionTwo)
         val action = findViewById<TextView>(R.id.overviewAction)
         val app = visibleApps.firstOrNull { it.pkg == sidebarSelection }
+        val all = sidebarSelection == HomeSidebarView.ALL_APPS
+        if (previewPageKey != sidebarSelection) {
+            previewPageKey = sidebarSelection
+            findViewById<android.widget.ScrollView>(R.id.overviewPreviewScroll).scrollTo(0, 0)
+        }
         heading.text = when {
             app != null -> app.label
-            sidebarSelection == HomeSidebarView.ALL_APPS -> getString(R.string.all_apps)
+            all -> getString(R.string.all_apps)
             else -> getString(R.string.home_layout_overview)
         }
+        val rows = if (all) listOf(emptyList(), emptyList()) else DemoMedia.rowsFor(app?.pkg)
         description.setText(when {
-            app != null -> R.string.sidebar_app_info
-            sidebarSelection == HomeSidebarView.ALL_APPS -> R.string.sidebar_all_apps_info
-            else -> R.string.sidebar_overview_info
+            all -> R.string.sidebar_all_apps_info
+            app == null -> R.string.demo_overview_info
+            rows.flatten().isEmpty() -> R.string.demo_app_empty
+            else -> R.string.demo_app_info
         })
-        for (view in listOf(heading, description, first, second, action)) view.setTextColor(fg)
-        val overview = app == null && sidebarSelection != HomeSidebarView.ALL_APPS
-        first.visibility = if (overview) View.VISIBLE else View.GONE
-        second.visibility = if (overview) View.VISIBLE else View.GONE
+        for (view in listOf(heading, description, action)) ink(view, fg)
+        // Every tile says DEMO and names its source; avoid a tall second caption on the
+        // shared Overview so both main rows remain reachable on the 960x540dp canvas.
+        description.visibility = if (app == null && !all) View.GONE else View.VISIBLE
         action.visibility = if (app != null) View.VISIBLE else View.GONE
         action.tag = app?.pkg
+        homeOverview.visibility = if (all) View.GONE else View.VISIBLE
+        if (!all) homeOverview.bind(
+            pageKey = sidebarSelection,
+            rows = rows,
+            continueTitle = getString(R.string.continue_watching),
+            newTitle = getString(R.string.sidebar_new_for_you),
+            exampleTag = getString(R.string.demo_tag),
+            emptyLabel = getString(R.string.demo_empty_section),
+            decorateCard = { style(it, dp(9), card = true, lift = 1.04f) },
+            tintLabel = { ink(it, fg) },
+            disposeCard = { glass.remove(it) },
+            onSelect = { toast(getString(R.string.demo_not_playable)) },
+            makeProgress = { progressBarDrawable(fg) },
+            onScroll = { glass.kick(150) },
+        )
     }
 
     /** Overlays (All apps, launcher settings) sit on top of the home rows; keep focus from slipping behind them. */

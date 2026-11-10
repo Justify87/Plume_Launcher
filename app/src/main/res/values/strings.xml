@@ -1,4 +1,17 @@
 <resources>
+
+    <!-- M03: offline preview content, never actual viewing history -->
+    <string name="demo_tag">DEMO</string>
+    <string name="demo_overview_info">Sample cards only. This is not your real viewing history.</string>
+    <string name="demo_app_info">Sample cards for this app. These are not real viewing activity.</string>
+    <string name="demo_app_empty">No sample cards for this app. Select Open app to launch it.</string>
+    <string name="demo_empty_section">No sample cards in this section.</string>
+    <string name="demo_not_playable">This is a sample card. Playback is not available.</string>
+    <string name="demo_episode">EPISODE</string>
+    <string name="demo_movie">FILM</string>
+    <string name="demo_video">VIDEO</string>
+    <string name="demo_podcast">PODCAST</string>
+
     <string name="sidebar_overview_info">Your recent activity and new suggestions will appear here as content sources become available.</string>
     <string name="sidebar_app_info">Content from this app will appear here in a later step. Press OK on the sidebar app to launch it directly.</string>
     <string name="sidebar_all_apps_info">Press OK to browse all installed apps, including apps hidden from Home.</string>

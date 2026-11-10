@@ -12,7 +12,12 @@ Write every entry in ASD-STE100 Simplified Technical English:
 - Use one word for one thing. Use the names that Plume shows on the screen.
 - Start each entry with "- ". Plume shows each entry as one item. It removes `**` marks.
 
-Put changes that are not released under `## Unreleased`. Rename that heading to the version number when you release.
+Put changes that are not released under `## Unreleased
+
+- **Overview demo cards.** Explore sample videos, films, episodes, and podcasts with the remote. The cards do not use your history.
+- Press Right to open a sample row. Press Up or Down to switch rows. Press Left at the first card to return to the sidebar.
+- Select an app in the Overview sidebar to see sample cards for that app. Press Back to return to Overview.
+`. Rename that heading to the version number when you release.
 
 ## Unreleased
 
