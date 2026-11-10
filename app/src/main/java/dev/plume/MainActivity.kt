@@ -301,7 +301,11 @@ class MainActivity : Activity() {
                        val group: String? = pkg, val wide: Boolean = true, // wide: the art can be a wallpaper (see ShowsWall.wide)
                        val contentId: String? = null, val origin: String = "tv:watchnext",
                        val category: MediaCategory = MediaCategory.UNKNOWN, val durationMillis: Long? = null,
-                       val playbackPositionMillis: Long? = null, val engagedAtMillis: Long? = null)
+                       val playbackPositionMillis: Long? = null, val engagedAtMillis: Long? = null,
+                       val watchNextType: Long? = null, val channelName: String? = null,
+                       val internalProviderId: String? = null, val seriesId: String? = null,
+                       val seriesTitle: String? = null, val episodeTitle: String? = null,
+                       val seasonNumber: String? = null, val episodeNumber: String? = null)
 
     private val prefs by lazy { getSharedPreferences("home", MODE_PRIVATE) }
     private val io = Executors.newSingleThreadExecutor()
@@ -4158,7 +4162,7 @@ class MainActivity : Activity() {
         }
     }
 
-    /** The Overview still shows named offline examples, now filtered by the shared repository. */
+    /** The real TV source is already populated by refreshWatchNext on the existing IO executor. */
     private fun updateOverviewPreview(visibleApps: List<App>) {
         val heading = findViewById<TextView>(R.id.overviewHeading)
         val description = findViewById<TextView>(R.id.overviewDescription)
@@ -4174,19 +4178,21 @@ class MainActivity : Activity() {
             all -> getString(R.string.all_apps)
             else -> getString(R.string.home_layout_overview)
         }
-        val rows: List<List<MediaItem>> = if (all) listOf(emptyList(), emptyList()) else listOf(
-            mediaFeed.snapshot(sourceId = "demo", packageName = app?.pkg, category = MediaCategory.CONTINUE),
-            mediaFeed.snapshot(sourceId = "demo", packageName = app?.pkg, category = MediaCategory.NEW),
-        )
+        val labels = apps.associate { it.pkg to it.label }
+        fun records(category: MediaCategory): List<MediaItem> =
+            mediaFeed.snapshot(sourceId = "tv", packageName = app?.pkg, category = category)
+                .map { it.copy(sourceLabel = it.sourceLabel ?: labels[it.sourcePackage] ?: it.sourcePackage) }
+        val rows: List<List<MediaItem>> = if (all) listOf(emptyList(), emptyList())
+            else listOf(records(MediaCategory.CONTINUE), records(MediaCategory.NEW))
+        val hasPermission = checkSelfPermission(TV_LISTINGS) == PackageManager.PERMISSION_GRANTED
         description.setText(when {
             all -> R.string.sidebar_all_apps_info
-            app == null -> R.string.demo_overview_info
-            rows.flatten().isEmpty() -> R.string.demo_app_empty
-            else -> R.string.demo_app_info
+            !hasPermission -> R.string.tv_feed_permission
+            app != null && rows.flatten().isEmpty() -> R.string.tv_app_empty
+            app != null -> R.string.tv_app_info
+            else -> R.string.sidebar_overview_info
         })
         for (view in listOf(heading, description, action)) ink(view, fg)
-        // Every tile says DEMO and names its source; avoid a tall second caption on the
-        // shared Overview so both main rows remain reachable on the 960x540dp canvas.
         description.visibility = if (app == null && !all) View.GONE else View.VISIBLE
         action.visibility = if (app != null) View.VISIBLE else View.GONE
         action.tag = app?.pkg
@@ -4194,17 +4200,60 @@ class MainActivity : Activity() {
         if (!all) homeOverview.bind(
             pageKey = sidebarSelection,
             rows = rows,
-            continueTitle = getString(R.string.demo_continue_title),
+            continueTitle = getString(R.string.continue_watching),
             newTitle = getString(R.string.sidebar_new_for_you),
-            exampleTag = getString(R.string.demo_tag),
-            emptyLabel = getString(R.string.demo_empty_section),
-            decorateCard = { style(it, dp(9), card = true, lift = 1.04f) },
+            exampleTag = "",
+            emptyLabel = getString(if (hasPermission) R.string.tv_feed_empty else R.string.tv_feed_permission),
+            newEmptyLabel = getString(R.string.tv_feed_new_empty),
+            decorateCard = { style(it, dp(9), card = true, lift = 1.04f, frost = false) },
             tintLabel = { ink(it, fg) },
             disposeCard = { glass.remove(it) },
-            onSelect = { toast(getString(R.string.demo_not_playable)) },
+            onSelect = { openOverviewMedia(it) },
             makeProgress = { progressBarDrawable(fg) },
+            loadArtwork = { image, uri -> loadPoster(image, uri) },
+            sourceMark = { pkg -> sourceIcon(pkg) },
             onScroll = { glass.kick(150) },
         )
+    }
+
+    /** Treat TV intent URIs as untrusted: launch only the publishing app, else use its TV entry. */
+    private fun openOverviewMedia(item: MediaItem) {
+        val pkg = item.sourcePackage?.takeIf { it.isNotBlank() } ?: run {
+            toast(getString(R.string.tv_feed_unavailable))
+            return
+        }
+        val link = item.intentUri?.takeIf { it.isNotBlank() }?.let { raw ->
+            try {
+                Intent.parseUri(raw, Intent.URI_INTENT_SCHEME).takeIf { intent ->
+                    val target = intent.component?.packageName ?: intent.`package`
+                    (target == null || target == pkg) &&
+                        (intent.component != null || intent.data != null) &&
+                        (intent.action == null || intent.action == Intent.ACTION_VIEW || intent.component != null)
+                }?.apply {
+                    if (action == null) action = Intent.ACTION_VIEW
+                    if (component == null) setPackage(pkg)
+                    selector = null
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                }
+            } catch (e: Exception) {
+                null
+            }
+        }
+        val fallback = try {
+            packageManager.getLeanbackLaunchIntentForPackage(pkg)
+        } catch (e: Exception) {
+            null
+        }
+        for (launchIntent in listOfNotNull(link, fallback)) {
+            try {
+                startApp(launchIntent, currentFocus)
+                prefs.edit().putLong("t_$pkg", System.currentTimeMillis()).apply()
+                return
+            } catch (e: Exception) {
+                android.util.Log.w("Plume", "TV media launch failed for $pkg", e)
+            }
+        }
+        toast(getString(R.string.tv_feed_unavailable))
     }
 
     /** Overlays (All apps, launcher settings) sit on top of the home rows; keep focus from slipping behind them. */
@@ -5470,6 +5519,7 @@ class MainActivity : Activity() {
             android.util.Log.w("Plume", "continue watching: no $TV_LISTINGS")
             mediaFeed.replaceSource("tv", emptyList())
             showWatchNext(emptyList())
+            if (homeLayoutMode == HomeLayoutMode.OVERVIEW) updateOverviewPreview(sortedApps().filter { inRow(it.pkg, rowHiddenSet()) })
             return
         }
         io.execute {
@@ -5480,7 +5530,13 @@ class MainActivity : Activity() {
                 mediaFeed.replaceSource("tv", emptyList())
                 emptyList()
             }
-            ui.post { if (!isDestroyed) showWatchNext(list) }
+            ui.post {
+                if (!isDestroyed) {
+                    showWatchNext(list)
+                    if (homeLayoutMode == HomeLayoutMode.OVERVIEW)
+                        updateOverviewPreview(sortedApps().filter { inRow(it.pkg, rowHiddenSet()) })
+                }
+            }
         }
     }
 
@@ -5496,12 +5552,22 @@ class MainActivity : Activity() {
     private fun queryWatchNext(): List<Prog> {
         val hidden = prefs.getStringSet("hidden_watch", emptySet())!!
         val watchNextOn = WATCH_NEXT !in prefs.getStringSet("ch_flip", emptySet())!!
-        val watchNext = if (watchNextOn) readPrograms(TvContract.WatchNextPrograms.CONTENT_URI, hidden) else emptyList()
+        val watchNext = if (watchNextOn) try {
+            readPrograms(TvContract.WatchNextPrograms.CONTENT_URI, hidden)
+        } catch (e: Exception) {
+            android.util.Log.w("Plume", "Watch Next query unavailable", e)
+            emptyList()
+        } else emptyList()
         val on = continueChannels()
         autoRowName = if (watchNextOn) null
             else on.map { it.third }.distinct().singleOrNull()?.takeUnless { it.equals("Continue Watching", ignoreCase = true) }
         val channels = on.flatMap { (id, _, name) ->
-            readPrograms(TvContract.buildPreviewProgramsUriForChannel(id), hidden, "ch$id", name)
+            try {
+                readPrograms(TvContract.buildPreviewProgramsUriForChannel(id), hidden, "ch$id", name)
+            } catch (e: Exception) {
+                android.util.Log.w("Plume", "Preview channel $id unavailable", e)
+                emptyList()
+            }
         }
         val all = watchNext + channels
         android.util.Log.i("Plume", "continue watching: ${watchNext.size} from Watch Next, ${channels.size} from ${on.size} channels")
@@ -5511,21 +5577,29 @@ class MainActivity : Activity() {
         // Preserve the legacy title/intent filtering and ordering for Classic.
         val displayed = newestPerApp(visible.distinctBy { it.second.intent ?: it.second.title }, PER_APP) { it.group }
             .take(20)
-        // The new feed must not inherit Classic's title-only dedupe: distinct shows can share a title.
-        // Reuse the same TvContract result and executor, with no second query or poster cache.
-        val feedItems = newestPerApp(visible, PER_APP) { it.group }.take(20)
-        mediaFeed.replaceSource("tv", feedItems.mapIndexed { index, p ->
-            MediaItem(
-                stableId = MediaFeedRules.stableId(p.origin, p.pkg, p.contentId, p.intent, index),
-                sourceId = "tv", sourcePackage = p.pkg, title = p.title,
-                subtitle = p.sub.takeIf { it.isNotBlank() }, imageUri = p.image,
-                progressPercent = p.progress.takeIf { p.durationMillis != null && (p.playbackPositionMillis ?: 0L) >= 1000L },
-                durationMillis = p.durationMillis, playbackPositionMillis = p.playbackPositionMillis,
-                engagedAtMillis = MediaFeedRules.timestampMillis(p.engagedAtMillis), category = p.category,
-                intentUri = p.intent?.takeIf { it.isNotBlank() }, contentId = p.contentId,
-                sourceOrder = index,
+        // Use the same TV query as Classic; do not re-crawl providers or alter Classic's sorting.
+        // Only entries with trustworthy Continue evidence appear in the shared Overview.
+        val feedEntries = newestPerApp(visible, PER_APP) { it.group }.take(20)
+        val candidates = feedEntries.mapIndexed { index, (_, p) ->
+            AndroidTvProgram(
+                item = MediaItem(
+                    stableId = MediaFeedRules.stableId(p.origin, p.pkg, p.contentId, p.intent, index),
+                    sourceId = "tv", sourcePackage = p.pkg, title = p.title,
+                    subtitle = p.sub.takeIf { it.isNotBlank() }, imageUri = p.image,
+                    progressPercent = p.progress.takeIf { p.durationMillis != null && (p.playbackPositionMillis ?: 0L) >= 1000L },
+                    durationMillis = p.durationMillis, playbackPositionMillis = p.playbackPositionMillis,
+                    engagedAtMillis = MediaFeedRules.timestampMillis(p.engagedAtMillis),
+                    intentUri = p.intent?.takeIf { it.isNotBlank() }, contentId = p.contentId,
+                    sourceLabel = p.channelName, sourceOrder = index,
+                ),
+                watchNext = p.origin == "tv:watchnext", watchNextType = p.watchNextType,
+                channelName = p.channelName, internalProviderId = p.internalProviderId,
+                seriesId = p.seriesId, seriesTitle = p.seriesTitle,
+                episodeTitle = p.episodeTitle, seasonNumber = p.seasonNumber,
+                episodeNumber = p.episodeNumber,
             )
-        })
+        }
+        mediaFeed.replaceSource("tv", AndroidTvMediaSource.select(candidates, permissionGranted = true))
         return displayed
     }
 
@@ -5659,6 +5733,11 @@ class MainActivity : Activity() {
                     durationMillis = duration.takeIf { it > 0 },
                     playbackPositionMillis = position.takeIf { it > 0 },
                     engagedAtMillis = engaged.takeIf { it > 0 },
+                    watchNextType = if (group == null) optionalNum("watch_next_type") else null,
+                    channelName = channelName, internalProviderId = str("internal_provider_id"),
+                    seriesId = str("series_id"), seriesTitle = str("series_title"),
+                    episodeTitle = str("episode_title"),
+                    seasonNumber = season, episodeNumber = episode,
                 )
                 out += Triple(num("weight"),
                     if (group == null) watchSortKey(num("watch_next_type"), engaged) else channelSortKey(engaged, prefs.getLong("t_$pkg", 0)), prog)
