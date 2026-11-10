@@ -2,6 +2,7 @@
 
     <!-- M03: offline preview content, never actual viewing history -->
     <string name="demo_tag">DEMO</string>
+    <string name="demo_continue_title">Continue Watching</string>
     <string name="demo_overview_info">Sample cards only. This is not your real viewing history.</string>
     <string name="demo_app_info">Sample cards for this app. These are not real viewing activity.</string>
     <string name="demo_app_empty">No sample cards for this app. Select Open app to launch it.</string>

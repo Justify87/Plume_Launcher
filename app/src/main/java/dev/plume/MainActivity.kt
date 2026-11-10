@@ -4180,7 +4180,7 @@ class MainActivity : Activity() {
         if (!all) homeOverview.bind(
             pageKey = sidebarSelection,
             rows = rows,
-            continueTitle = getString(R.string.continue_watching),
+            continueTitle = getString(R.string.demo_continue_title),
             newTitle = getString(R.string.sidebar_new_for_you),
             exampleTag = getString(R.string.demo_tag),
             emptyLabel = getString(R.string.demo_empty_section),

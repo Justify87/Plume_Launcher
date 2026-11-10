@@ -3,6 +3,7 @@
 
     <!-- M03: nur Offline-Beispiele, keine echten Wiedergabedaten -->
     <string name="demo_tag">DEMO</string>
+    <string name="demo_continue_title">Weitermachen</string>
     <string name="demo_overview_info">Nur Beispielkarten. Dies ist nicht dein echter Wiedergabeverlauf.</string>
     <string name="demo_app_info">Beispielkarten für diese App. Das sind keine echten Wiedergabedaten.</string>
     <string name="demo_app_empty">Keine Beispielkarten für diese App. Wähle App öffnen, um sie zu starten.</string>
