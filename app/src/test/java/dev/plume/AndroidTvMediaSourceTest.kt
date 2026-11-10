@@ -203,6 +203,29 @@ class AndroidTvMediaSourceTest {
         assertEquals(intent, selected.single().intentUri)
     }
 
+    @Test fun nuvioWatchNextAndPreviewHaveDifferentPrefixesButSameMovie() {
+        val selected = AndroidTvMediaSource.select(listOf(
+            record("watch-row", app = nuvio, title = "A Movie",
+                providerId = "wn_movie-42", progress = 25_000L),
+            record("preview-row", app = nuvio, title = "A Movie", watchNext = false,
+                channel = "Continue Watching", type = null,
+                providerId = "movie-42", progress = 25_000L),
+        ), true)
+        assertEquals(listOf("watch-row"), selected.map { it.contentId })
+    }
+
+    @Test fun nuvioEpisodesDedupeWithoutEpisodeTitleMetadata() {
+        val selected = AndroidTvMediaSource.select(listOf(
+            record("watch-row", app = nuvio, title = "Show",
+                providerId = "wn_show-1_s2e8", season = "2", episode = "8",
+                episodeTitle = null, progress = 11_000L),
+            record("channel-row", app = nuvio, title = "Show", watchNext = false,
+                channel = "Continue Watching", providerId = "show-1_s2e8",
+                season = "2", episode = "8", episodeTitle = null, progress = 11_000L),
+        ), true)
+        assertEquals(1, selected.size)
+    }
+
     @Test fun supportedNuvioBuildVariantsHaveExactPackageIdentity() {
         assertTrue(AndroidTvMediaSource.isNuvioPackage(nuvio))
         assertTrue(AndroidTvMediaSource.isNuvioPackage(nuvio + ".debug"))
