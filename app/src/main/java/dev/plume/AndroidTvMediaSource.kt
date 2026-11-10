@@ -18,25 +18,49 @@ internal data class AndroidTvProgram(
 )
 
 internal object AndroidTvMediaSource {
+    /** Actual application IDs of this Nuvio fork, including its debug and Play Store variants. */
+    fun isNuvioPackage(pkg: String?): Boolean = pkg in setOf(
+        "com.justify87.nuviotv.wireguard",
+        "com.justify87.nuviotv.wireguard.debug",
+        "com.justify87.nuviotv.wireguard.playstore",
+        "com.justify87.nuviotv.wireguard.playstore.debug",
+    )
+
     /**
-     * A Watch Next entry is resumable only if its type is CONTINUE (0).
-     * A Preview entry is resumable only from an explicitly named Continue Watching channel.
-     * The TV provider's "new" flag does not prove a new release date, so M06 publishes no NEW
-     * items until a source supplies verifiable release metadata. Unknown rows stay out of both
-     * Overview sections but remain available to Classic through its existing Prog path.
+     * Nuvio's legacy Watch Next and Continue Watching channel mix in unstarted Next Up
+     * episodes, even though Watch Next marks all of them as CONTINUE. Only its entries
+     * with actual playback progress are resumable. Newer Nuvio versions additionally
+     * publish already-aired Next Up episodes in a distinct channel called "Next Up".
+     *
+     * Other apps retain the existing M06 rules. A generic Watch Next NEXT/NEW flag or
+     * engagement timestamp is never treated as proof that an episode was released.
      */
     fun select(programs: List<AndroidTvProgram>, permissionGranted: Boolean): List<MediaItem> {
         if (!permissionGranted) return emptyList()
-        val known = HashSet<String>()
-        return programs.mapNotNull { program ->
-            val resumable = if (program.watchNext) program.watchNextType == 0L
-                else program.channelName.equals("Continue Watching", ignoreCase = true)
-            if (!resumable) return@mapNotNull null
-            val keys = duplicateKeys(program)
-            if (keys.any { it in known }) return@mapNotNull null
-            known.addAll(keys)
-            program.item.copy(category = MediaCategory.CONTINUE)
+        val classified = programs.mapNotNull { program ->
+            val nuvio = isNuvioPackage(program.item.sourcePackage)
+            val started = (program.item.playbackPositionMillis ?: 0L) >= 1000L
+            val category = when {
+                program.watchNext && program.watchNextType == 0L ->
+                    if (!nuvio || started) MediaCategory.CONTINUE else null
+                !program.watchNext && program.channelName.equals("Continue Watching", ignoreCase = true) ->
+                    if (!nuvio || started) MediaCategory.CONTINUE else null
+                !program.watchNext && nuvio && program.channelName.equals("Next Up", ignoreCase = true) &&
+                    (program.seasonNumber?.toIntOrNull() ?: -1) >= 0 &&
+                    (program.episodeNumber?.toIntOrNull() ?: 0) > 0 && !started -> MediaCategory.NEW
+                else -> null
+            }
+            if (category == null) null else program to category
         }
+        // A started episode always wins if a provider publishes it in both channels.
+        val seen = HashSet<String>()
+        return classified.sortedBy { if (it.second == MediaCategory.CONTINUE) 0 else 1 }
+            .mapNotNull { (program, category) ->
+                val keys = duplicateKeys(program)
+                if (keys.any { it in seen }) return@mapNotNull null
+                seen.addAll(keys)
+                program.item.copy(category = category)
+            }
     }
 
     /**
