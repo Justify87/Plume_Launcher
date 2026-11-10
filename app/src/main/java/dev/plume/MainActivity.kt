@@ -357,6 +357,7 @@ class MainActivity : Activity() {
     private lateinit var homeSidebar: HomeSidebarView
     private lateinit var homeOverview: OverviewHomeView
     private var sidebarSelection = HomeSidebarView.OVERVIEW
+    private var homePage: HomePageState = HomePageState.Overview
     private var previewPageKey: String? = null
 
     private var resumed = false
@@ -1045,9 +1046,8 @@ class MainActivity : Activity() {
         when {
             settingsScrim.visibility == View.VISIBLE -> pageBack?.invoke() ?: closeLauncherSettings()
             allApps.visibility == View.VISIBLE -> closeAllApps()
-            homeLayoutMode == HomeLayoutMode.OVERVIEW &&
-                sidebarSelection != HomeSidebarView.OVERVIEW &&
-                sidebarSelection != HomeSidebarView.ALL_APPS -> {
+            homeLayoutMode == HomeLayoutMode.OVERVIEW && homePage is HomePageState.App -> {
+                homePage = HomePageState.Overview
                 sidebarSelection = HomeSidebarView.OVERVIEW
                 updateOverviewPreview(sortedApps().filter { inRow(it.pkg, rowHiddenSet()) })
                 homeSidebar.viewFor(HomeSidebarView.OVERVIEW)?.requestFocus()
@@ -4130,22 +4130,31 @@ class MainActivity : Activity() {
         val hadSidebarFocus = homeSidebar.focusedKey()
         val action = findViewById<View>(R.id.overviewAction)
         val hadActionFocus = action.isFocused
-        if (items.none { it.key == sidebarSelection }) sidebarSelection = HomeSidebarView.OVERVIEW
+        val visiblePackages = visibleApps.mapTo(HashSet()) { it.pkg }
+        val removedApp = homePage is HomePageState.App &&
+            (homePage as HomePageState.App).packageName !in visiblePackages
+        if (items.none { it.key == sidebarSelection } || removedApp)
+            sidebarSelection = HomeSidebarView.OVERVIEW
+        homePage = HomePageState.fromSidebar(sidebarSelection, visiblePackages)
         homeSidebar.bind(
             items = items,
             ink = fg,
             decorate = { style(it, dp(10), card = true, lift = 1.03f) },
             onFocused = { key ->
-                // Rebinding the sidebar already refreshed this page. Restoring its focus must not
-                // build the same media rows a second time (or discard a focused demo card).
-                if (sidebarSelection != key) {
+                // The page follows sidebar preview selection, never the media-card focus.
+                if (sidebarSelection != key || homePage.key != key) {
                     sidebarSelection = key
+                    homePage = HomePageState.fromSidebar(key, visiblePackages)
                     updateOverviewPreview(visibleApps)
                 }
             },
             onOpen = { key ->
                 when (key) {
-                    HomeSidebarView.OVERVIEW -> updateOverviewPreview(visibleApps)
+                    HomeSidebarView.OVERVIEW -> {
+                        sidebarSelection = key
+                        homePage = HomePageState.Overview
+                        updateOverviewPreview(visibleApps)
+                    }
                     HomeSidebarView.ALL_APPS -> openAllApps()
                     else -> visibleApps.firstOrNull { it.pkg == key }?.let { launch(it) }
                 }
@@ -4157,20 +4166,23 @@ class MainActivity : Activity() {
             settingsScrim.visibility != View.VISIBLE && allApps.visibility != View.VISIBLE
         ) {
             (homeSidebar.viewFor(hadSidebarFocus) ?: homeSidebar.viewFor(sidebarSelection))?.requestFocus()
-        } else if (hadActionFocus && action.visibility != View.VISIBLE) {
+        } else if (removedApp || hadActionFocus && action.visibility != View.VISIBLE) {
             homeSidebar.viewFor(sidebarSelection)?.requestFocus()
         }
     }
 
-    /** The real TV source is already populated by refreshWatchNext on the existing IO executor. */
+    /** Render a projection of the existing TV snapshot; page switches never query TvContract. */
     private fun updateOverviewPreview(visibleApps: List<App>) {
         val heading = findViewById<TextView>(R.id.overviewHeading)
         val description = findViewById<TextView>(R.id.overviewDescription)
         val action = findViewById<TextView>(R.id.overviewAction)
-        val app = visibleApps.firstOrNull { it.pkg == sidebarSelection }
-        val all = sidebarSelection == HomeSidebarView.ALL_APPS
-        if (previewPageKey != sidebarSelection) {
-            previewPageKey = sidebarSelection
+        val app = (homePage as? HomePageState.App)?.let { selected ->
+            visibleApps.firstOrNull { it.pkg == selected.packageName }
+        }
+        val all = homePage == HomePageState.AllApps
+        val pageKey = homePage.key
+        if (previewPageKey != pageKey) {
+            previewPageKey = pageKey
             findViewById<android.widget.ScrollView>(R.id.overviewPreviewScroll).scrollTo(0, 0)
         }
         heading.text = when {
@@ -4178,17 +4190,26 @@ class MainActivity : Activity() {
             all -> getString(R.string.all_apps)
             else -> getString(R.string.home_layout_overview)
         }
+        val mark = app?.let { selected ->
+            (selected.icon.constantState?.newDrawable(resources)?.mutate() ?: selected.icon).apply {
+                setBounds(0, 0, dp(36), dp(36))
+            }
+        }
+        heading.setCompoundDrawablesRelative(mark, null, null, null)
+        heading.compoundDrawablePadding = dp(12)
+
         val labels = apps.associate { it.pkg to it.label }
-        fun records(category: MediaCategory): List<MediaItem> =
-            mediaFeed.snapshot(sourceId = "tv", packageName = app?.pkg, category = category)
-                .map { it.copy(sourceLabel = it.sourceLabel ?: labels[it.sourcePackage] ?: it.sourcePackage) }
-        val rows: List<List<MediaItem>> = if (all) listOf(emptyList(), emptyList())
-            else listOf(records(MediaCategory.CONTINUE), records(MediaCategory.NEW))
+        val sections = HomePageContent.sections(mediaFeed, homePage).map { section ->
+            section.copy(items = section.items.map { item ->
+                item.copy(sourceLabel = item.sourceLabel ?: labels[item.sourcePackage] ?: item.sourcePackage)
+            })
+        }
+        val hasItems = sections.any { it.items.isNotEmpty() }
         val hasPermission = checkSelfPermission(TV_LISTINGS) == PackageManager.PERMISSION_GRANTED
         description.setText(when {
             all -> R.string.sidebar_all_apps_info
             !hasPermission -> R.string.tv_feed_permission
-            app != null && rows.flatten().isEmpty() -> R.string.tv_app_empty
+            app != null && !hasItems -> R.string.tv_app_empty
             app != null -> R.string.tv_app_info
             else -> R.string.sidebar_overview_info
         })
@@ -4197,14 +4218,27 @@ class MainActivity : Activity() {
         action.visibility = if (app != null) View.VISIBLE else View.GONE
         action.tag = app?.pkg
         homeOverview.visibility = if (all) View.GONE else View.VISIBLE
+
+        val hadCardFocus = homeOverview.positionOf(currentFocus) != null
         if (!all) homeOverview.bind(
-            pageKey = sidebarSelection,
-            rows = rows,
-            continueTitle = getString(R.string.continue_watching),
-            newTitle = getString(R.string.sidebar_new_for_you),
+            pageKey = pageKey,
+            sections = sections,
+            sectionTitle = { category ->
+                when (category) {
+                    MediaCategory.CONTINUE -> getString(R.string.continue_watching)
+                    MediaCategory.NEW -> getString(if (app != null) R.string.tv_app_new_content
+                        else R.string.sidebar_new_for_you)
+                    MediaCategory.RECOMMENDATION -> getString(R.string.tv_feed_recommendations)
+                    MediaCategory.UNKNOWN -> getString(R.string.tv_feed_other)
+                }
+            },
+            emptyLabel = { category ->
+                getString(when (category) {
+                    MediaCategory.NEW -> R.string.tv_feed_new_empty
+                    else -> if (hasPermission) R.string.tv_feed_empty else R.string.tv_feed_permission
+                })
+            },
             exampleTag = "",
-            emptyLabel = getString(if (hasPermission) R.string.tv_feed_empty else R.string.tv_feed_permission),
-            newEmptyLabel = getString(R.string.tv_feed_new_empty),
             decorateCard = { style(it, dp(9), card = true, lift = 1.04f, frost = false) },
             tintLabel = { ink(it, fg) },
             disposeCard = { glass.remove(it) },
@@ -4214,6 +4248,10 @@ class MainActivity : Activity() {
             sourceMark = { pkg -> sourceIcon(pkg) },
             onScroll = { glass.kick(150) },
         )
+        if (hadCardFocus && currentFocus?.isAttachedToWindow != true) {
+            (homeOverview.preferredCard() ?: action.takeIf { it.isShown }
+                ?: homeSidebar.viewFor(sidebarSelection))?.requestFocus()
+        }
     }
 
     /** Treat TV intent URIs as untrusted: launch only the publishing app, else use its TV entry. */
