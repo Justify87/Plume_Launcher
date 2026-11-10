@@ -42,4 +42,30 @@ class YouTubeSubscriptionsTest {
         assertFalse(YouTubeSubscriptions.isSubscriptions("History"))
         assertFalse(YouTubeSubscriptions.isSmartTube(null))
     }
+    @Test fun rssMetadataWinsAcrossTvAndRssWithoutHidingTheSmartTubeAppPage() {
+        val video = YouTubeSubscriptions.Video(channel, "abcDEF12345", "new", "Uploader", now - 60_000)
+        val rss = YouTubeSubscriptions.media(listOf(video), null).single()
+            .copy(packageAliases = setOf("org.smarttube.beta"))
+        val tv = rss.copy(stableId = "tv-row", sourceId = "tv", sourcePackage = "org.smarttube.beta",
+            publishedAtMillis = null, title = "TV title", packageAliases = emptySet())
+        val repo = MediaFeedRepository()
+        repo.replaceSource("tv", listOf(tv))
+        repo.replaceSource(YouTubeSubscriptions.SOURCE_ID, listOf(rss))
+        val overview = HomePageContent.sections(repo, HomePageState.Overview).flatMap { it.items }
+        assertEquals(1, overview.size)
+        assertEquals(YouTubeSubscriptions.SOURCE_ID, overview.single().sourceId)
+        val smartTubePage = HomePageContent.sections(repo, HomePageState.App("org.smarttube.beta"))
+            .flatMap { it.items }
+        assertEquals(1, smartTubePage.size)
+    }
+
+    @Test fun rejectsDoctypeAndExternalEntities() {
+        val xml = """<!DOCTYPE feed [<!ENTITY xxe SYSTEM "file:///etc/passwd">]>
+            <feed xmlns="http://www.w3.org/2005/Atom"><entry><title>&xxe;</title></entry></feed>"""
+        try {
+            assertTrue(YouTubeSubscriptions.parse(xml.toByteArray(), channel, now).isEmpty())
+        } catch (_: org.xml.sax.SAXException) {
+            // Secure XML parser refuses the DTD entirely.
+        }
+    }
 }
