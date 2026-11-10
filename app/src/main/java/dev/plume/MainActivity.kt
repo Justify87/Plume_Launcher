@@ -5589,7 +5589,9 @@ class MainActivity : Activity() {
                     progressPercent = p.progress.takeIf { p.durationMillis != null && (p.playbackPositionMillis ?: 0L) >= 1000L },
                     durationMillis = p.durationMillis, playbackPositionMillis = p.playbackPositionMillis,
                     engagedAtMillis = MediaFeedRules.timestampMillis(p.engagedAtMillis),
-                    intentUri = p.intent?.takeIf { it.isNotBlank() }, contentId = p.contentId,
+                    intentUri = p.intent?.takeIf { it.isNotBlank() },
+                    // TvContract _id values are table-local, not cross-channel content identities.
+                    contentId = p.contentId?.let { "${p.origin}:$it" },
                     sourceLabel = p.channelName, sourceOrder = index,
                 ),
                 watchNext = p.origin == "tv:watchnext", watchNextType = p.watchNextType,
