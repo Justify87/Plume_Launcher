@@ -37,7 +37,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v5
 
       - name: Unit tests, lint and release build
-        run: ./gradlew testDebugUnitTest lintDebug assembleRelease
+        run: ./gradlew testDebugUnitTest assembleDebug lintDebug assembleRelease
 
       - name: APK size against the base branch
         run: |
