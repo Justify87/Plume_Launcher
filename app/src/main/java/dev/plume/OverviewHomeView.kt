@@ -1,6 +1,7 @@
 package dev.plume
 
 import android.content.Context
+import android.graphics.Bitmap
 import android.text.TextUtils
 import android.util.AttributeSet
 import android.view.Gravity
@@ -186,11 +187,11 @@ class OverviewHomeView @JvmOverloads constructor(
 
     private fun visibleSections() = lanes.map { HomeMediaSection(it.category, it.cards) }
 
-    /** Reuse Classic's poster cache when two mounted cards request the same URI concurrently. */
-    internal fun retryArtwork() {
+    /** Fill only cards waiting for this exact image; don't retry unrelated failed URLs. */
+    internal fun artworkReady(uri: String, bitmap: Bitmap) {
         for (cover in mounted.keys) {
             val image = (cover as? FrameLayout)?.getChildAt(0) as? ImageView ?: continue
-            if (image.drawable == null) artwork(image, image.tag as? String)
+            if (image.tag == uri && image.drawable == null) image.setImageBitmap(bitmap)
         }
     }
 
