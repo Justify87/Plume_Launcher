@@ -187,6 +187,14 @@ class OverviewHomeView @JvmOverloads constructor(
 
     private fun visibleSections() = lanes.map { HomeMediaSection(it.category, it.cards) }
 
+    /** Network has recovered: retry only currently mounted covers that are still missing. */
+    internal fun retryArtwork() {
+        for (cover in mounted.keys) {
+            val image = (cover as? FrameLayout)?.getChildAt(0) as? ImageView ?: continue
+            if (image.drawable == null) artwork(image, image.tag as? String)
+        }
+    }
+
     /** Fill only cards waiting for this exact image; don't retry unrelated failed URLs. */
     internal fun artworkReady(uri: String, bitmap: Bitmap) {
         for (cover in mounted.keys) {
