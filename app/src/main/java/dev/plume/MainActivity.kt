@@ -389,7 +389,10 @@ class MainActivity : Activity() {
                 if (isDestroyed) return@post
                 showNet(caps)
                 // Online again (e.g. Wi-Fi coming up after boot): fetch any posters that failed meanwhile.
-                if (caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)) retryPosters()
+                if (caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)) {
+                    retryPosters()
+                    if (::homeOverview.isInitialized) homeOverview.retryArtwork()
+                }
             }
         }
 
