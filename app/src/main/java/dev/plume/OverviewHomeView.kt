@@ -39,6 +39,10 @@ class OverviewHomeView @JvmOverloads constructor(
     private val lastPerRow = mutableMapOf<String, MutableMap<MediaCategory, Int>>()
     private val scrollPositions = mutableMapOf<String, MutableMap<MediaCategory, Int>>()
     private var page = HomeSidebarView.OVERVIEW
+    private var renderedSignature: OverviewRenderSignature? = null
+
+    /** Called when card appearance changes without a change to the media snapshot. */
+    fun invalidateContent() { renderedSignature = null }
     private var demoLabel = ""
     private var decorate: (View) -> Unit = {}
     private var tint: (TextView) -> Unit = {}
@@ -83,6 +87,10 @@ class OverviewHomeView @JvmOverloads constructor(
         sourceMark: (String?) -> Drawable? = { null },
         onScroll: () -> Unit,
     ) {
+        val nextSignature = OverviewRenderSignature(pageKey, sections,
+            sections.flatMap { listOf(sectionTitle(it.category), emptyLabel(it.category)) }, exampleTag)
+        // No new views, poster requests or focus resets for an identical provider snapshot.
+        if (nextSignature == renderedSignature) return
         val focusedBefore = positionOf(findFocus())?.let { position ->
             val lane = lanes[position.row]
             Bookmark(lane.category, lane.cards[position.index].stableId, position.index)
@@ -159,6 +167,7 @@ class OverviewHomeView @JvmOverloads constructor(
             addView(scroller, LayoutParams(MATCH_PARENT, dp(149)))
         }
         lanes = assembled
+        renderedSignature = nextSignature
         resizeTiles()
         lanes.forEach(::updateWindow)
         if (focusedBefore != null && previousPage == pageKey) {
