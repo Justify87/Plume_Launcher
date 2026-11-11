@@ -14,15 +14,17 @@
     <string name="demo_video">VIDEO</string>
     <string name="demo_podcast">PODCAST</string>
 
-    <string name="sidebar_overview_info">Your recent activity and new suggestions will appear here as content sources become available.</string>
+    <string name="sidebar_overview_info">Continue shows started items. New for you shows only source-confirmed content.</string>
     <string name="sidebar_app_info">Content from this app will appear here in a later step. Press OK on the sidebar app to launch it directly.</string>
     <string name="sidebar_all_apps_info">Press OK to browse all installed apps, including apps hidden from Home.</string>
     <string name="sidebar_new_for_you">New for you</string>
-    <string name="tv_feed_empty">No resumable TV items published yet. Check your apps and channel settings.</string>
+    <string name="tv_feed_empty">No supported TV items yet. Open an app or check TV listings and channels.</string>
     <string name="tv_feed_new_empty">No confirmed new releases are available yet.</string>
     <string name="tv_feed_permission">Allow TV listings access to show your viewing activity.</string>
+    <string name="tv_feed_query_error">TV items could not be loaded. Check app channels and try again.</string>
+    <string name="tv_feed_offline">Offline. Connect to check your selected YouTube channels.</string>
     <string name="tv_feed_unavailable">This TV item cannot be opened.</string>
-    <string name="tv_app_info">Resumable content published by this app.</string>
+    <string name="tv_app_info">Content published by this app on Android TV.</string>
     <string name="tv_app_empty">No TV items from this app. Select Open app to launch it.</string>
     <string name="tv_app_new_content">New content</string>
     <string name="tv_feed_recommendations">Recommendations</string>
@@ -33,7 +35,7 @@
     <string name="home_layout_classic">Classic</string>
     <string name="home_layout_overview">Overview</string>
     <string name="home_layout_placeholder">Overview is coming soon</string>
-    <string name="help_home_layout">Choose Classic for the original home screen or Overview to preview the new layout.</string>
+    <string name="help_home_layout">Choose Classic for the original home screen or Overview for live TV items.</string>
     <string name="change_app_picture">Change picture</string>
     <string name="app_picture_icon">Icon</string>
     <string name="app_picture_icon_hint">Used with Monochrome and Colour styles</string>
