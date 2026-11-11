@@ -2599,6 +2599,7 @@ class MainActivity : Activity() {
             R.string.show_icons to { _ ->
                 prefs.edit().putBoolean("cw_colour", !cwColour()).apply()
                 watchKey = null // rebuild the cards with the new source icons
+                if (homeLayoutMode == HomeLayoutMode.OVERVIEW) homeOverview.invalidateContent()
                 showWatchNext(watchList)
                 renderSettings(R.string.show_icons)
             },
@@ -5717,7 +5718,7 @@ class MainActivity : Activity() {
             android.util.Log.w("Plume", "Watch Next query unavailable", e)
             emptyList()
         } else emptyList()
-        val discovered = appChannels()
+        val discovered = appChannels(reportFailure = true)
         val flippedChannels = prefs.getStringSet("ch_flip", emptySet())!!
         val on = discovered.filter { (_, pkg, name) -> channelOn(name, channelKey(pkg, name), flippedChannels) }
         autoRowName = if (watchNextOn) null
@@ -5832,7 +5833,7 @@ class MainActivity : Activity() {
     }
 
     /** Every other app's home-screen channel as (id, package, name); empty where Android won't let us read them. */
-    private fun appChannels(): List<Triple<Long, String, String>> = try {
+    private fun appChannels(reportFailure: Boolean = false): List<Triple<Long, String, String>> = try {
         val out = ArrayList<Triple<Long, String, String>>()
         contentResolver.query(TvContract.Channels.CONTENT_URI, null, null, null, null)?.use { c ->
             val name = c.getColumnIndex("display_name")
@@ -5846,6 +5847,7 @@ class MainActivity : Activity() {
         }
         out
     } catch (e: Exception) {
+        if (reportFailure) tvFeedQueryFailed = true
         emptyList()
     }
 
