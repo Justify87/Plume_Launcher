@@ -6164,8 +6164,14 @@ class MainActivity : Activity() {
             ui.post {
                 if (!isDestroyed && v.tag == uri) {
                     v.setImageBitmap(bmp)
-                    retryPosters() // another Classic card may have requested the same URL while it was loading
-                    if (::homeOverview.isInitialized) homeOverview.retryArtwork()
+                    // Another mounted card may have requested the same URL while its download was in flight.
+                    // Fill only this URI: unrelated failed posters wait for the ordinary online retry.
+                    for (i in 0 until watchRow.childCount) {
+                        val image = ((watchRow.getChildAt(i) as? ViewGroup)?.getChildAt(0) as? ViewGroup)
+                            ?.getChildAt(0) as? ImageView ?: continue
+                        if (image.tag == uri && image.drawable == null) image.setImageBitmap(bmp)
+                    }
+                    if (::homeOverview.isInitialized) homeOverview.artworkReady(uri, bmp)
                 }
             }
         }
