@@ -40,33 +40,40 @@ This is a **personal hobby fork**, not a promise of commercial-grade integration
 
 ## Where things stand
 
-**The new Overview is currently a navigable UI prototype, not a live cross-app media tracker.** Its example cards are deliberately marked **DEMO**. They are not your actual viewing history, new episodes, recommendations or playable media.
+**Overview is an optional, live Android TV media view.** It is not an account-level history service.
+Plume shows only content that the installed apps or the Android TV system actually publish.
+A missing row means there is no verified content to show; it does not mean an app has nothing to watch.
 
-| Area | Current state | What it means |
+| Area | State | Real limit |
 | --- | --- | --- |
-| **Classic home** | Available | Existing Plume-style launcher with apps and supported Android TV Watch Next / channel content |
-| **Classic / Overview switch** | Available | Change the home layout without replacing your existing classic configuration |
-| **Vertical Overview sidebar** | Implemented | Choose Overview, an app, or All apps with the remote |
-| **Overview media cards** | **Demo only** | Navigate sample films, episodes, videos and podcasts; fake progress is explicitly labelled |
-| **Live per-app content and progress** | **Planned** | Requires supported, reliable data access from the relevant apps or providers |
-| **Cross-app “new for you” overview** | **Planned** | No claim of automatic discovery or universal streaming integrations yet |
+| **Classic home** | Available; default for new installations | Original app row and TV Watch Next preferences remain intact |
+| **Overview layout** | Available; opt-in | Vertical sidebar, app previews, **Continue Watching** and **New for you** from supported sources |
+| **Android TV Watch Next / Preview channels** | Integrated | Requires TV listings permission and publishing, accessible app channels |
+| **Nuvio TV** | Source-specific handling | Started items require real playback progress; separate **Next Up** requires a compatible Nuvio version and visible channel. Next Up means the next aired episode, not necessarily newly released or streamable |
+| **SmartTube / YouTube** | Optional | SmartTube's **Subscriptions** channel must be published and browsable; optional public channel IDs provide dated RSS videos without sign-in. RSS items are not proof of unseen videos |
+| **Spotify podcasts** | Feasibility research only | No Spotify login, podcast sync, episode resume or Spotify media cards are shipped. API access and exact Shield TV resume behavior remain unverified |
 
-The initial implementation prioritizes layout, focus navigation and usability **before** adding real content sources. That lets the interaction model be tested without pretending an integration already works.
+Media cards open the publishing app when Android TV supplies a valid target. Some providers offer
+only an app launch, no exact episode deep link. Invalid or unavailable targets show a message rather
+than blocking the launcher. Artwork, timestamps and progress stay absent when not supplied.
 
-## What you can use today
+### Overview mode
 
-### Overview mode — the Advanced direction
+Open **Plume settings → Style → Home layout → Overview** to enable it. Return to **Classic** from
+the same setting at any time. Switching layouts does not delete Classic's app order, hidden apps,
+wallpapers, Continue Watching configuration or launcher/Home setup.
 
-The new layout combines a **left-hand sidebar** and a **shared content area**. The current prototype includes two content sections, **Continue Watching** and **New for you**, plus app-specific demo views.
+- Use **Up / Down** to move within the sidebar and between available content rows.
+- Use **Right** to enter media cards or an app's **Open app** action. Use **Left** to return.
+- Select a sidebar app with **Up / Down** to preview its published media. Press **OK** on the app entry to launch it.
+- Use **Back** on an app preview to return to Overview; use **All apps** for the full installed-app list.
+- In settings, choose **From apps** / **Channels** for existing Android TV source controls. Turn on **SmartTube / YouTube** only if you want the optional subscription and RSS feed.
 
-- Use **Up / Down** to move through sidebar entries or between media rows.
-- Use **Right** to enter content; **Left** returns from the first card to the sidebar.
-- Use **OK** on an app in the sidebar to launch it.
-- Use **Back** to return through the launcher navigation.
-
-These are demonstration interactions, not evidence that Spotify, YouTube, Plex, Jellyfin or any other app is connected. The sample titles are fictional.
-
-To try it, open **Plume Launcher Advanced settings → Style → Home layout → Overview**. Select **Classic** to return to the original-style home.
+If a source is not installed, TV listings access is denied, a provider fails or the device is offline,
+the Home screen remains usable. Retry by returning to the launcher, checking permissions/channels or
+opening the source app. There is no perpetual network service, automatic Spotify history or promise
+that every streaming service exposes its progress. The [M11 Shield test matrix](docs/m11-release-acceptance.md)
+records what still needs physical-device confirmation.
 
 ### Classic home — inherited and usable
 
@@ -182,11 +189,11 @@ CI runs pull request checks, unit tests, lint, APK assembly and installation-hel
 
 ## Privacy and network access
 
-The goal is to keep the home experience **ad-free, account-free and free of analytics**. The fork does not need a central tracking account to show its existing UI, and the Overview prototype uses local demo data.
+The goal is to keep the home experience **ad-free, account-free and free of analytics**. The fork does not need a central tracking account to show its existing UI, and the Overview reads only supported Android TV sources and optional public YouTube feeds.
 
 The underlying launcher can still make network requests for **selected** wallpapers and videos, weather/location-related data, poster images and GitHub update checks. Network services that supply such content can receive normal connection information such as the device's IP address. Permissions may be needed to read Android TV listings or user-selected images. The optional accessibility service is for Home and configured remote-key behavior, **not** a general-purpose media-history scraper.
 
-Future integrations should be evaluated individually for availability, consent, reliability and privacy. **No real Spotify, YouTube or other per-app account integration is shipped merely because an app name appears in a demo card.**
+Future integrations should be evaluated individually for availability, consent, reliability and privacy. **Android TV and optional public YouTube feeds are real sources; Spotify account integration is not shipped.**
 
 ## Updates and project status
 
