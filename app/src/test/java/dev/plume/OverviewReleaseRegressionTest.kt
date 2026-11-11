@@ -2,6 +2,7 @@ package dev.plume
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 /** M11: focus stability and honest zero-content messages without an emulator. */
@@ -38,7 +39,7 @@ class OverviewReleaseRegressionTest {
 
     @Test fun emptyAndBusyPagesNeverCreateUnfocusableMediaTargets() {
         val empty = HomePageContent.sections(MediaFeedRepository(), HomePageState.Overview)
-        assertEquals(null, HomePageContent.restoreFocus(empty, null, null, 0))
+        assertNull(HomePageContent.restoreFocus(empty, null, null, 0))
         val feed = MediaFeedRepository()
         feed.replaceSource("tv", (0 until 80).map { item("episode-$it") })
         val sections = HomePageContent.sections(feed, HomePageState.Overview)
