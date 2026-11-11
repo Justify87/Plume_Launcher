@@ -16,6 +16,11 @@ Put changes that are not released under `## Unreleased`. Rename that heading to 
 
 ## Unreleased
 
+- **Overview stability.** Keep media cards and focus in place when the feed has not changed.
+- Show clear messages when TV access fails or selected YouTube feeds need a network.
+- Open **Style → Home layout** to switch between Overview and Classic without resetting your settings.
+- Overview uses real TV sources. Spotify podcast sync is not available yet.
+
 - **SmartTube subscriptions.** Turn on SmartTube / YouTube in settings to show videos from SmartTube's Subscriptions channel.
 - Add public YouTube channel IDs to show recent videos from selected channels. No account login is required.
 

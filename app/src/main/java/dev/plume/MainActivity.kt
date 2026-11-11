@@ -311,6 +311,7 @@ class MainActivity : Activity() {
     private val io = Executors.newSingleThreadExecutor()
     // One TV query populates both Classic's Prog list and the shared model. Demo remains separate.
     private val mediaFeed = MediaFeedRepository().apply { replaceSource("demo", DemoMedia.asMediaItems()) }
+    @Volatile private var tvFeedQueryFailed = false // Only a real provider exception, never a missing episode.
     private val youtubeSource by lazy { YouTubeRssSource(prefs) }
     /** Small wallpaper pictures for the settings grids, by choice and size; 8 MB holds every built-in twice over. */
     private val thumbCache = object : LruCache<String, Bitmap>(8 * 1024 * 1024) {
@@ -388,12 +389,15 @@ class MainActivity : Activity() {
                 if (isDestroyed) return@post
                 showNet(caps)
                 // Online again (e.g. Wi-Fi coming up after boot): fetch any posters that failed meanwhile.
-                if (caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)) retryPosters()
+                if (caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)) {
+                    retryPosters()
+                    if (::homeOverview.isInitialized) homeOverview.retryArtwork()
+                }
             }
         }
 
         override fun onLost(n: Network) {
-            ui.post { showNet(null) }
+            ui.post { if (!isDestroyed) showNet(null) }
         }
     }
 
@@ -2562,6 +2566,7 @@ class MainActivity : Activity() {
             },
             R.string.icon_style to { d ->
                 prefs.edit().putString("icon_style", ICON_STYLES.keys.toList().step(iconStyle(), d)).apply()
+                homeOverview.invalidateContent() // change source marks with the icon style
                 renderApps()
                 renderSettings(R.string.icon_style)
             },
@@ -2597,6 +2602,7 @@ class MainActivity : Activity() {
             R.string.show_icons to { _ ->
                 prefs.edit().putBoolean("cw_colour", !cwColour()).apply()
                 watchKey = null // rebuild the cards with the new source icons
+                if (homeLayoutMode == HomeLayoutMode.OVERVIEW) homeOverview.invalidateContent()
                 showWatchNext(watchList)
                 renderSettings(R.string.show_icons)
             },
@@ -2606,7 +2612,10 @@ class MainActivity : Activity() {
                 // Clear's sharp picture is made only while Clear is the style: load the wallpaper again to make it.
                 if (glassStyle() == GlassStyle.CLEAR && sharpPixels == null && Backdrop.of(currentWallpaper()) == Backdrop.PICTURE) loadWallpaper()
                 else applyGlass()
-                if (homeLayoutMode == HomeLayoutMode.OVERVIEW) renderHomeSidebar()
+                if (homeLayoutMode == HomeLayoutMode.OVERVIEW) {
+                    homeOverview.invalidateContent() // repaint cards for the new glass style
+                    renderHomeSidebar()
+                }
                 renderSettings(R.string.glass)
             },
         )
@@ -4217,9 +4226,22 @@ class MainActivity : Activity() {
         }
         val hasItems = sections.any { it.items.isNotEmpty() }
         val hasPermission = checkSelfPermission(TV_LISTINGS) == PackageManager.PERMISSION_GRANTED
+        val rssEnabled = prefs.getBoolean("yt_new_on", false) &&
+            !YouTubeSubscriptions.channelIds(prefs.getString("yt_channel_ids", "").orEmpty()).isNullOrEmpty()
+        val online = if (rssEnabled && !hasItems) {
+            val manager = getSystemService(ConnectivityManager::class.java)
+            manager.activeNetwork?.let { network ->
+                manager.getNetworkCapabilities(network)
+                    ?.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+            } == true
+        } else true
+        val emptyState = HomeFeedStatus.emptyState(hasItems, hasPermission,
+            tvFeedQueryFailed, rssEnabled, online)
         description.setText(when {
             all -> R.string.sidebar_all_apps_info
-            !hasPermission && !hasItems -> R.string.tv_feed_permission
+            emptyState == HomeFeedEmptyState.PERMISSION -> R.string.tv_feed_permission
+            emptyState == HomeFeedEmptyState.PROVIDER_ERROR -> R.string.tv_feed_query_error
+            emptyState == HomeFeedEmptyState.OFFLINE -> R.string.tv_feed_offline
             app != null && !hasItems -> R.string.tv_app_empty
             app != null -> R.string.tv_app_info
             !hasItems -> R.string.tv_feed_empty
@@ -5653,6 +5675,7 @@ class MainActivity : Activity() {
 
     private fun refreshWatchNext() {
         if (checkSelfPermission(TV_LISTINGS) != PackageManager.PERMISSION_GRANTED) {
+            tvFeedQueryFailed = false
             android.util.Log.w("Plume", "continue watching: no $TV_LISTINGS")
             mediaFeed.replaceSource("tv", emptyList())
             showWatchNext(emptyList())
@@ -5663,6 +5686,7 @@ class MainActivity : Activity() {
             val list = try {
                 queryWatchNext()
             } catch (e: Exception) {
+                tvFeedQueryFailed = true
                 android.util.Log.w("Plume", "continue watching failed ($e)")
                 mediaFeed.replaceSource("tv", emptyList())
                 emptyList()
@@ -5687,15 +5711,17 @@ class MainActivity : Activity() {
      * Newest first across apps, each app's [PER_APP] newest ahead of the rest, so one app with ten shows can't bury the others.
      */
     private fun queryWatchNext(): List<Prog> {
+        tvFeedQueryFailed = false
         val hidden = prefs.getStringSet("hidden_watch", emptySet())!!
         val watchNextOn = WATCH_NEXT !in prefs.getStringSet("ch_flip", emptySet())!!
         val watchNext = if (watchNextOn) try {
             readPrograms(TvContract.WatchNextPrograms.CONTENT_URI, hidden)
         } catch (e: Exception) {
+            tvFeedQueryFailed = true
             android.util.Log.w("Plume", "Watch Next query unavailable", e)
             emptyList()
         } else emptyList()
-        val discovered = appChannels()
+        val discovered = appChannels(reportFailure = true)
         val flippedChannels = prefs.getStringSet("ch_flip", emptySet())!!
         val on = discovered.filter { (_, pkg, name) -> channelOn(name, channelKey(pkg, name), flippedChannels) }
         autoRowName = if (watchNextOn) null
@@ -5704,6 +5730,7 @@ class MainActivity : Activity() {
             try {
                 readPrograms(TvContract.buildPreviewProgramsUriForChannel(id), hidden, "ch$id", name)
             } catch (e: Exception) {
+                tvFeedQueryFailed = true
                 android.util.Log.w("Plume", "Preview channel $id unavailable", e)
                 emptyList()
             }
@@ -5718,6 +5745,7 @@ class MainActivity : Activity() {
         }.flatMap { (id, _, name) ->
             try { readPrograms(TvContract.buildPreviewProgramsUriForChannel(id), hidden, "ch$id", name) }
             catch (e: Exception) {
+                tvFeedQueryFailed = true
                 android.util.Log.w("Plume", "SmartTube Subscriptions channel $id unavailable", e)
                 emptyList()
             }
@@ -5729,6 +5757,7 @@ class MainActivity : Activity() {
             try {
                 readPrograms(TvContract.buildPreviewProgramsUriForChannel(id), hidden, "ch$id", name)
             } catch (e: Exception) {
+                tvFeedQueryFailed = true
                 android.util.Log.w("Plume", "Nuvio Next Up channel $id unavailable", e)
                 emptyList()
             }
@@ -5807,7 +5836,7 @@ class MainActivity : Activity() {
     }
 
     /** Every other app's home-screen channel as (id, package, name); empty where Android won't let us read them. */
-    private fun appChannels(): List<Triple<Long, String, String>> = try {
+    private fun appChannels(reportFailure: Boolean = false): List<Triple<Long, String, String>> = try {
         val out = ArrayList<Triple<Long, String, String>>()
         contentResolver.query(TvContract.Channels.CONTENT_URI, null, null, null, null)?.use { c ->
             val name = c.getColumnIndex("display_name")
@@ -5821,6 +5850,7 @@ class MainActivity : Activity() {
         }
         out
     } catch (e: Exception) {
+        if (reportFailure) tvFeedQueryFailed = true
         emptyList()
     }
 
@@ -6137,7 +6167,14 @@ class MainActivity : Activity() {
             ui.post {
                 if (!isDestroyed && v.tag == uri) {
                     v.setImageBitmap(bmp)
-                    if (::homeOverview.isInitialized) homeOverview.retryArtwork()
+                    // Another mounted card may have requested the same URL while its download was in flight.
+                    // Fill only this URI: unrelated failed posters wait for the ordinary online retry.
+                    for (i in 0 until watchRow.childCount) {
+                        val image = ((watchRow.getChildAt(i) as? ViewGroup)?.getChildAt(0) as? ViewGroup)
+                            ?.getChildAt(0) as? ImageView ?: continue
+                        if (image.tag == uri && image.drawable == null) image.setImageBitmap(bmp)
+                    }
+                    if (::homeOverview.isInitialized) homeOverview.artworkReady(uri, bmp)
                 }
             }
         }

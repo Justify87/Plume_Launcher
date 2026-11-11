@@ -1,6 +1,7 @@
 package dev.plume
 
 import android.content.Context
+import android.graphics.Bitmap
 import android.text.TextUtils
 import android.util.AttributeSet
 import android.view.Gravity
@@ -39,6 +40,10 @@ class OverviewHomeView @JvmOverloads constructor(
     private val lastPerRow = mutableMapOf<String, MutableMap<MediaCategory, Int>>()
     private val scrollPositions = mutableMapOf<String, MutableMap<MediaCategory, Int>>()
     private var page = HomeSidebarView.OVERVIEW
+    private var renderedSignature: OverviewRenderSignature? = null
+
+    /** Called when card appearance changes without a change to the media snapshot. */
+    fun invalidateContent() { renderedSignature = null }
     private var demoLabel = ""
     private var decorate: (View) -> Unit = {}
     private var tint: (TextView) -> Unit = {}
@@ -83,6 +88,10 @@ class OverviewHomeView @JvmOverloads constructor(
         sourceMark: (String?) -> Drawable? = { null },
         onScroll: () -> Unit,
     ) {
+        val nextSignature = OverviewRenderSignature(pageKey, sections,
+            sections.flatMap { listOf(sectionTitle(it.category), emptyLabel(it.category)) }, exampleTag)
+        // No new views, poster requests or focus resets for an identical provider snapshot.
+        if (nextSignature == renderedSignature) return
         val focusedBefore = positionOf(findFocus())?.let { position ->
             val lane = lanes[position.row]
             Bookmark(lane.category, lane.cards[position.index].stableId, position.index)
@@ -159,6 +168,7 @@ class OverviewHomeView @JvmOverloads constructor(
             addView(scroller, LayoutParams(MATCH_PARENT, dp(149)))
         }
         lanes = assembled
+        renderedSignature = nextSignature
         resizeTiles()
         lanes.forEach(::updateWindow)
         if (focusedBefore != null && previousPage == pageKey) {
@@ -177,11 +187,19 @@ class OverviewHomeView @JvmOverloads constructor(
 
     private fun visibleSections() = lanes.map { HomeMediaSection(it.category, it.cards) }
 
-    /** Reuse Classic's poster cache when two mounted cards request the same URI concurrently. */
+    /** Network has recovered: retry only currently mounted covers that are still missing. */
     internal fun retryArtwork() {
         for (cover in mounted.keys) {
             val image = (cover as? FrameLayout)?.getChildAt(0) as? ImageView ?: continue
             if (image.drawable == null) artwork(image, image.tag as? String)
+        }
+    }
+
+    /** Fill only cards waiting for this exact image; don't retry unrelated failed URLs. */
+    internal fun artworkReady(uri: String, bitmap: Bitmap) {
+        for (cover in mounted.keys) {
+            val image = (cover as? FrameLayout)?.getChildAt(0) as? ImageView ?: continue
+            if (image.tag == uri && image.drawable == null) image.setImageBitmap(bitmap)
         }
     }
 

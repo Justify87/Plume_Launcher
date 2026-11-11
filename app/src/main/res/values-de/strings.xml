@@ -14,7 +14,7 @@
     <string name="demo_video">VIDEO</string>
     <string name="demo_podcast">PODCAST</string>
 
-    <string name="sidebar_overview_info">Hier erscheinen künftig deine letzten Aktivitäten und neue Empfehlungen, sobald die Inhaltsquellen angebunden sind.</string>
+    <string name="sidebar_overview_info">Unter Weitermachen erscheinen gestartete Inhalte. Neu für dich zeigt nur bestätigte neue Inhalte.</string>
     <string name="sidebar_app_info">Inhalte dieser App folgen in einem späteren Schritt. Mit OK auf der App in der Sidebar startest du sie direkt.</string>
     <string name="sidebar_all_apps_info">Mit OK öffnest du alle installierten Apps, auch die auf der Startseite ausgeblendeten.</string>
     <string name="sidebar_new_for_you">Neu für dich</string>
@@ -24,16 +24,18 @@
     <string name="tv_app_new_content">Neue Inhalte</string>
     <string name="tv_feed_recommendations">Empfehlungen</string>
     <string name="tv_feed_other">Weitere TV-Inhalte</string>
-    <string name="tv_feed_empty">Noch keine fortsetzbaren TV-Inhalte vorhanden. Prüfe die Kanäle deiner Apps.</string>
+    <string name="tv_feed_empty">Noch keine unterstützten TV-Inhalte vorhanden. Öffne eine App oder prüfe TV-Berechtigung und Kanäle.</string>
     <string name="tv_feed_new_empty">Noch keine bestätigten neuen Veröffentlichungen vorhanden.</string>
     <string name="tv_feed_permission">Erlaube den Zugriff auf TV-Inhalte, um deinen Verlauf anzuzeigen.</string>
+    <string name="tv_feed_query_error">TV-Inhalte konnten nicht geladen werden. Prüfe die App-Kanäle und versuche es erneut.</string>
+    <string name="tv_feed_offline">Offline. Verbinde dich mit dem Internet, um deine YouTube-Kanäle zu prüfen.</string>
     <string name="tv_feed_unavailable">Dieser TV-Inhalt kann nicht geöffnet werden.</string>
 
     <string name="home_layout">Startseitenlayout</string>
     <string name="home_layout_classic">Klassisch</string>
     <string name="home_layout_overview">Übersicht</string>
     <string name="home_layout_placeholder">Die neue Übersicht kommt bald</string>
-    <string name="help_home_layout">Wähle Klassisch für die bisherige Startseite oder Übersicht, um den neuen Modus anzusehen.</string>
+    <string name="help_home_layout">Wähle Klassisch für die bisherige Startseite oder Übersicht für echte TV-Inhalte.</string>
     <string name="youtube_subscriptions">SmartTube / YouTube</string>
     <string name="youtube_enable">Neue Abo-Videos anzeigen</string>
     <string name="youtube_ids_hint">Kanal-IDs: UC… , UC…</string>
