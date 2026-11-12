@@ -12,8 +12,8 @@ base_sha: fdc982a9a36053a3b6c5a3d190ae90d65ab6536c
 predecessor_pr: 17
 predecessor_merge_sha: fdc982a9a36053a3b6c5a3d190ae90d65ab6536c
 feature_branch: feature/m03-mullvad-real-service
-m03_commit: pending
-m03_pr: pending
+m03_source_commit: a5aea96b143d971a9096a04ecfc8411821c57470
+m03_pr: 18
 upstream_tag: android/2026.12
 upstream_sha: aa47f606b1a159214c7279344128119fa91be5fd
 upstream_gitlink_unchanged: true
