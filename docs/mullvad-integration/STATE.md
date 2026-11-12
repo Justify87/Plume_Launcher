@@ -9,7 +9,8 @@ plume_repository: Justify87/Plume_Launcher
 plume_base_branch: main
 plume_base_sha: ab9bcc6c5188789c952722974834b49fe7ebae05
 feature_branch: feature/m01-mullvad-upstream-handoff
-pull_request: pending
+pull_request: 16
+initial_feature_commit: 580bccb380877c4cd241223cb76631116afc562b
 upstream_repository: mullvad/mullvadvpn-app
 upstream_tag: android/2026.12
 upstream_sha: aa47f606b1a159214c7279344128119fa91be5fd
@@ -27,6 +28,7 @@ m01_acceptance_complete: false
 ## Bestätigter Stand
 
 - `main` hat den oben genannten SHA; zum Prüfzeitpunkt **keine offenen PRs**. Keine Vorgänger-Meilensteine und vor M01 kein `docs/mullvad-integration/` oder `AGENTS.md`.
+- Pull Request: https://github.com/Justify87/Plume_Launcher/pull/16; initialer Handoff-Commit: `580bccb380877c4cd241223cb76631116afc562b`.
 - Mullvad `android/2026.12` ist der zuletzt **stabile** Android-Release; `android/2026.13-beta1` ist ausdrücklich nicht gewählt. Git-Tagobjekt `6d040b17e22ea445d83dd7e126e1f173ceb4b27b` zeigt auf den eingefrorenen **Commit** oben.
 - Das vollständige ursprüngliche Repository ist unverändert als Git-Submodul referenziert. Die `.gitmodules`-Datei und der Gitlink `160000` sind Bestandteile von M01. **Keine** Mullvad-Runtime, VPN-UI oder Plume-App-Datei wurde in M01 geändert.
 - Ausgewählte Architektur: im späteren **abgeleiteten Build** bleibt Mullvads `android/app` das **einzige Android-Application-Modul** mit `applicationId=dev.plume.advanced`; Plumes bestehender View-Code wird als Android-Library mit eigenem `namespace=dev.plume` eingebunden. Unveränderter Originalstand bleibt für Upstream-Referenzbuilds erhalten. Details / Risiken: `DECISIONS.md`.
