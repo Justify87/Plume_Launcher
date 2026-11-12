@@ -173,3 +173,9 @@ adb shell am start -a android.settings.SETTINGS
 ```
 
 Die Debug-Test-Activity ist `exported=false`; ADB-Shell-Direktstarts können je nach Android-Version für nicht exportierte Komponenten abgelehnt werden. In dem Fall ausschließlich den sichtbaren Plume-VPN-Einstieg verwenden. Keine Testdaten oder Kontonummer in Logs/Dokumentation übernehmen.
+
+### M03-Kompilierfehler erkannt und korrigiert
+
+- M03 Run [43319030884](https://github.com/Justify87/Plume_Launcher/actions/runs/43319030884) auf `e1097a0`: `check` **pass_observed**, integrierter `:app:compileOssProdDebugKotlin` **fail** wegen zwei Deprecation-Compilerdiagnosen in `PlumeVpnDebugActivity.kt:70` (`systemUiVisibility` / `SYSTEM_UI_FLAG_LAYOUT_STABLE`). Dies betrifft **nicht** den originalen Dienst oder JNI.
+- Behebung: unnötige System-UI-Zeile in `4599ad1148dc6747f5004511023cf2f7cfa73829` entfernt. Zur Absicherung prüft `debug-apk.yml` bei vorhandenem M03-Harness zusätzlich Manifest-Registrierung und kompilierten Activity-Namen in den APK-DEX-Dateien.
+- Resultat des erneuten M03-Builds beim Anlegen dieser Dokumentation noch **pending**. Keine ARM64-/VPN-/Shield-Laufzeitfreigabe aus diesem Fehler oder der Reparatur ableiten.

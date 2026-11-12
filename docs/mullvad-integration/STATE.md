@@ -19,7 +19,9 @@ upstream_sha: aa47f606b1a159214c7279344128119fa91be5fd
 upstream_gitlink_unchanged: true
 m02_integrated_ci: observed_pass
 m02_ci_run: 43314187927
-m03_integrated_ci: pending
+m03_integrated_ci: pending_after_deprecation_fix
+m03_ci_first_failure: deprecated_android_system_ui_flags
+m03_ci_first_failure_run: 43319030884
 m03_runtime_test: not_run
 m03_shield_test: not_run
 production_vpn_ui: false
