@@ -24,6 +24,8 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
+import net.mullvad.mullvadvpn.di.paymentModule
+import net.mullvad.mullvadvpn.di.uiModule
 import net.mullvad.mullvadvpn.lib.grpc.GrpcConnectivityState
 import net.mullvad.mullvadvpn.lib.grpc.ManagementService
 import net.mullvad.mullvadvpn.lib.model.ActionAfterDisconnect
@@ -39,6 +41,7 @@ import net.mullvad.mullvadvpn.lib.repository.ConnectionProxy
 import net.mullvad.mullvadvpn.lib.repository.UserPreferencesRepository
 import net.mullvad.mullvadvpn.serviceconnection.ServiceConnectionManager
 import org.koin.android.ext.android.getKoin
+import org.koin.core.context.loadKoinModules
 
 /**
  * Plume's production ten-foot VPN surface. All tunnel and account data comes from
@@ -108,6 +111,9 @@ class VpnActivity : ComponentActivity() {
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Mullvad's smartphone MainActivity normally loads these modules. Plume does not
+        // launch that Activity, so its original account/voucher DI must be loaded here.
+        loadKoinModules(listOf(uiModule, paymentModule))
         super.onCreate(savedInstanceState)
         setContentView(buildScreen())
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {

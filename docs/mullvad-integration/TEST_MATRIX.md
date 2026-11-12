@@ -267,3 +267,6 @@ adb shell dumpsys connectivity
 ```
 
 M05 bleibt `partial` bis CI **und** Live-/Shield-Kontoabnahme tatsächlich nachgewiesen sind. Ein erfolgreiches Compiler-Gate wird später nur als `observed_ci_pass` ergänzt, nie als Ersatz für Geräteevidenz.
+
+
+**M05 DI-Folgefehlerprüfung:** Source-Audit am gepinnten Upstream: `MullvadApplication` lädt nur `appModule`; originales `MainActivity` lädt `uiModule`/`paymentModule`. M05-VPN-Activity-Overlay lädt diese beiden Module vor `buildScreen()`. Test `test_m05_account_ui_uses_original_repositories` prüft den Modulaufruf; tatsächliche Runtime-/Koin-Auflösung bleibt `not_run` bis zum Geräte- oder Instrumentationstest.

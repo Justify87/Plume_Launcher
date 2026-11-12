@@ -85,3 +85,8 @@ Im ersten M03-Entwurf war der VPN-Eintrag als zusätzliche View außerhalb von `
 - **UI:** Native EditText mit TV-Tastatur, sichtbare Button-Fokusrahmen, D-Pad/OK/Back, bestätigte Löschaktionen, Kontoablauf und echte Fehlermeldungen. Konto-/Gutschein-Credentials werden weder in Plume-Preferences noch in eigene Logs geschrieben; das ist Funktionskorrektheit der Original-Implementierung, kein separates Hardening-Projekt.
 - **OSS-Zahlung:** Webseite ausschließlich über den vorhandenen Upstream-Token-URL-Helfer, Browser optional. Kein Play-Billing-Rewrite. **Gerät umbenennen** wird bewusst nicht angeboten: die an der gepinnten Android-Version nachgewiesenen Repository-/ViewModel-Methoden unterstützen nur Anzeigen und Entfernen.
 - **Risiko:** Weder Netzwerk-/Gültigkonto- noch Shield-/Keyboard-Funktion ist vor dem CI-/Gerätetest bewiesen. Keine Änderung an Rust/JNI, `VpnService`, Plume-Launcher oder integrierter Build-Toolchain nötig.
+
+
+### A-M05-Review — erforderlicher originaler UI-Module-Load
+
+Der Quellreview des **gepinnten** Upstreams ergab: `MullvadApplication.onCreate` lädt nur `appModule`; `Mullvad MainActivity.onCreate` lädt separat `uiModule` und `paymentModule`. Die Plume-`VpnActivity` ersetzt den Smartphone-Entry-Point, deshalb muss sie das gleiche originale `loadKoinModules(listOf(uiModule, paymentModule))` vor dem Aufbau von `VpnAccountUi` ausführen. `VoucherRepository` und `NewDeviceRepository` wären sonst nicht registriert. Bewusster minimaler Host-Lifecycle-Overlay, **keine** Änderung des Original-`AppModule`/`UiModule`, kein neuer DI-Container.

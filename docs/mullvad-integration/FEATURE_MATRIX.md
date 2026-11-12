@@ -105,3 +105,6 @@ A shared manual/PR integrated APK build now uses the official pinned Mullvad And
 | F33 | `AccountRepository.accountData.expiryDate`, `DeviceState.Revoked/LoggedOut` → abgelaufen/widerrufen angezeigt | `partial`: Ablauf offline/live `not_run`; keine synthetischen Zustände |
 
 **Abnahme:** Keine Zeile `pass` ohne Originalfunktion **und** benutzbare TV-UI **und** tatsächliche Testevidenz. Original-Smartphone-Compose-UI wird nicht als Plume-Kontooberfläche geöffnet. Ein getrennt installiertes Mullvad-Paket gibt keine privaten Accounts an `dev.plume.advanced` weiter.
+
+
+**M05 Bootstrap-Review:** `VoucherRepository` und `NewDeviceRepository` sind im originalen `uiModule`, nicht im bei Application-Start geladenen `appModule`; die Plume-`VpnActivity` lädt daher wie Mullvads MainActivity `uiModule` und `paymentModule`. Ohne diesen Schritt wären F29/F31 auf Gerät nicht auflösbar. Staging-Assertion ergänzt; Gerätepass bleibt offen.

@@ -18,10 +18,11 @@ single_apk_application_id: dev.plume.advanced
 m04_integrated_ci: observed_ci_pass
 m04_ci_run: 43328844657
 m05_source: implemented
-m05_ci: not_run
+m05_commit_first: 6a5d5c5dd9dbe834c738de8e450a3d237758ad13
+m05_ci: in_progress
 m05_shield_test: not_run
 m05_live_account_test: not_run
-m05_pr: pending
+m05_pr: 20
 ```
 
 ## M05 — tatsächliche Basis
@@ -56,3 +57,7 @@ adb install -r <APK>
 ## Handoff M06
 
 M06 übernimmt genau diese `feature/m05-mullvad-accounts-tv`-Implementierung nach Merge (oder als korrekt gestapelten Branch), behält den Upstream-Pin und verbindet `Standorte` mit originaler Mullvad-Relay-Auswahl. Die `Konto`-Seite darf nicht durch eine zweite Auth-/Device-Logik ersetzt werden. Vor vollständiger Parität zuerst den realen Kontologin, Kontoablauf, VPN-Freigabe, Tunnel sowie Fernbedienung in Classic/Overview auf NVIDIA Shield prüfen. Genaue Hardwarefälle in `TEST_MATRIX.md`.
+
+### Review-Nachtrag: originaler UI-DI-Bootstrap
+
+Der Originalcode registriert `VoucherRepository` und `NewDeviceRepository` in `uiModule`, nicht in `appModule`; die Mullvad-Smartphone-`MainActivity` lädt `uiModule`/`paymentModule` in `onCreate`. Da Plume diese Activity nie startet, übernimmt die native `VpnActivity` exakt `loadKoinModules(listOf(uiModule, paymentModule))`, **vor** ihrer View-Erstellung. Ohne diese Anbindung würden Koin-Auflösungen der Original-Repositories erst zur Laufzeit fehlschlagen. Der neue Source-Staging-Test verlangt diese Modulinitialisierung; das Submodul bleibt unverändert.

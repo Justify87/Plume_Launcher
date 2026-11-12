@@ -129,3 +129,6 @@ M03 ändert die normalen Mullvad-Original-Quelldateien **nicht**. Die generierte
 - Originale Konto-Webweiterleitung: `AccountRepository.getWebsiteAuthToken()` und `net.mullvad.mullvadvpn.lib.common.util.createAccountUri` (ein unverändertes Upstream-Hilfsmodul). Im OSS-Build keine Google-Play-Billing-Komponenten implementiert.
 - M05-Review: `AccountRepository` bietet create/login/logout/refresh/delete, `DeviceRepository` list/remove/update, `VoucherRepository.submitVoucher`; `NewDeviceRepository` verwaltet nur Neu-Gerät-Benachrichtigung. Umbenennen ist in dieser originalen Android-Repository-Schnittstelle nicht vorhanden; kein erfundener Remote-Call.
 - Ergebnisstand beim Quellcommit: statische Integration vorbereitet, kompilierbarer CI- und Gerätestand noch nachzuholen; Nachweise in `TEST_MATRIX.md`.
+
+
+**M05-Review-Korrektur:** Das originale `MullvadApplication` lädt nur `appModule`; `Mullvad MainActivity` lädt `uiModule` und `paymentModule` separat. Das Plume-Host-Overlay `VpnActivity.kt` lädt deshalb genau diese originalen Module vor der nativen Konto-View, damit `VoucherRepository`/`NewDeviceRepository` auflösbar sind. Originalquellen weiterhin **null Änderungen**.

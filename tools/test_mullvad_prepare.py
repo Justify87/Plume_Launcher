@@ -79,6 +79,9 @@ class PreparationTests(unittest.TestCase):
         self.assertIn("VpnAccountUi(", vpn)
         self.assertIn("accounts.accountData.collect", vpn)
         self.assertIn("accountUi.onDeviceState(state)", vpn)
+        # uiModule owns VoucherRepository/NewDeviceRepository; smartphone MainActivity
+        # is not launched in Plume. The original host modules must still be loaded.
+        self.assertIn("loadKoinModules(listOf(uiModule, paymentModule))", vpn)
         for api in (
             "accounts.login(", "accounts.logout()", "accounts.createAccount()",
             "accounts.refreshAccountData()", "accounts.deleteAccount()",
