@@ -66,3 +66,7 @@ Quelle für **alle** Zeilen: `third_party/mullvadvpn-app/` bei SHA `aa47f606b1a1
 ## M02 — Funktionsstatus bleibt konservativ
 
 Der **Codeeinbindungspfad** für F05 (Rust/JNI/gRPC/Tunnelverwaltung), F04 (VpnService), F47 (Relay-Assets) und F48 (Plume-HOME-Einstieg) wurde im Staging beschrieben und als Build-Generator implementiert. Ohne erfolgreiches APK/Manifest/ABI/JNI-Tests gibt es **keine** nachgewiesene funktionierende Runtime, keinen Tunnel und keine Benutzeroberfläche. Alle 48 Funktionen behalten daher bewusst `not_started`. Buildquelle vorhanden ist nicht gleich Feature-Parität. M03 muss den blockierten Compile-Nachweis aus M02 zunächst berücksichtigen.
+
+## M02 build workflow change (12 November 2026)
+
+A shared manual/PR integrated APK build now uses the official pinned Mullvad Android toolchain image. This does not prove functional VPN parity: F01-F48 remain not_started pending an actual packaged APK and subsequent runtime/TV/Shield tests. Do not mark any feature as pass because source modules merely compile.

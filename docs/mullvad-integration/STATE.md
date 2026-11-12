@@ -55,3 +55,12 @@ m03_ready: false
 In dieser Ausführungsumgebung fehlen Android SDK/NDK, Rust/Cargo und ADB; GitHub ist über das Git-CLI wegen DNS nicht erreichbar. Deshalb sind weder Original-Mullvad noch die abgeleitete APK **lokal** gebaut oder auf der Shield getestet worden. Die CI-Ausführung, korrekter Manifest-Merge, JNI-Load, tatsächliche Paket-ID, Startfähigkeit und APK-Größe sind ebenfalls offen. Das Gate M02 ist **blocked**, nicht pass.
 
 **Nächste konkrete Aufgabe (noch M02, bevor M03 beginnt):** GitHub-PR #17 Build-/CI-Logs prüfen; Compiler-/Manifest-/JNI-Fehler korrigieren; Original- und Integrationsbuild erfolgreich nachweisen; APK- und Manifest-Inhalt, Größe sowie Plume-Baseline dokumentieren. Erst dann M02 auf pass setzen und in M03 die originale Mullvad-VPN-Dienstlogik an eine fernbedienbare TV-VPN-Activity anbinden. Keine UI/Feature-Parität vor realen Tests.
+
+## M02 build-workflow update (12 November 2026)
+
+- M02 PR #17 still stacks onto M01 PR #16; main and the fixed Mullvad SHA aa47f606b1a159214c7279344128119fa91be5fd are untouched.
+- Manual and PR integrated APK builds now share .github/workflows/debug-apk.yml (workflow_dispatch and workflow_call). Default mode integrated produces one combined dev.plume.advanced ARM64 OSS/Prod debug APK; launcher-only preserves the original Plume debug build.
+- .github/workflows/pr.yml retains independent lightweight Plume tests, lint, release build and size comparison and invokes the same integrated build via reusable workflow rather than repeating SDK setup.
+- Original Mullvad Android image is pinned by the M01 submodule at ghcr.io/mullvad/mullvadvpn-app-build-android@sha256:ca22c11fb8a15321f897fa169c9c9d1f7d0d9edfeea16fa04af4de71ebcf4286. The wrapper at tools/mullvad/build-integrated.sh now builds inside this original image and original Gradle/Rust workspace with non-interactive Docker, preserving all upstream runtime sources.
+- Unlike Mullvad upstream, no self-hosted runners, private Android test-account infrastructure, Firebase, billing, E2E, or unrelated matrix flavors are needed for the M02 build proof. Their omission is intentional.
+- GitHub Actions run 43310027867 has reached the combined container Gradle build; APK success and Shield checks are not yet confirmed. Until real APK checks pass, M02 is blocked and M03 cannot be claimed ready.

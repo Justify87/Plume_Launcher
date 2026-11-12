@@ -49,3 +49,11 @@ Das `ossProd`-Variant-Overlay entfernt nur die sechs Mullvad-Smartphone-Launcher
 Die ursprünglichen Plume-Regeln, Java-17-Tests/Lint/Release und der APK-Größenvergleich bleiben erhalten. Der zusätzlich definierte Mullvad-CI-Job richtet SDK 37, NDK 27, Rust 1.97.1, JDK 21 und protobuf ein, erzeugt den Staging-Build und prüft die Native-SO/Relay-Datei im finalen Debug-APK. Der schwere Build wird auf Mullvad-Branches eingeschränkt. Das ist die eng gefasste Ausnahme für das VPN-Hobbyprojekt; **keine** globale Deaktivierung von Checks oder allgemeines Hardening-Projekt.
 
 Native ABI zunächst ARM64, minSdk des Integrationshosts 28. Bestehende Plume-Versionierung wird im Host weitergereicht. Fehlendes Upgrade-/Manifest-/Boot-/API-Level-/Shield-Testing bleibt offen; ebenso Release-Minification/Signierung und die tatsächliche APK-Größenzunahme. M02 ist bis zu Build-Evidenz `blocked`.
+
+## A08 M02: single reproducible APK workflow backed by upstream container
+
+Decision: use the Mullvad Android container image pinned by the selected upstream commit instead of reinstalling and maintaining a parallel JDK/SDK/NDK/Rust toolchain in Plume CI. This follows upstream's official android-app.yml build approach while keeping the actual app as one Mullvad-hosted application with the Plume library.
+
+Manual workflow_dispatch and PR workflow_call both invoke the integrated job in .github/workflows/debug-apk.yml. Its integrated default produces the combined dev.plume.advanced ARM64 debug APK, checks JNI/relay/manifest/launcher registration and uploads an artifact if successful; the launcher-only alternative retains legacy Plume behavior. Existing quick PR tests and baseline release size check still run.
+
+Adapted upstream: pinned build image, original android/gradlew, :app:assembleOssProdDebug and Cargo/Gradle volume layout. Omitted upstream: self-hosted device tests, Firebase, mockapi, stagemole/play, automated scheduled testing and unrelated multi-flavor matrix; none prove M02's single APK packaging. Noninteractive Docker replaces upstream's podman -it for GitHub-hosted Actions. No app feature scope change.

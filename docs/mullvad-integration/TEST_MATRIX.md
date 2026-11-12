@@ -110,3 +110,17 @@ adb logcat -d -s AndroidRuntime MullvadVpnService MullvadDaemon
 ```
 
 **M02-Abnahmestatus:** `blocked` bis erfolgreicher Build einschließlich tatsächlicher originaler Mullvad-Runtime, genau einer APK mit appId dev.plume.advanced, korrektem HOME/LEANBACK-Manifest, ARM64-SO, Relaydatei und vollständiger Build-/APK-Evidenz. Bis dahin keine Freigabe für M03.
+
+## M02 workflow consolidation evidence (12 November 2026)
+
+| Check | Evidence | Result |
+| --- | --- | --- |
+| Mullvad upstream Android build configuration | Pinned android-app.yml, building/container-run.sh and android/docker/Dockerfile | pass_observed for source inspection |
+| Immutable original Mullvad commit and image digest | M01 SHA aa47f606... and image SHA256 ca22c11f... checked by reusable job | pass_observed; no submodule source changes |
+| Shared APK build definition | debug-apk.yml workflow_dispatch + workflow_call; pr.yml delegates integrated job | implemented |
+| Android build image pull | Actions run 43310027867 | pass_observed; reached original image-based Gradle build |
+| Original Plume regression path | Separate PR check job, tests/lint/release/size | retained; current job was still running at observation |
+| Combined installed APK / original JNI / manifest / package ID | Shared integrated job, check_apk.py, aapt badging and manifest, SHA256SUMS | pending at observation; no confirmed artifact yet |
+| Shield ABI, install, D-Pad, VPN account, tunnel and reboot | ADB on physical Shield | not_run |
+
+When CI completes, record the real job conclusion, specific failure (if any), package ID, single APK/ARM64 JNI/relay manifest and actual artifact size. The manual debug workflow exposes integrated (default) and launcher-only; GitHub Actions manual dispatch UI requires the updated workflow to be present on default branch.

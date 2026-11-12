@@ -85,3 +85,11 @@ Mullvad-Gitlink und **sämtliche originalen Mullvad-Kotlin-/Rust-Dateien bleiben
 Die separate Plume-Baseline bleibt auf AGP 9.2.1, Gradle 9.4.1, compile/targetSdk 36, minSdk 26 und Java 17; Integration erfordert minSdk 28. Es gibt **keine** Patch-Dateien im Original-Git-Submodul. Der generierte Source-Diff muss nach jedem prepare-Lauf reproduzierbar sein.
 
 **Belegstatus:** Noch kein erfolgreicher nativer Build; kein geprüftes libmullvad_jni.so, kein geprüftes Relay-Asset im fertigen APK, keine tatsächliche APK-Größe. Die neu geschaffene Build-Pipeline ist **keine** Beweiskette für ein funktionierendes VPN.
+
+## M02 CI original-container adoption (12 November 2026)
+
+At the M01 pinned commit, Mullvad's .github/workflows/android-app.yml builds :app:assembleOssProdDebug via building/container-run.sh. The image is specified by digest in building/android-container-image.txt: ghcr.io/mullvad/mullvadvpn-app-build-android@sha256:ca22c11fb8a15321f897fa169c9c9d1f7d0d9edfeea16fa04af4de71ebcf4286.
+
+This image contains JDK 21, Android SDK 37.0, build-tools 37.0.0, NDK 27.3.13750724 and Rust 1.97.1 with Android targets, according to upstream android/docker/Dockerfile. The shared Plume wrapper runs the original android/gradlew, mounts generated Mullvad source under /build plus /cargo-target, Cargo registry and Gradle cache volumes, and passes Plume app ID/version through staged Gradle and existing version properties. It removes upstream's interactive -it requirement, uses Docker on GitHub-hosted Ubuntu (Podman supported via CONTAINER_RUNNER), targets ARM64, and limits Gradle/Cargo concurrency to fit the runner.
+
+No Mullvad repository source patch or upstream SHA change. Only CI orchestrator and staged Plume-integration overlays are modified. PR and manual APK generation share the same implementation in .github/workflows/debug-apk.yml. Previously documented host SDK/NDK/Rust manual setup is superseded for M02 integrated CI. The original standalone Mullvad build and actual Shield test remain unverified.
