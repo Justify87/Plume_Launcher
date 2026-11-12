@@ -19,7 +19,9 @@ upstream_sha: aa47f606b1a159214c7279344128119fa91be5fd
 upstream_gitlink_unchanged: true
 m02_integrated_ci: observed_pass
 m02_ci_run: 43314187927
-m03_integrated_ci: pending_after_deprecation_fix
+m03_integrated_ci: pass_observed_before_focus_fix
+m03_integrated_ci_run: 43320664681
+m03_ci_for_focus_fix: pending
 m03_ci_first_failure: deprecated_android_system_ui_flags
 m03_ci_first_failure_run: 43319030884
 m03_runtime_test: not_run
@@ -52,3 +54,10 @@ production_vpn_ui: false
 ## M04-Handoff
 
 Nach grünem M03-Compile und Shield-Test die Debug-Activity durch eine produktive Plume-VPN-Activity ersetzen; Top-Bar-Einstieg dauerhaft machen. **Nicht** die UI-Harness-Klasse als VPN-Engine übernehmen. Wiederverwendbare APIs: `AccountRepository.login`, `ConnectionProxy.connect/disconnect/reconnect`, `ManagementService`-Flows, `ServiceConnectionManager.bind/unbind` sowie `VpnService.prepare`. Die Service-Bindung ist Activity-unabhängig zu halten. Testkommandos und offene Fälle stehen in `TEST_MATRIX.md`.
+
+## M03-Folgeprüfung nach grünem Build (12.11.2026)
+
+- [Run 43320664681](https://github.com/Justify87/Plume_Launcher/actions/runs/43320664681): **pass_observed** für Plume/Unit/Lint, kombinierten ARM64-Gradle-/Rust-/JNI-APK-Build und die APK-/Manifest-/DEX-Prüfungen (einschließlich `PlumeVpnDebugActivity`). GitHub-Artifact `Plume-Mullvad-ARM64-Debug-58` vorhanden. Das ist kein Schild-/Tunnelnachweis.
+- Im Quellreview danach wurde ein echter **D-Pad-Folgefehler** gefunden: `homeNav` und `overviewNav` blockierten DPAD_RIGHT noch am letzten alten Top-Bar-Symbol, sodass der dynamisch angehängte VPN-Eintrag nicht zuverlässig erreichbar gewesen wäre.
+- Behebung im Commit `0ceae7e15e1cf4a90808218a1eec91354d0b4ebc`: rechtes Top-Bar-Ende berücksichtigt den sichtbaren VPN-Eintrag; der Eintrag wird nach vorhandenen Top-Bar-Symbolen eingesetzt, behält Fokus bei Neuzeichnung und aktualisiert `lastTop`. Die ursprüngliche rechte Begrenzung bleibt ohne Debug-Harness erhalten.
+- Neuer CI-Lauf nach diesem letzten UI-Fix: `pending`. Tatsächliche D-Pad-Navigation bleibt bis ADB-/Shield-Test `not_run`; kein pass dafür behauptet.

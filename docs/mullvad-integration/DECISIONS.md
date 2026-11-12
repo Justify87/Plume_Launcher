@@ -65,3 +65,7 @@ Adapted upstream: pinned build image, original android/gradlew, :app:assembleOss
 Die Steuerung ist strikt an `ServiceConnectionManager` und `ConnectionProxy` sowie `AccountRepository` gebunden, der angezeigte Tunnelzustand kommt aus `ManagementService.tunnelState`. `VpnService.prepare()` übernimmt den echten Systemdialog. Das Launcher-Top-Bar-Element fragt lediglich die Existenz der Activity ab; dadurch hat die unabhängige Plume-Baseline keine Mullvad-Klassenabhängigkeit.
 
 **Lebenszyklus:** Plumes Home-Activity verwaltet **keine** VPN-Bindung. Der Debug-Harness bindet den Service, löst bei `onStop` keinen Disconnect aus und unbindet erst bei `onDestroy`; Androids ursprüngliche System-VPN-Bindung muss auf der Shield real nachgewiesen werden. Kein eigener Boot-Autostart in M03. Kein künstlicher Status `Connected`.
+
+## M03-Code-Review: D-Pad-Grenze bei zusätzlichem Debug-Zugang (12.11.2026)
+
+Im ersten M03-Entwurf war der VPN-Eintrag als zusätzliche View außerhalb von `TOP_KEYS` angehängt worden. Die beiden bestehenden Navigationsmodi hielten jedoch den letzten alten `TOP_KEYS`-Button für die rechte Fokusgrenze. Entscheidung: Keine neue konfigurierbare Top-Bar-Architektur und keine zusätzliche Persistenz für den **temporären** Debug-Harness. Stattdessen nutzt `atRightTopBarEdge` den aktuell sichtbaren Debug-VPN-Button als rechten Rand und fällt sonst auf den historischen Rand zurück. Existierende dynamische VPN-View wird nicht bei jeder Top-Bar-Aktualisierung ab-/wieder angehängt. Das minimiert Seiteneffekte in Classic/Overview.
