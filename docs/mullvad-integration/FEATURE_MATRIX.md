@@ -65,11 +65,11 @@ Quelle für **alle** Zeilen: `third_party/mullvadvpn-app/` bei SHA `aa47f606b1a1
 
 ## M02 — Funktionsstatus bleibt konservativ
 
-Der **Codeeinbindungspfad** für F05 (Rust/JNI/gRPC/Tunnelverwaltung), F04 (VpnService), F47 (Relay-Assets) und F48 (Plume-HOME-Einstieg) wurde im Staging beschrieben und als Build-Generator implementiert. Ohne erfolgreiches APK/Manifest/ABI/JNI-Tests gibt es **keine** nachgewiesene funktionierende Runtime, keinen Tunnel und keine Benutzeroberfläche. Alle 48 Funktionen behalten daher bewusst `not_started`. Buildquelle vorhanden ist nicht gleich Feature-Parität. M03 muss den blockierten Compile-Nachweis aus M02 zunächst berücksichtigen.
+Der **Codeeinbindungspfad** für F05 (Rust/JNI/gRPC/Tunnelverwaltung), F04 (VpnService), F47 (Relay-Assets) und F48 (Plume-HOME-Einstieg) wurde im Staging beschrieben und als Build-Generator implementiert. Dieser Absatz beschrieb ursprünglich das noch blockierte M02-Build-Gate. **Aktuell bestanden:** [M02 CI Run 43314187927](https://github.com/Justify87/Plume_Launcher/actions/runs/43314187927) und [M03 CI Run 43323559922](https://github.com/Justify87/Plume_Launcher/actions/runs/43323559922) bestätigen ARM64-APK, Manifest, Rust/JNI und Relay-Assets. Ein echter Tunnel und D-Pad-Gerätetests sind **nicht** nachgewiesen. Die M01-Inventarzeilen bleiben historische `not_started`-Baselines; die M03-Codeanbindungen werden unten als `partial` geführt.
 
 ## M02 build workflow change (12 November 2026)
 
-A shared manual/PR integrated APK build now uses the official pinned Mullvad Android toolchain image. This does not prove functional VPN parity: F01-F48 remain not_started pending an actual packaged APK and subsequent runtime/TV/Shield tests. Do not mark any feature as pass because source modules merely compile.
+A shared manual/PR integrated APK build now uses the official pinned Mullvad Android toolchain image. The integrated APK is now packaged and CI-validated (M02 Run 43314187927; M03 Run 43323559922), but this does **not** prove functional VPN parity. The original M01 inventory statuses are historical; M03 code hookups below are `partial`, and runtime/TV/Shield tests remain `not_run`. Do not mark features as `pass` because source modules compile.
 
 ## M03 — implementierte Anbindung, noch keine vollständige Funktionsabnahme
 

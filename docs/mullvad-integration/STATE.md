@@ -4,7 +4,7 @@
 schema: plume-mullvad-handoff/v1
 milestone: M03
 status: partial
-checked_on: "2026-11-12"
+checked_on: "2026-11-13"
 target_repository: Justify87/Plume_Launcher
 main_head_at_start: 0daf26b271c94396ea4930a73fc7db2d3ee81ab9
 base_branch: feature/m01-mullvad-upstream-handoff
@@ -19,9 +19,11 @@ upstream_sha: aa47f606b1a159214c7279344128119fa91be5fd
 upstream_gitlink_unchanged: true
 m02_integrated_ci: observed_pass
 m02_ci_run: 43314187927
-m03_integrated_ci: pass_observed_before_focus_fix
-m03_integrated_ci_run: 43320664681
-m03_ci_for_focus_fix: pending
+m03_integrated_ci: observed_ci_pass
+m03_integrated_ci_run: 43323559922
+m03_ci_for_focus_fix: observed_ci_pass
+m03_ci_for_focus_fix_run: 43323559922
+m03_apk_artifact: Plume-Mullvad-ARM64-Debug-60
 m03_ci_first_failure: deprecated_android_system_ui_flags
 m03_ci_first_failure_run: 43319030884
 m03_runtime_test: not_run
@@ -47,17 +49,17 @@ production_vpn_ui: false
 
 ## Evidenz und Grenzen
 
-- M03-Änderungen: Quellcode implementiert, aber CI/Runtime/Shield noch **nicht** nachgewiesen; daher `partial` und kein grüner Tunnelstatus. Der neue CI-PR-Build ist die nächste reproduzierbare Prüfung.
+- M03-Änderungen: Quellcode implementiert und integrierter Plume-/Mullvad-ARM64-Build inklusive Kotlin, Rust/JNI, Manifest, DEX und Staging-Tests per CI nachgewiesen ([Run 43323559922](https://github.com/Justify87/Plume_Launcher/actions/runs/43323559922)). Die **Runtime-/Shield-/Tunnel-/D-Pad-Gerätetests sind weiterhin `not_run`**; deshalb bleibt M03 insgesamt `partial`.
 - Android SDK/NDK, Rust/Cargo und ADB stehen in der ausführenden Arbeitsumgebung nicht vollständig zur Verfügung. Keine angeschlossene Shield und keine Mullvad-Kontodaten.
 - Original Compose-MainActivity bleibt im Host enthalten, aber ohne Smartphone-Launcher-Alias. M04/M05 müssen Debug-Harness durch produktive TV-Oberflächen ersetzen.
 
 ## M04-Handoff
 
-Nach grünem M03-Compile und Shield-Test die Debug-Activity durch eine produktive Plume-VPN-Activity ersetzen; Top-Bar-Einstieg dauerhaft machen. **Nicht** die UI-Harness-Klasse als VPN-Engine übernehmen. Wiederverwendbare APIs: `AccountRepository.login`, `ConnectionProxy.connect/disconnect/reconnect`, `ManagementService`-Flows, `ServiceConnectionManager.bind/unbind` sowie `VpnService.prepare`. Die Service-Bindung ist Activity-unabhängig zu halten. Testkommandos und offene Fälle stehen in `TEST_MATRIX.md`.
+Nach grünem M03-Compile (CI bestätigt) und dem noch ausstehenden Shield-Test die Debug-Activity durch eine produktive Plume-VPN-Activity ersetzen; Top-Bar-Einstieg dauerhaft machen. **Nicht** die UI-Harness-Klasse als VPN-Engine übernehmen. Wiederverwendbare APIs: `AccountRepository.login`, `ConnectionProxy.connect/disconnect/reconnect`, `ManagementService`-Flows, `ServiceConnectionManager.bind/unbind` sowie `VpnService.prepare`. Die Service-Bindung ist Activity-unabhängig zu halten. Testkommandos und offene Fälle stehen in `TEST_MATRIX.md`.
 
 ## M03-Folgeprüfung nach grünem Build (12.11.2026)
 
 - [Run 43320664681](https://github.com/Justify87/Plume_Launcher/actions/runs/43320664681): **pass_observed** für Plume/Unit/Lint, kombinierten ARM64-Gradle-/Rust-/JNI-APK-Build und die APK-/Manifest-/DEX-Prüfungen (einschließlich `PlumeVpnDebugActivity`). GitHub-Artifact `Plume-Mullvad-ARM64-Debug-58` vorhanden. Das ist kein Schild-/Tunnelnachweis.
 - Im Quellreview danach wurde ein echter **D-Pad-Folgefehler** gefunden: `homeNav` und `overviewNav` blockierten DPAD_RIGHT noch am letzten alten Top-Bar-Symbol, sodass der dynamisch angehängte VPN-Eintrag nicht zuverlässig erreichbar gewesen wäre.
 - Behebung im Commit `0ceae7e15e1cf4a90808218a1eec91354d0b4ebc`: rechtes Top-Bar-Ende berücksichtigt den sichtbaren VPN-Eintrag; der Eintrag wird nach vorhandenen Top-Bar-Symbolen eingesetzt, behält Fokus bei Neuzeichnung und aktualisiert `lastTop`. Die ursprüngliche rechte Begrenzung bleibt ohne Debug-Harness erhalten.
-- Neuer CI-Lauf nach diesem letzten UI-Fix: `pending`. Tatsächliche D-Pad-Navigation bleibt bis ADB-/Shield-Test `not_run`; kein pass dafür behauptet.
+- Abschließender CI-Lauf nach UI-/Fokus-Fix: [Run 43323559922](https://github.com/Justify87/Plume_Launcher/actions/runs/43323559922) auf `00eddf1` **success**, beide relevanten Jobs grün. Artifact `Plume-Mullvad-ARM64-Debug-60` (Upload-Größe 120884259 Bytes, nicht die rohe APK-Größe). D-Pad, Konto, echte Tunnelverbindung und Exit-IP bleiben bis zum Gerätetest `not_run`.

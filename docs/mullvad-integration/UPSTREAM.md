@@ -84,7 +84,7 @@ Mullvad-Gitlink und **sämtliche originalen Mullvad-Kotlin-/Rust-Dateien bleiben
 
 Die separate Plume-Baseline bleibt auf AGP 9.2.1, Gradle 9.4.1, compile/targetSdk 36, minSdk 26 und Java 17; Integration erfordert minSdk 28. Es gibt **keine** Patch-Dateien im Original-Git-Submodul. Der generierte Source-Diff muss nach jedem prepare-Lauf reproduzierbar sein.
 
-**Belegstatus:** Noch kein erfolgreicher nativer Build; kein geprüftes libmullvad_jni.so, kein geprüftes Relay-Asset im fertigen APK, keine tatsächliche APK-Größe. Die neu geschaffene Build-Pipeline ist **keine** Beweiskette für ein funktionierendes VPN.
+**Belegstatus (aktualisiert 13.11.2026):** Integrierter Host-/ARM64-Rust-/JNI-Build und strukturelle APK-/Manifest-/Relay-Prüfung sind **`observed_ci_pass`**: [M02 Run 43314187927](https://github.com/Justify87/Plume_Launcher/actions/runs/43314187927) und [M03 Run 43323559922](https://github.com/Justify87/Plume_Launcher/actions/runs/43323559922). M03-Artifact `Plume-Mullvad-ARM64-Debug-60` vorhanden; dessen Upload-Größe 120884259 Bytes ist nicht die rohe APK-Größe. Der separate, unveränderte Mullvad-Originalbuild bleibt `not_run`; tatsächliche Shield-Installation und VPN-Laufzeit bleiben ebenfalls `not_run`.
 
 ## M02 CI original-container adoption (12 November 2026)
 

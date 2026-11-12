@@ -1,6 +1,6 @@
 # Testmatrix und reproduzierbare Buildnachweise — M01
 
-**Stand:** 2026-11-12. Externe/historische CI-Ergebnisse sind als `observed_ci_pass` markiert, **nicht** als eigener lokaler Test. `not_run` bedeutet, dass es **keinen** Exitcode gibt; es wird **nicht** als 0 interpretiert.
+**Stand:** 2026-11-13 (M03-CI nachgeführt; ältere M01/M02-Tabellen behalten ihren historischen Kontext). Externe/historische CI-Ergebnisse sind als `observed_ci_pass` markiert, **nicht** als eigener lokaler Test. `not_run` bedeutet, dass es **keinen** Exitcode gibt; es wird **nicht** als 0 interpretiert.
 
 | ID | Test / konkreter Befehl | Umgebung / Beleg | Ergebnis | Exitcode / Größe |
 | --- | --- | --- | --- | --- |
@@ -80,12 +80,12 @@ M02 hat zuerst Originalbuild/Plume-Baseline und integrierte Build-Pipeline nachz
 | Staging-/Host-Code | GitHub-Commit 9b1e630247696fea7b5164bca83b850bdcfe0bf5 | `partial`: echte Dateien/CI-Definition; nicht gebaut |
 | SDK/NDK/Rust/ADB lokal | command -v rustc cargo sdkmanager adb | `blocked`: alle fehlen |
 | Original Git CLI Netzwerk | git ls-remote https://github.com/Justify87/Plume_Launcher.git HEAD | `blocked`: Exit 128 / Could not resolve host: github.com |
-| Python-Staging-Tests | python3 -m unittest discover -s tools -p test_mullvad_prepare.py -v | `not_run`: CI vorgesehen |
-| Plume M02-Baseline | ./gradlew :app:assembleDebug testDebugUnitTest lintDebug assembleRelease | `not_run`: nur historische M01-CI hatte Erfolg |
+| Python-Staging-Tests | python3 -m unittest discover -s tools -p test_mullvad_prepare.py -v | `observed_ci_pass`: M03 Run 43323559922, Schritt „Test source staging generator“; kein lokaler Test |
+| Plume M02-Baseline | ./gradlew :app:assembleDebug testDebugUnitTest lintDebug assembleRelease | `partial`: Unit-Tests und Lint in M03 Run 43323559922 erfolgreich; vollständiger genannter Baseline-Befehl nicht separat ausgeführt |
 | Original Mullvad | cd third_party/mullvadvpn-app/android && ./gradlew assembleOssProdDebug | `not_run` |
-| Integrierter Host | bash tools/mullvad/build-integrated.sh | `not_run`: lokales SDK/NDK/Rust fehlt; M02-PR-CI offen |
-| APK / IDs / native Assets | python3 tools/mullvad/check_apk.py APK; aapt dump badging APK | `not_run`: keine APK vorhanden |
-| Ein Launcher / zwei Application-Klassen | merged Manifest, DEX und aapt prüfen | `not_run` |
+| Integrierter Host | bash tools/mullvad/build-integrated.sh | `observed_ci_pass`: M02 Run 43314187927 und M03 Run 43323559922 mit originalem Container; lokal weiterhin nicht ausgeführt |
+| APK / IDs / native Assets | python3 tools/mullvad/check_apk.py APK; aapt dump badging APK | `observed_ci_pass`: M03 Run 43323559922, inklusive ABI/JNI/Relay/Manifest/Package |
+| Ein Launcher / zwei Application-Klassen | merged Manifest, DEX und aapt prüfen | `observed_ci_pass`: CI-Manifest-/DEX-Prüfungen, ein Plume-HOME-Einstieg und originaler Mullvad-Dienst |
 | Shield ABI, Installation | adb shell getprop ro.product.cpu.abilist; adb install -r APK | `not_run` |
 | Plume Classic/Overview/D-Pad/Back, Home, Updates, Screensaver | Gerätetest | `not_run` |
 | Dienst/Konto/VPN-Bindung | Gerätetest ab M03 | `not_run`; kein UI-Start/Mock in M02 |
@@ -109,7 +109,7 @@ adb shell am start -n dev.plume.advanced/dev.plume.MainActivity
 adb logcat -d -s AndroidRuntime MullvadVpnService MullvadDaemon
 ```
 
-**M02-Abnahmestatus:** `blocked` bis erfolgreicher Build einschließlich tatsächlicher originaler Mullvad-Runtime, genau einer APK mit appId dev.plume.advanced, korrektem HOME/LEANBACK-Manifest, ARM64-SO, Relaydatei und vollständiger Build-/APK-Evidenz. Bis dahin keine Freigabe für M03.
+**M02-Abnahmestatus (aktualisiert 13.11.2026):** Build- und APK-Strukturgate **`observed_ci_pass`** durch [Run 43314187927](https://github.com/Justify87/Plume_Launcher/actions/runs/43314187927), erneut in [M03 Run 43323559922](https://github.com/Justify87/Plume_Launcher/actions/runs/43323559922) bestätigt. Ein einzelnes Paket `dev.plume.advanced`, HOME/LEANBACK-Manifest, ARM64-JNI, Relay-Assets und originaler Mullvad-VpnService wurden geprüft. **Nicht blockiert für M03/M04-Weiterentwicklung**; jedoch Service-Laufzeit, Shield und echter Tunnel `not_run`.
 
 ## M02 workflow consolidation evidence (12 November 2026)
 
@@ -120,10 +120,10 @@ adb logcat -d -s AndroidRuntime MullvadVpnService MullvadDaemon
 | Shared APK build definition | debug-apk.yml workflow_dispatch + workflow_call; pr.yml delegates integrated job | implemented |
 | Android build image pull | Actions run 43310027867 | pass_observed; reached original image-based Gradle build |
 | Original Plume regression path | Separate PR check job, tests/lint/release/size | retained; current job was still running at observation |
-| Combined installed APK / original JNI / manifest / package ID | Shared integrated job, check_apk.py, aapt badging and manifest, SHA256SUMS | pending at observation; no confirmed artifact yet |
+| Combined installed APK / original JNI / manifest / package ID | Shared integrated job, check_apk.py, aapt badging and manifest, SHA256SUMS | `observed_ci_pass`: M02 Run 43314187927 und M03 Run 43323559922, Artifact vorhanden; Installation auf Shield `not_run` |
 | Shield ABI, install, D-Pad, VPN account, tunnel and reboot | ADB on physical Shield | not_run |
 
-When CI completes, record the real job conclusion, specific failure (if any), package ID, single APK/ARM64 JNI/relay manifest and actual artifact size. The manual debug workflow exposes integrated (default) and launcher-only; GitHub Actions manual dispatch UI requires the updated workflow to be present on default branch.
+CI build evidence is now documented above and below; actual device installation and tunnel remain outstanding. The manual debug workflow exposes integrated (default) and launcher-only; GitHub Actions manual dispatch UI requires the workflow to be present on the default branch.
 
 ## M03 — Build- und Geräteabnahme (12.11.2026)
 
@@ -137,15 +137,15 @@ When CI completes, record the real job conclusion, specific failure (if any), pa
 
 | ID | Prüfschritt | Status bei Implementierung |
 | --- | --- | --- |
-| M03-01 | `python3 -m unittest discover -s tools -p test_mullvad_prepare.py -v` | `not_run`; PR-CI vorgesehen |
-| M03-02 | `./gradlew testDebugUnitTest lintDebug` (Plume-Baseline) | `not_run`; PR-CI vorgesehen |
-| M03-03 | `bash tools/mullvad/build-integrated.sh --no-configuration-cache --max-workers=2` | `not_run`; PR-CI vorgesehen |
-| M03-04 | `python3 tools/mullvad/check_apk.py <apk>`, `aapt dump badging`, `aapt dump xmltree` (eine `dev.plume.advanced` APK, Originaldienst und Debug-Harness) | `not_run`; CI vorgesehen |
+| M03-01 | `python3 -m unittest discover -s tools -p test_mullvad_prepare.py -v` | `observed_ci_pass`; Run 43323559922, Staging-Tests |
+| M03-02 | `./gradlew testDebugUnitTest lintDebug` (Plume-Baseline) | `observed_ci_pass`; Run 43323559922, Plume Unit Tests/Lint |
+| M03-03 | `bash tools/mullvad/build-integrated.sh --no-configuration-cache --max-workers=2` | `observed_ci_pass`; Run 43323559922, Android-/Rust-/JNI-Containerbuild |
+| M03-04 | `python3 tools/mullvad/check_apk.py <apk>`, `aapt dump badging`, `aapt dump xmltree` (eine `dev.plume.advanced` APK, Originaldienst und Debug-Harness) | `observed_ci_pass`; Run 43323559922, APK/Manifest/DEX/ABI/Assets |
 | M03-05 | SDK-/ADB-Gerätetest: VPN-Dienst/JNI geladen, Konto, Erlaubnis, Tunnel und Exit-IP | `not_run`: kein angeschlossenes Shield-/Mullvad-Konto |
 | M03-06 | System-VPN-Freigabe verweigern; kein Connect, Fehlermeldung | `not_run`: Shield |
 | M03-07 | Wechsel in andere App, Netzwerk trennen/wiederherstellen; Tunnel-/Fehlerstatus korrekt | `not_run`: Shield |
 | M03-08 | Classic und Overview: VPN-Knopf, D-Pad, OK, Back, reguläre Launcher-Funktionen | `not_run`: Shield |
-| M03-09 | Release-Build enthält **keine** `PlumeVpnDebugActivity`, keine zusätzliche Application, kein zweites Launcher-Icon | `not_run`: strukturell aus Quell-Staging abgeleitet, APK-Nachweis offen |
+| M03-09 | Release-Build enthält **keine** `PlumeVpnDebugActivity`, keine zusätzliche Application, kein zweites Launcher-Icon | `partial`: Debug-Harness im kombinierten APK verifiziert; separater Release-APK-Negativtest `not_run` |
 
 ### ADB-Checkliste (auf einer echten Shield, Android/ABI vorher feststellen)
 
@@ -178,7 +178,7 @@ Die Debug-Test-Activity ist `exported=false`; ADB-Shell-Direktstarts können je 
 
 - M03 Run [43319030884](https://github.com/Justify87/Plume_Launcher/actions/runs/43319030884) auf `e1097a0`: `check` **pass_observed**, integrierter `:app:compileOssProdDebugKotlin` **fail** wegen zwei Deprecation-Compilerdiagnosen in `PlumeVpnDebugActivity.kt:70` (`systemUiVisibility` / `SYSTEM_UI_FLAG_LAYOUT_STABLE`). Dies betrifft **nicht** den originalen Dienst oder JNI.
 - Behebung: unnötige System-UI-Zeile in `4599ad1148dc6747f5004511023cf2f7cfa73829` entfernt. Zur Absicherung prüft `debug-apk.yml` bei vorhandenem M03-Harness zusätzlich Manifest-Registrierung und kompilierten Activity-Namen in den APK-DEX-Dateien.
-- Resultat des erneuten M03-Builds beim Anlegen dieser Dokumentation noch **pending**. Keine ARM64-/VPN-/Shield-Laufzeitfreigabe aus diesem Fehler oder der Reparatur ableiten.
+- Resultat des erneuten M03-Builds: [Run 43320664681](https://github.com/Justify87/Plume_Launcher/actions/runs/43320664681) **success**, ebenso [finaler Run 43323559922](https://github.com/Justify87/Plume_Launcher/actions/runs/43323559922) nach D-Pad-Fix. Build-Erfolg ist kein Shield- oder VPN-Laufzeittest.
 
 ### Review nach bestandenem CI und D-Pad-Folgefehler
 
@@ -186,4 +186,4 @@ Die Debug-Test-Activity ist `exported=false`; ADB-Shell-Direktstarts können je 
 - Statischer Folgecheck: D-Pad-Rechtsgrenze war in `homeNav` (Classic) und `overviewNav` weiterhin an `shownTop().last()` gebunden und konnte den nachträglich hinzugefügten VPN-Knopf aussperren. `refreshVpnDebugEntry` entfernte/reinsertierte die View wiederholt, was den Fokus verlieren lassen konnte.
 - Gezielter Fix `0ceae7e15e1cf4a90808218a1eec91354d0b4ebc`: rechter Rand wird aus dem tatsächlich sichtbaren VPN-Eintrag oder dem letzten originalen Symbol ermittelt; der VPN-Eintrag bleibt bei Top-Bar-Refresh angehängt und markiert `lastTop` beim Fokus.
 - Kotlin-Warnungen im erfolgreichen Log: `Gallery.kt:259/260` nutzen expression body und return ohne expliziten Typ; laut Compiler **erst in Kotlin 2.5** ein Fehler. Der eingefrorene Upstream nutzt Kotlin 2.4.10; kein Anlass für ungefragte Migration/Refactoring in M03. Weitere harmlose Plume-Warnungen in `MainActivity.kt` 3269, 4453, 4561. **Kein** JVM-/Kotlin-weiter systematischer Ausfall im aktuellen Build nachgewiesen.
-- Neuer CI-Lauf nach Fokus-Fix: zunächst `pending`. Physischer Classic-/Overview-D-Pad-Test, Kontodialog und Tunnelstatus weiterhin `not_run`.
+- CI nach Fokus-Fix: [Run 43323559922](https://github.com/Justify87/Plume_Launcher/actions/runs/43323559922), Commit `00eddf11f84c5418f911d9d61caacbd141881fdf`, **success** für `check` und `mullvad-apk`; Staging-, Gradle-, Rust/JNI-, Manifest- und DEX-Prüfung erfolgreich. Artifact `Plume-Mullvad-ARM64-Debug-60`, **120884259 Bytes** Artifact-Upload (nicht rohe APK). Physischer Classic-/Overview-D-Pad-Test, Systemdialog, Konto, Exit-IP und Tunnelstatus weiterhin `not_run`.

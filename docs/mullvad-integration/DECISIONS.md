@@ -1,6 +1,6 @@
 # Architekturentscheidungen — M01
 
-**Status:** technische Zielarchitektur entschieden; Build-Machbarkeit muss in M02 nachgewiesen werden. Originalcode ist in M01 unangetastet.
+**Status (13.11.2026):** M01-Zielarchitektur beschlossen; integrierte Build-Machbarkeit in M02 und M03 per [CI Run 43323559922](https://github.com/Justify87/Plume_Launcher/actions/runs/43323559922) nachgewiesen. Originalcode unverändert; Shield-/Tunnel-Gerätetests ausstehend.
 
 ## A01 — Vollständiger, gepinnter Git-Submoduleintrag (angenommen)
 
@@ -38,17 +38,17 @@ Der ursprüngliche Plume-Prüfworkflow nutzt JDK 17 und kein Submodul. Integrati
 Keine App-Runtime, keine VPN-Activity, kein Login, kein Runtime-Service-Start, kein Mock-Client; keine zusätzlichen Netzwerkanalysen, Protection-Audits oder Custom-Protokolle. Buildstatus in `TEST_MATRIX.md` ehrlich als `not_run` behandeln. Vor M02 keine Feature-Parität behaupten.
 
 
-## M02 — A06: Host/Library tatsächlich als Staging implementiert (Build-Gate offen)
+## M02 — A06: Host/Library als Staging implementiert (Build-Gate durch CI bestätigt)
 
 Die in A02/A03 gewählte Architektur ist in tools/mullvad/prepare.py umgesetzt: Mullvad `android/app` ist der **einzige** Application-Host; Plumes View-Quellen werden unter `:plume-ui` als Android-Library eingebunden. Die Staging-Kopie erhält Mullvads ursprüngliches `MullvadApplication`, `MullvadVpnService`, Talpid, JNI/gRPC, Koin und die originalen Featuremodule. Nur ein temporärer Build-Diff ist notwendig; damit kann der M01-Gitlink unverändert bleiben. Originale Smartphone-Compose-Screens werden für M02 nicht als TV-UI exponiert, aber nicht aus dem Runtime-Graph entfernt.
 
-Das `ossProd`-Variant-Overlay entfernt nur die sechs Mullvad-Smartphone-Launcher-Aliasse und belässt den systemgebundenen VPN-Service. Plumes bestehendes Manifest mit HOME-/LEANBACK-Einstieg, Screensaver und Service-Registrierungen wird als Library gemergt; bei widersprüchlichem Merge hat der Host im Staging die höhere Priorität. **Bis zu einem kompilierten Manifest wurde das nicht bewiesen**.
+Das `ossProd`-Variant-Overlay entfernt nur die sechs Mullvad-Smartphone-Launcher-Aliasse und belässt den systemgebundenen VPN-Service. Plumes bestehendes Manifest mit HOME-/LEANBACK-Einstieg, Screensaver und Service-Registrierungen wird als Library gemergt; bei widersprüchlichem Merge hat der Host im Staging die höhere Priorität. **Das ursprünglich offene Manifest-Gate ist mit M02-CI und M03-CI nachgewiesen**; die echte Gerätefunktion ist weiterhin nicht geprüft.
 
 ## M02 — A07: Getrennte CI und bewusster Toolchain-Kontrast
 
 Die ursprünglichen Plume-Regeln, Java-17-Tests/Lint/Release und der APK-Größenvergleich bleiben erhalten. Der zusätzlich definierte Mullvad-CI-Job richtet SDK 37, NDK 27, Rust 1.97.1, JDK 21 und protobuf ein, erzeugt den Staging-Build und prüft die Native-SO/Relay-Datei im finalen Debug-APK. Der schwere Build wird auf Mullvad-Branches eingeschränkt. Das ist die eng gefasste Ausnahme für das VPN-Hobbyprojekt; **keine** globale Deaktivierung von Checks oder allgemeines Hardening-Projekt.
 
-Native ABI zunächst ARM64, minSdk des Integrationshosts 28. Bestehende Plume-Versionierung wird im Host weitergereicht. Fehlendes Upgrade-/Manifest-/Boot-/API-Level-/Shield-Testing bleibt offen; ebenso Release-Minification/Signierung und die tatsächliche APK-Größenzunahme. M02 ist bis zu Build-Evidenz `blocked`.
+Native ABI zunächst ARM64, minSdk des Integrationshosts 28. Bestehende Plume-Versionierung wird im Host weitergereicht. Fehlendes Upgrade-/Manifest-/Boot-/API-Level-/Shield-Testing bleibt offen; ebenso Release-Minification/Signierung und die tatsächliche APK-Größenzunahme. Das M02-Build-Gate war beim ersten Entwurf `blocked`, ist aber mit [Run 43314187927](https://github.com/Justify87/Plume_Launcher/actions/runs/43314187927) und [Run 43323559922](https://github.com/Justify87/Plume_Launcher/actions/runs/43323559922) **bestanden**. Runtime-/Shield-Funktion bleibt `not_run`.
 
 ## A08 M02: single reproducible APK workflow backed by upstream container
 
