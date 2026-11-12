@@ -91,6 +91,8 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v5
 
+      - uses: android-actions/setup-android@v3
+
       - name: Install Android SDK 37, NDK 27 and Rust build dependencies
         run: |
           sudo apt-get update
