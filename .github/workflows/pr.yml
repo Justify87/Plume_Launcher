@@ -101,7 +101,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y protobuf-compiler libprotobuf-dev gcc g++ pkg-config libssl-dev clang cmake
           yes | sdkmanager --licenses >/dev/null || true
-          sdkmanager "platforms;android-37" "build-tools;37.0.0" "ndk;27.3.13750724"
+          sdkmanager "platforms;android-37.0" "build-tools;37.0.0" "ndk;27.3.13750724"
           rustup toolchain install 1.97.1 --profile minimal
           rustup target add aarch64-linux-android --toolchain 1.97.1
 
