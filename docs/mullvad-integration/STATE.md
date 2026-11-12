@@ -64,3 +64,10 @@ In dieser Ausführungsumgebung fehlen Android SDK/NDK, Rust/Cargo und ADB; GitHu
 - Original Mullvad Android image is pinned by the M01 submodule at ghcr.io/mullvad/mullvadvpn-app-build-android@sha256:ca22c11fb8a15321f897fa169c9c9d1f7d0d9edfeea16fa04af4de71ebcf4286. The wrapper at tools/mullvad/build-integrated.sh now builds inside this original image and original Gradle/Rust workspace with non-interactive Docker, preserving all upstream runtime sources.
 - Unlike Mullvad upstream, no self-hosted runners, private Android test-account infrastructure, Firebase, billing, E2E, or unrelated matrix flavors are needed for the M02 build proof. Their omission is intentional.
 - GitHub Actions run 43310027867 has reached the combined container Gradle build; APK success and Shield checks are not yet confirmed. Until real APK checks pass, M02 is blocked and M03 cannot be claimed ready.
+
+## M02 manifest ownership / CI simplification (12 November 2026)
+
+- CI run 43311248239: combined build reached `:app:processOssProdDebugMainManifest`; Gradle reported conflicts in application theme, Plume MainActivity label and Plume launcher alias label. Kotlin compilation and original build container were successful; **not** an APK build success.
+- New staging transform strips application-wide declarations from the imported Plume **library** manifest while preserving its permissions, TV HOME/LEANBACK filters, activities, providers and services. The single Mullvad host owns the app label/icon/banner and Plume's existing network attributes. The Plume MainActivity retains its own classic View theme. The host overlay no longer redundantly declares Plume's activity and alias.
+- The M02 PR check keeps Plume unit tests and lint, but skips standalone Plume APK/release size work; that work remains for normal launcher PRs. Non-blocking translations workflow is retired from main and from the M02 branch. Manual legacy launcher-only debug build remains available, but is not automatically run on M02.
+- A new integrated CI APK result, real APK verification and device tests remain pending until proven; M02 stays **blocked**.

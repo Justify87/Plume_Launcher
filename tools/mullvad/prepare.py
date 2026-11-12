@@ -7,6 +7,7 @@ Everything modified by this script lives below .build/ and is regenerable.
 import argparse
 import re
 import shutil
+import xml.etree.ElementTree as ET
 import subprocess
 from pathlib import Path
 
@@ -88,13 +89,11 @@ def overlay_manifest() -> str:
         android:icon="@drawable/ic_launcher_advanced"
         android:roundIcon="@drawable/ic_launcher_advanced"
         android:banner="@drawable/banner"
+        android:usesCleartextTraffic="true"
+        android:networkSecurityConfig="@xml/network_security_config"
         tools:replace="android:label,android:icon,android:roundIcon,android:banner">
-        <!-- Mullvad service / Application remain original. Plume is the HOME entry. -->
-        <activity android:name="dev.plume.MainActivity"
-            android:label="@string/plume_integration_name"
-            android:theme="@android:style/Theme.DeviceDefault.NoActionBar" />
-        <activity-alias android:name="dev.plume.LauncherEntry"
-            android:label="@string/plume_integration_name" />
+        <!-- HOME/LEANBACK and all Plume components come from the library manifest.
+             Only the host owns the application-wide attributes. -->
         <!-- Remove the six Mullvad smartphone launcher entries only in this variant. -->
 {removals}
     </application>
@@ -120,6 +119,42 @@ def debug_variant_manifest() -> str:
         tools:replace="android:label,android:icon,android:roundIcon,android:banner" />
 </manifest>
 '''
+
+
+ANDROID_NS = "{http://schemas.android.com/apk/res/android}"
+
+
+def plume_library_manifest(original: str) -> str:
+    """Keep Plume components and intent filters, but let Mullvad own the app.
+
+    The original Plume manifest is an APPLICATION manifest. An Android library
+    must not impose its application theme or branding on the Mullvad host.
+    Scope Plume's classic View theme and label to its launcher entries.
+    """
+    ET.register_namespace("android", "http://schemas.android.com/apk/res/android")
+    ET.register_namespace("tools", "http://schemas.android.com/tools")
+    root = ET.fromstring(original)
+    app = root.find("application")
+    if app is None:
+        raise RuntimeError("Plume manifest is missing <application>")
+    for attribute in (
+        "label", "icon", "roundIcon", "banner",
+        "usesCleartextTraffic", "networkSecurityConfig", "theme",
+    ):
+        app.attrib.pop(ANDROID_NS + attribute, None)
+
+    for tag, name in (("activity", ".MainActivity"), ("activity-alias", ".LauncherEntry")):
+        component = next(
+            (entry for entry in app.findall(tag) if entry.get(ANDROID_NS + "name") == name),
+            None,
+        )
+        if component is None:
+            raise RuntimeError(f"Plume manifest is missing {tag} {name}")
+        component.set(ANDROID_NS + "label", "@string/plume_integration_name")
+        if tag == "activity":
+            component.set(ANDROID_NS + "theme", "@android:style/Theme.DeviceDefault.NoActionBar")
+
+    return ET.tostring(root, encoding="unicode", xml_declaration=True) + "\n"
 
 
 def prepare(output: Path) -> Path:
@@ -158,7 +193,10 @@ def prepare(output: Path) -> Path:
         original = source / sub
         if original.is_dir():
             shutil.copytree(original, library / "src" / sub, dirs_exist_ok=True)
-    shutil.copy2(source / "main/AndroidManifest.xml", library / "src/main/AndroidManifest.xml")
+    (library / "src/main/AndroidManifest.xml").write_text(
+        plume_library_manifest((source / "main/AndroidManifest.xml").read_text(encoding="utf-8")),
+        encoding="utf-8",
+    )
     shutil.copy2(ROOT / "CHANGELOG.md", library / "CHANGELOG.md")
     (library / "build.gradle.kts").write_text(PLUME_LIBRARY_BUILD, encoding="utf-8")
 
@@ -171,7 +209,7 @@ def prepare(output: Path) -> Path:
     name_res = android / "app/src/ossProd/res/values/plume_integration.xml"
     name_res.parent.mkdir(parents=True, exist_ok=True)
     name_res.write_text(
-        '<resources><string name="plume_integration_name">Plume Launcher</string></resources>\n',
+        '<resources><string name="plume_integration_name">Plume Launcher Advanced</string></resources>\n',
         encoding="utf-8",
     )
     print(f"Prepared derived single-APK build at {android}")
