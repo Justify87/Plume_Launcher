@@ -67,7 +67,6 @@ class PlumeVpnDebugActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LAYOUT_STABLE
         setContentView(createContent())
 
         // All status comes from the original daemon and management gRPC stream.
