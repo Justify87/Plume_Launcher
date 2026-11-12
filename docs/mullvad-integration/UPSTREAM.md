@@ -119,3 +119,13 @@ M03 ändert die normalen Mullvad-Original-Quelldateien **nicht**. Die generierte
 **Originaler Mullvad-SHA bleibt `aa47f606b1a159214c7279344128119fa91be5fd`**; Original-Kotlin, Gradle, Rust, JNI, gRPC, VpnService und DI im Submodul: **0 lokale Änderungen**. Nur die beim Prepare regenerierten `ossProd`-Dateien weichen vom gepinnten Original-Buildbaum ab. Kein separates VPN-Paket, kein Original-App-Compose-Einstieg als Benutzeroberfläche. Geräteprüfung weiterhin `not_run`.
 
 **M04-Nachweis:** [GitHub Actions Run 43328844657](https://github.com/Justify87/Plume_Launcher/actions/runs/43328844657), Code-/Workflow-Commit `389fe3a12e639fed2d4590583c53b7b0654f620a`, `check=success`, `mullvad-apk=success` (Containerbuild + Manifest-/DEX-/JNI-/Relays-Checks). Artifact `Plume-Mullvad-ARM64-Debug-63`, Uploadgröße 120901828 Bytes (nicht APK-Rohgröße). Keine zusätzlichen Original-Mullvad-Quellpatches. Shield-/Exit-IP-/Tunnelabnahme weiterhin `not_run`.
+
+
+## M05 — Konto-UI und Null-Diff zur Quelle (13.11.2026)
+
+- Gepinnter Stable-Tag am 13.11.2026 erneut gegen Releases geprüft: `android/2026.12` bleibt jüngster Stable, `android/2026.13-beta1` ist Beta. **Kein** Upstream-Update; Gitlink `aa47f606b1a159214c7279344128119fa91be5fd` bleibt gleich.
+- Original-Mullvad-Dateien: **0 geändert**. Kein Eingriff in `AccountRepository.kt`, `DeviceRepository.kt`, `NewDeviceRepository.kt`, `VoucherRepository.kt`, Mullvad-ViewModels, gRPC, Rust/JNI oder Dienst.
+- Neu: `tools/mullvad/VpnAccountUi.kt`, generiert nach `android/app/src/ossProd/kotlin/net/mullvad/mullvadvpn/app/VpnAccountUi.kt`. Temporärer Kopiervorgang in `tools/mullvad/prepare.py` neben `VpnActivity.kt`, ohne das Submodul zu patchen. `VpnActivity.kt` im Overlay bindet direkte Original-Flows an den neuen Bildschirm; Originaldatenbank/API unverändert.
+- Originale Konto-Webweiterleitung: `AccountRepository.getWebsiteAuthToken()` und `net.mullvad.mullvadvpn.lib.common.util.createAccountUri` (ein unverändertes Upstream-Hilfsmodul). Im OSS-Build keine Google-Play-Billing-Komponenten implementiert.
+- M05-Review: `AccountRepository` bietet create/login/logout/refresh/delete, `DeviceRepository` list/remove/update, `VoucherRepository.submitVoucher`; `NewDeviceRepository` verwaltet nur Neu-Gerät-Benachrichtigung. Umbenennen ist in dieser originalen Android-Repository-Schnittstelle nicht vorhanden; kein erfundener Remote-Call.
+- Ergebnisstand beim Quellcommit: statische Integration vorbereitet, kompilierbarer CI- und Gerätestand noch nachzuholen; Nachweise in `TEST_MATRIX.md`.

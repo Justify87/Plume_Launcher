@@ -7,13 +7,11 @@ import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.net.VpnService
 import android.os.Bundle
-import android.text.InputType
 import android.view.Gravity
 import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
-import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.ScrollView
@@ -28,13 +26,15 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import net.mullvad.mullvadvpn.lib.grpc.GrpcConnectivityState
 import net.mullvad.mullvadvpn.lib.grpc.ManagementService
-import net.mullvad.mullvadvpn.lib.model.AccountNumber
 import net.mullvad.mullvadvpn.lib.model.ActionAfterDisconnect
 import net.mullvad.mullvadvpn.lib.model.DeviceState
 import net.mullvad.mullvadvpn.lib.model.DisconnectReason
 import net.mullvad.mullvadvpn.lib.model.GeoIpLocation
 import net.mullvad.mullvadvpn.lib.model.TunnelState
 import net.mullvad.mullvadvpn.lib.repository.AccountRepository
+import net.mullvad.mullvadvpn.lib.repository.DeviceRepository
+import net.mullvad.mullvadvpn.lib.repository.NewDeviceRepository
+import net.mullvad.mullvadvpn.lib.repository.VoucherRepository
 import net.mullvad.mullvadvpn.lib.repository.ConnectionProxy
 import net.mullvad.mullvadvpn.lib.repository.UserPreferencesRepository
 import net.mullvad.mullvadvpn.serviceconnection.ServiceConnectionManager
@@ -49,6 +49,13 @@ class VpnActivity : ComponentActivity() {
     private val management by lazy { getKoin().get<ManagementService>() }
     private val connection by lazy { getKoin().get<ConnectionProxy>() }
     private val accounts by lazy { getKoin().get<AccountRepository>() }
+    private val devices by lazy { getKoin().get<DeviceRepository>() }
+    private val vouchers by lazy { getKoin().get<VoucherRepository>() }
+    private val newDevices by lazy { getKoin().get<NewDeviceRepository>() }
+    private val accountUi by lazy {
+        VpnAccountUi(this, accounts, devices, vouchers, newDevices, ::withDaemon,
+            { tabs.getOrNull(2)?.requestFocus() }, dark, ink, secondary, surface, accent)
+    }
     private val preferences by lazy { getKoin().get<UserPreferencesRepository>() }
     private val serviceBinding by lazy { ServiceConnectionManager(applicationContext) }
 
@@ -88,11 +95,9 @@ class VpnActivity : ComponentActivity() {
     private lateinit var tunnelLine: TextView
     private lateinit var locationLine: TextView
     private lateinit var deviceLine: TextView
-    private lateinit var accountLine: TextView
     private lateinit var diagnosticLine: TextView
     private lateinit var feedback: TextView
     private lateinit var consentButton: Button
-    private lateinit var accountInput: EditText
 
     private val vpnPermission =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -120,6 +125,7 @@ class VpnActivity : ComponentActivity() {
                 grpcLine.text = "Mullvad-Dienst: " + if (daemonReady) "bereit" else state.toString()
                 diagnosticLine.text = grpcLine.text
                 renderTunnel()
+                if (daemonReady && bound) accountUi.refresh()
             }
         }
         lifecycleScope.launch {
@@ -137,8 +143,11 @@ class VpnActivity : ComponentActivity() {
                     DeviceState.Revoked -> "Geräteberechtigung widerrufen"
                 }
                 deviceLine.text = "Konto: " + value
-                accountLine.text = value
+                accountUi.onDeviceState(state)
             }
+        }
+        lifecycleScope.launch {
+            accounts.accountData.collect { accountUi.onAccountData(it) }
         }
         lifecycleScope.launch {
             try {
@@ -157,6 +166,11 @@ class VpnActivity : ComponentActivity() {
         else tabs[0].requestFocus()
     }
 
+    override fun onResume() {
+        super.onResume()
+        if (bound && daemonReady) accountUi.refresh()
+    }
+
     override fun onSaveInstanceState(outState: Bundle) {
         outState.putInt("vpnPage", page)
         super.onSaveInstanceState(outState)
@@ -168,6 +182,7 @@ class VpnActivity : ComponentActivity() {
             serviceBinding.bind()
             bound = true
             consentButton.visibility = View.GONE
+            accountUi.refresh()
             message("Originaldienst wird initialisiert. Tunnelstatus kommt direkt von Mullvad.")
         } catch (error: Exception) {
             message("Mullvad-Dienst konnte nicht gestartet werden: " + error.safeMessage())
@@ -315,35 +330,9 @@ class VpnActivity : ComponentActivity() {
         focusTargets += tabsPlaceholderTarget(detail, 1)
 
         val account = panel()
-        account.addView(text("Konto", 25f, true))
-        accountLine = text("Kontostatus wird geladen", 17f)
-        account.addView(accountLine)
-        account.addView(text("Mit bestehender 16-stelliger Mullvad-Kontonummer anmelden:", 15f))
-        accountInput = EditText(this).apply {
-            hint = "Kontonummer"
-            inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_VARIATION_PASSWORD
-            isSingleLine = true
-            textSize = 19f
-            setTextColor(ink)
-            setHintTextColor(secondary)
-            setPadding(dp(12), dp(8), dp(12), dp(8))
-            setBackgroundColor(if (dark) 0xFF314257.toInt() else Color.WHITE)
-        }
-        account.addView(accountInput, LinearLayout.LayoutParams(dp(380), dp(54)))
-        val loginButton = button("Anmelden") {
-            val number = accountInput.text.toString().trim().replace(" ", "")
-            if (!number.matches(Regex("\\d{16}"))) message("Bitte 16 Ziffern eingeben.")
-            else withDaemon("Anmelden") {
-                accounts.login(AccountNumber(number)).fold(
-                    { message("Anmeldung fehlgeschlagen: " + it) },
-                    { accountInput.text.clear(); message("Anmeldung von Mullvad bestätigt.") }
-                )
-            }
-        }
-        account.addView(loginButton, LinearLayout.LayoutParams(dp(220), dp(56)))
-        account.addView(text("Geräteverwaltung und Zahlungsfunktionen: noch nicht integriert.", 14f))
+        account.addView(accountUi.build())
         addPanel(detail, account)
-        focusTargets += accountInput
+        focusTargets += accountUi.primaryFocus
 
         addPanel(detail, placeholder("VPN-Einstellungen", "Noch nicht integriert. Originale Mullvad-Einstellungen folgen in M07–M10."))
         focusTargets += tabsPlaceholderTarget(detail, 3)
@@ -359,7 +348,11 @@ class VpnActivity : ComponentActivity() {
         focusTargets += overviewButton
 
         sections.forEachIndexed { index, name ->
-            val tab = button(name) { showPage(index); focusTargets[index].requestFocus() }
+            val tab = button(name) {
+                showPage(index)
+                if (index == 2) accountUi.requestPrimaryFocus()
+                else focusTargets[index].requestFocus()
+            }
             tab.setOnFocusChangeListener { _, focused ->
                 paint(tab, focused, page == index)
                 if (focused) showPage(index)
@@ -367,7 +360,8 @@ class VpnActivity : ComponentActivity() {
             tab.setOnKeyListener { _, key, event ->
                 if (event.action == KeyEvent.ACTION_DOWN && key == KeyEvent.KEYCODE_DPAD_RIGHT) {
                     showPage(index)
-                    focusTargets[index].requestFocus()
+                    if (index == 2) accountUi.requestPrimaryFocus()
+                    else focusTargets[index].requestFocus()
                     true
                 } else false
             }

@@ -2,49 +2,57 @@
 
 ```yaml
 schema: plume-mullvad-handoff/v1
-milestone: M04
+milestone: M05
 status: partial
 checked_on: "2026-11-13"
-main_head_at_start: 0daf26b271c94396ea4930a73fc7db2d3ee81ab9
-base_branch: feature/m01-mullvad-upstream-handoff
-base_sha: 6c857cecd3f022a524c62f17ffddb94d0233b202
-predecessor_pr: 18
-predecessor_merge_sha: 6c857cecd3f022a524c62f17ffddb94d0233b202
-feature_branch: feature/m04-mullvad-tv-vpn-home
+main_head_at_start: 81017e4de5f24660fdfa45ef2c4734914bb0a796
+predecessor_milestone: M04
+predecessor_pr: 19
+predecessor_merged_into_main: true
+base_branch: main
+feature_branch: feature/m05-mullvad-accounts-tv
 upstream_tag: android/2026.12
 upstream_sha: aa47f606b1a159214c7279344128119fa91be5fd
 upstream_gitlink_unchanged: true
-production_vpn_ui: implemented_source
+single_apk_application_id: dev.plume.advanced
 m04_integrated_ci: observed_ci_pass
 m04_ci_run: 43328844657
-m04_ci_source_sha: 389fe3a12e639fed2d4590583c53b7b0654f620a
-m04_apk_artifact: Plume-Mullvad-ARM64-Debug-63
-m04_pr: 19
-m04_shield_test: not_run
-m04_live_vpn_test: not_run
+m05_source: implemented
+m05_ci: not_run
+m05_shield_test: not_run
+m05_live_account_test: not_run
+m05_pr: pending
 ```
 
-## Grundlage
+## M05 — tatsächliche Basis
 
-- `main` enthält zum M04-Start nur M01. M02 (#17, Merge `fdc982a`) und M03 (#18, Merge `6c857ce`) wurden in `feature/m01-mullvad-upstream-handoff` gestapelt; **M04 basiert auf diesem Branch**, nicht auf altem `main`.
-- M03: CI [43323559922](https://github.com/Justify87/Plume_Launcher/actions/runs/43323559922) **observed_ci_pass** (APK inklusive original Mullvad-Rust/JNI, DEX, Manifest, Plume-Tests). Kein Gerätetest oder bestätigter VPN-Tunnel.
-- Upstream-Submodul unverändert `aa47f606b1a159214c7279344128119fa91be5fd`; die einzige Anwendung bleibt `dev.plume.advanced`.
+- Der GitHub-Stand von `main` beim Start ist `81017e4de5f24660fdfa45ef2c4734914bb0a796`, Merge von PR #19 inklusive M02–M04. Keine offenen PRs bei der initialen GitHub-Abfrage; M05 baut direkt darauf.
+- Letzter stabiler Mullvad-Android-Release am 13.11.2026 laut GitHub Releases: `android/2026.12` (30.09.2026). `android/2026.13-beta1` (10.11.2026) ist prerelease; Submodul-Pin bleibt ausdrücklich `aa47f606b1a159214c7279344128119fa91be5fd`.
+- M04: originale `MullvadApplication`/`MullvadVpnService`/`ManagementService`/`ConnectionProxy` im generierten Host, native `VpnActivity`, sichtbarer VPN-Zugang in Classic und Overview; [CI 43328844657](https://github.com/Justify87/Plume_Launcher/actions/runs/43328844657) erfolgreich. Echte Shield-/Tunnel-/Fokusprüfungen weiterhin **nicht ausgeführt**.
 
-## M04-Implementierung
+## M05 — Implementierung und Grenzen
 
-- `tools/mullvad/VpnActivity.kt`: eigene native Android-TV-Activity im abgeleiteten Mullvad-OSS/Prod-Host, für Debug **und** Release. Direkte Koin-/ManagementService-Flows, `ConnectionProxy`, `AccountRepository`, echte `VpnService.prepare`-Freigabe; niemals ein alternativer Tunnelstack oder persistierter VPN-Status.
-- D-Pad-Navigation: linke Fünfer-Navigation, rechte Inhaltsfläche, Fokusrahmen, OK, Back (Unterseite → Status → Launcher), SavedInstanceState für geöffnete Seite; Kontoanmeldung aus M03 übernommen. Standorte/VPN-Einstellungen und nicht integrierte Diagnosefunktionen explizit markiert.
-- Plumes gemeinsame obere Leiste öffnet VPN in Classic und Overview. Eigenes Symbol am rechten Ende, ohne `TOP_KEYS`-/`top_bar`-Präferenzen zu verändern; Fokus-Rückgabe bei Back. Standalone Plume blendet den Einstieg bei fehlender Komponente aus.
-- Der temporäre Debug-Harness ist aus der Staging-APK entfernt (alte Datei im Repository gelöscht). Ursprünglicher Mullvad-VPN-Service bleibt autonom; Activity-`onDestroy` unbindet ohne Disconnect.
-- Mullvad-Originaldateien: **keine geändert**; ausschließlich generierte Overlay-/Staging-Ergänzungen, siehe `UPSTREAM.md`.
+- `tools/mullvad/VpnAccountUi.kt`: eigene 10-Fuß-Kontoansicht mit Mullvads originalen `AccountRepository`, `DeviceRepository`, `VoucherRepository` und `NewDeviceRepository`. Kontoerstellung, Anmeldung, Konto-/Ablaufanzeige, Aktualisieren, Abmeldung, Geräteübersicht/-entfernung inkl. Gerätelimit, Gutschein und bestätigte endgültige Kontolöschung. Fehler werden auf verständliche Zustände abgebildet; keine Testkonten, Mock-Daten oder neu erfundenen REST-Endpunkte.
+- `tools/mullvad/VpnActivity.kt`: Einbindung in vorhandene Konto-Seite und laufende Original-Flows (`ManagementService.deviceState`, `AccountRepository.accountData`); dynamischer D-Pad-Fokus auf Anmeldung oder Kontoaktionen; Rückkehr/Neustart holt Live-Daten.
+- `tools/mullvad/prepare.py`: kopiert neue Konto-View gemeinsam mit `VpnActivity` in das **temporäre** `ossProd`-Host-SourceSet. Gitlink, originale Mullvad-Dateien, Dienst und JNI bleiben unverändert.
+- Zeit hinzufügen: der originale `AccountRepository.getWebsiteAuthToken()` plus `createAccountUri()` öffnet `https://mullvad.net/account` mit Mullvads bestehendem Mechanismus; ohne Browser verständlicher Hinweis. Keine Play-Billing-Implementierung im OSS-Build.
+- Gerät umbenennen: im gepinnten Android-`DeviceRepository`/`ManagementService` und den Login-/ManageDevices-ViewModels **kein** solcher Repository-Vorgang; deshalb bewusst nicht als funktionierend ausgegeben. Andere Dritt-App-private Kontodaten werden nicht gelesen.
+- Tests: source/staging Unit-Tests ergänzt, integrierte Kotlin-/Rust-APK-CI und echte Shield-/Online-Kontotests müssen nach PR-Anlage erfolgen. Der Arbeitscontainer hat keinen GitHub-Clone-DNS-Zugang und kein Android SDK/NDK/ADB; **kein lokaler Gradle-/Shield-Pass behauptet**.
 
-## Ausführung / nachgewiesene Grenzen
+## Reproduktion
 
-- Der Arbeitscontainer hat keinen DNS-Zugriff zu GitHub für Git-Clone und keinen vollständigen Android SDK/NDK/Rust-/ADB-Gerätezugang. Build, Kotlin-Compile und Shield-Tunnel können hier nicht lokal behauptet werden.
-- Prüfen: `python3 -m unittest discover -s tools -p test_mullvad_prepare.py -v`, `./gradlew testDebugUnitTest lintDebug`, `bash tools/mullvad/build-integrated.sh`, `python3 tools/mullvad/check_apk.py <apk>`; CI-Ausgang steht in `TEST_MATRIX.md`.
-- **M04 CI erfolgreich:** [Run 43328844657](https://github.com/Justify87/Plume_Launcher/actions/runs/43328844657) auf Code-/Workflow-SHA `389fe3a12e639fed2d4590583c53b7b0654f620a` hat `check` und `mullvad-apk` beide als `success` beendet. Der Workflow hat den kombinierten ARM64-`ossProdDebug`-Build, das Paket `dev.plume.advanced`, den produktiven `VpnActivity`-Manifest-/DEX-Eintrag, die Abwesenheit des M03-Harness, den originalen VPN-Dienst, JNI/Relays, Plume-Unit/Lint und die Staging-Tests geprüft. Artifact `Plume-Mullvad-ARM64-Debug-63` hat **120901828 Bytes als Upload**, nicht rohe APK-Größe.
-- M04 bleibt `partial` bis Connected-/Reconnect-/Permission- und tatsächliche Shield-D-Pad-/Exit-IP-Prüfung erfolgreich sind. Original-Mullvad-Standalone-Releasebuild nicht ausgeführt; kein physisches Gerät vorhanden. Ein nachgeschalteter Dokumentationscommit enthält keine Buildcodeänderung.
+```bash
+git checkout feature/m05-mullvad-accounts-tv
+git submodule update --init --recursive
+test "$(git -C third_party/mullvadvpn-app rev-parse HEAD)" = aa47f606b1a159214c7279344128119fa91be5fd
+python3 -m unittest discover -s tools -p test_mullvad_prepare.py -v
+./gradlew testDebugUnitTest lintDebug
+bash tools/mullvad/build-integrated.sh
+python3 tools/mullvad/check_apk.py <APK>
+adb devices -l
+adb install -r <APK>
+```
 
-## Handoff M05
+## Handoff M06
 
-Nächster Meilenstein: **Standortauswahl aus den originalen Mullvad-Relay-Repositories** in die bereits vorhandene `Standorte`-Detailseite einbinden. Keine Fake-Relays, keine neue VPN-Engine; F06–F08 auf gepinnten Original-APIs umsetzen. Fokus, Back, bestehende Verbindung und D-Pad auf Shield erneut testen. `TEST_MATRIX.md` mit echtem Gerätebeleg ergänzen.
+M06 übernimmt genau diese `feature/m05-mullvad-accounts-tv`-Implementierung nach Merge (oder als korrekt gestapelten Branch), behält den Upstream-Pin und verbindet `Standorte` mit originaler Mullvad-Relay-Auswahl. Die `Konto`-Seite darf nicht durch eine zweite Auth-/Device-Logik ersetzt werden. Vor vollständiger Parität zuerst den realen Kontologin, Kontoablauf, VPN-Freigabe, Tunnel sowie Fernbedienung in Classic/Overview auf NVIDIA Shield prüfen. Genaue Hardwarefälle in `TEST_MATRIX.md`.

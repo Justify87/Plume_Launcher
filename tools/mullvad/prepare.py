@@ -218,6 +218,7 @@ def prepare(output: Path) -> Path:
     vpn_activity = android / "app/src/ossProd/kotlin/net/mullvad/mullvadvpn/app/VpnActivity.kt"
     vpn_activity.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(Path(__file__).with_name("VpnActivity.kt"), vpn_activity)
+    shutil.copy2(Path(__file__).with_name("VpnAccountUi.kt"), vpn_activity.with_name("VpnAccountUi.kt"))
     name_res = android / "app/src/ossProd/res/values/plume_integration.xml"
     name_res.parent.mkdir(parents=True, exist_ok=True)
     name_res.write_text(
