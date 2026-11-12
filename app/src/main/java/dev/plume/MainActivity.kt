@@ -4004,7 +4004,7 @@ class MainActivity : Activity() {
                 KeyEvent.KEYCODE_DPAD_DOWN -> apps ?: cards ?: v // the apps row can be empty (all hidden)
                 KeyEvent.KEYCODE_DPAD_UP -> v
                 KeyEvent.KEYCODE_DPAD_LEFT -> if (v.id == shownTop().first()) v else null
-                KeyEvent.KEYCODE_DPAD_RIGHT -> if (v.id == shownTop().last()) v else null
+                KeyEvent.KEYCODE_DPAD_RIGHT -> if (atRightTopBarEdge(v)) v else null
                 else -> null
             }
             v.parent === appRow -> when (key) {
@@ -4074,7 +4074,7 @@ class MainActivity : Activity() {
         }
         if (zone == HomeFocusNavigator.Zone.TOP) {
             if (direction == HomeFocusNavigator.Direction.LEFT && v.id == shownTop().first()) return v
-            if (direction == HomeFocusNavigator.Direction.RIGHT && v.id == shownTop().last()) return v
+            if (direction == HomeFocusNavigator.Direction.RIGHT && atRightTopBarEdge(v)) return v
         }
         val index = if (zone == HomeFocusNavigator.Zone.SIDEBAR) homeSidebar.indexOf(v)
             else sidebar()?.let { homeSidebar.indexOf(it) } ?: 0
@@ -4608,6 +4608,11 @@ class MainActivity : Activity() {
     /** Temporary M03 entry. Visible only when the combined Debug APK declares its test activity. */
     private var vpnDebugEntry: TextView? = null
 
+    /** VPN is the rightmost button in the combined Debug APK; otherwise keep Plume's original edge. */
+    private fun atRightTopBarEdge(v: View): Boolean =
+        (vpnDebugEntry?.takeIf { it.isShown && it.isAttachedToWindow }
+            ?: findViewById<View>(shownTop().last())) === v
+
     private fun refreshVpnDebugEntry() {
         val activity = ComponentName(packageName,
             "net.mullvad.mullvadvpn.app.PlumeVpnDebugActivity")
@@ -4628,6 +4633,7 @@ class MainActivity : Activity() {
             isClickable = true
             setOnClickListener { startActivity(Intent().setComponent(activity)) }
             setOnFocusChangeListener { _, focused ->
+                if (focused) lastTop = this
                 setTextColor(if (focused) Color.WHITE else fg)
                 background = GradientDrawable().apply {
                     cornerRadius = dp(12).toFloat()
@@ -4636,9 +4642,14 @@ class MainActivity : Activity() {
                 }
             }
         }.also { vpnDebugEntry = it }
+        // Reparenting a focused View on every top-bar refresh drops D-pad focus.
+        if (entry.parent === bar) {
+            if (!entry.isFocused) entry.setTextColor(fg)
+            return
+        }
         (entry.parent as? ViewGroup)?.removeView(entry)
         val anchor = findViewById<View>(shownTop().lastOrNull() ?: R.id.launcherSettings)
-        val index = bar.indexOfChild(anchor).coerceAtLeast(0)
+        val index = (bar.indexOfChild(anchor) + 1).coerceIn(0, bar.childCount)
         bar.addView(entry, index, LinearLayout.LayoutParams(dp(72), dp(48)).apply {
             marginStart = dp(8)
         })
