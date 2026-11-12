@@ -74,20 +74,23 @@ jobs:
           grep -Fq 'dev.plume.MainActivity' artifacts/plume-mullvad/manifest.txt
           grep -Fq 'net.mullvad.mullvadvpn.app.MullvadApplication' artifacts/plume-mullvad/manifest.txt
           grep -Fq 'net.mullvad.mullvadvpn.app.service.MullvadVpnService' artifacts/plume-mullvad/manifest.txt
-          # M03's temporary debug Activity must actually be packaged in the combined APK.
-          # Later production TV screens may replace this harness, so only require it when staged.
-          if test -f tools/mullvad/PlumeVpnDebugActivity.kt; then
-            grep -Fq 'net.mullvad.mullvadvpn.app.PlumeVpnDebugActivity' artifacts/plume-mullvad/manifest.txt
-            python3 - "$apk" <<'PY'
+          # M04 production TV surface must be in the APK and original harness absent.
+          grep -Fq 'net.mullvad.mullvadvpn.app.VpnActivity' artifacts/plume-mullvad/manifest.txt
+          if grep -Fq 'net.mullvad.mullvadvpn.app.PlumeVpnDebugActivity' artifacts/plume-mullvad/manifest.txt; then
+            echo "::error::Legacy M03 debug harness is still declared"
+            exit 1
+          fi
+          python3 - "$apk" <<'PY'
           import sys
           import zipfile
           with zipfile.ZipFile(sys.argv[1]) as archive:
               dexes = [archive.read(name) for name in archive.namelist()
                        if name.startswith("classes") and name.endswith(".dex")]
-              if not any(b"PlumeVpnDebugActivity" in dex for dex in dexes):
-                  sys.exit("M03 debug TV Activity is missing from DEX")
+              if not any(b"VpnActivity" in dex for dex in dexes):
+                  sys.exit("Production Mullvad VPN TV Activity missing from DEX")
+              if any(b"PlumeVpnDebugActivity" in dex for dex in dexes):
+                  sys.exit("Legacy M03 debug TV harness still packaged in DEX")
           PY
-          fi
           grep -Fq 'android.intent.category.HOME' artifacts/plume-mullvad/manifest.txt
           if grep -Fq 'net.mullvad.mullvadvpn.feature.appearance.impl.obfuscation.MainActivityAlt' artifacts/plume-mullvad/manifest.txt; then
             echo "::error::Mullvad smartphone launcher aliases are still present"
