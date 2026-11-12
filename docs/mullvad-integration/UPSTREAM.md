@@ -84,7 +84,7 @@ Mullvad-Gitlink und **sämtliche originalen Mullvad-Kotlin-/Rust-Dateien bleiben
 
 Die separate Plume-Baseline bleibt auf AGP 9.2.1, Gradle 9.4.1, compile/targetSdk 36, minSdk 26 und Java 17; Integration erfordert minSdk 28. Es gibt **keine** Patch-Dateien im Original-Git-Submodul. Der generierte Source-Diff muss nach jedem prepare-Lauf reproduzierbar sein.
 
-**Belegstatus:** Noch kein erfolgreicher nativer Build; kein geprüftes libmullvad_jni.so, kein geprüftes Relay-Asset im fertigen APK, keine tatsächliche APK-Größe. Die neu geschaffene Build-Pipeline ist **keine** Beweiskette für ein funktionierendes VPN.
+**Belegstatus (aktualisiert 13.11.2026):** Integrierter Host-/ARM64-Rust-/JNI-Build und strukturelle APK-/Manifest-/Relay-Prüfung sind **`observed_ci_pass`**: [M02 Run 43314187927](https://github.com/Justify87/Plume_Launcher/actions/runs/43314187927) und [M03 Run 43323559922](https://github.com/Justify87/Plume_Launcher/actions/runs/43323559922). M03-Artifact `Plume-Mullvad-ARM64-Debug-60` vorhanden; dessen Upload-Größe 120884259 Bytes ist nicht die rohe APK-Größe. Der separate, unveränderte Mullvad-Originalbuild bleibt `not_run`; tatsächliche Shield-Installation und VPN-Laufzeit bleiben ebenfalls `not_run`.
 
 ## M02 CI original-container adoption (12 November 2026)
 
@@ -93,3 +93,16 @@ At the M01 pinned commit, Mullvad's .github/workflows/android-app.yml builds :ap
 This image contains JDK 21, Android SDK 37.0, build-tools 37.0.0, NDK 27.3.13750724 and Rust 1.97.1 with Android targets, according to upstream android/docker/Dockerfile. The shared Plume wrapper runs the original android/gradlew, mounts generated Mullvad source under /build plus /cargo-target, Cargo registry and Gradle cache volumes, and passes Plume app ID/version through staged Gradle and existing version properties. It removes upstream's interactive -it requirement, uses Docker on GitHub-hosted Ubuntu (Podman supported via CONTAINER_RUNNER), targets ARM64, and limits Gradle/Cargo concurrency to fit the runner.
 
 No Mullvad repository source patch or upstream SHA change. Only CI orchestrator and staged Plume-integration overlays are modified. PR and manual APK generation share the same implementation in .github/workflows/debug-apk.yml. Previously documented host SDK/NDK/Rust manual setup is superseded for M02 integrated CI. The original standalone Mullvad build and actual Shield test remain unverified.
+
+## M03 — temporäre Debug-Schnittstelle (12.11.2026)
+
+Der Pin `android/2026.12` / `aa47f606b1a159214c7279344128119fa91be5fd` bleibt identisch. **Null Änderungen am originalen Mullvad-Submodul**, also auch keine Rust-/JNI-/Daemon-/VpnService-Patches. Der bestehende `MullvadApplication`- und `MullvadVpnService`-Manifestpfad aus M02 bleibt aktiv.
+
+| Plume-verwaltete Datei | Staging-Änderung | Grund |
+| --- | --- | --- |
+| `tools/mullvad/prepare.py` | Kopiert die TV-Test-Activity nach `android/app/src/ossProdDebug/kotlin/...` und meldet sie im Debug-Overlay an | eine einzige App; Harness strikt debug-only |
+| `tools/mullvad/PlumeVpnDebugActivity.kt` | Neue Android-View-Activity mit originalem Koin-/gRPC-/Konto-/VPN-Backend | Status und echte Steuerung während M03 ohne Compose-Screens |
+| `app/src/main/java/dev/plume/MainActivity.kt` | Dynamischer Top-Bar-Zugang nur beim Vorhandensein der kombinierten Debug-Activity | Classic und Overview ohne neue Laufzeitdependency |
+| `tools/test_mullvad_prepare.py` | Prüft Staging-Quelle und Debug-Manifest-Eintrag | isolierten Release-/Debug-Pfad sicherstellen |
+
+M03 ändert die normalen Mullvad-Original-Quelldateien **nicht**. Die generierte Debug-Activity gehört zum existierenden Mullvad-Host und nutzt dessen Originalmodule, statt eigenen WireGuard-/gRPC-Code zu erzeugen. M04/M05 entfernen/ersetzen den Harness.

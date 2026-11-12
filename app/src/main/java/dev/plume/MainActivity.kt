@@ -4004,7 +4004,7 @@ class MainActivity : Activity() {
                 KeyEvent.KEYCODE_DPAD_DOWN -> apps ?: cards ?: v // the apps row can be empty (all hidden)
                 KeyEvent.KEYCODE_DPAD_UP -> v
                 KeyEvent.KEYCODE_DPAD_LEFT -> if (v.id == shownTop().first()) v else null
-                KeyEvent.KEYCODE_DPAD_RIGHT -> if (v.id == shownTop().last()) v else null
+                KeyEvent.KEYCODE_DPAD_RIGHT -> if (atRightTopBarEdge(v)) v else null
                 else -> null
             }
             v.parent === appRow -> when (key) {
@@ -4074,7 +4074,7 @@ class MainActivity : Activity() {
         }
         if (zone == HomeFocusNavigator.Zone.TOP) {
             if (direction == HomeFocusNavigator.Direction.LEFT && v.id == shownTop().first()) return v
-            if (direction == HomeFocusNavigator.Direction.RIGHT && v.id == shownTop().last()) return v
+            if (direction == HomeFocusNavigator.Direction.RIGHT && atRightTopBarEdge(v)) return v
         }
         val index = if (zone == HomeFocusNavigator.Zone.SIDEBAR) homeSidebar.indexOf(v)
             else sidebar()?.let { homeSidebar.indexOf(it) } ?: 0
@@ -4605,6 +4605,61 @@ class MainActivity : Activity() {
     private val TOP_KEYS = linkedMapOf(R.id.wifi to "wifi", R.id.sourcesButton to "sources", R.id.allAppsButton to "apps",
         R.id.systemSettings to "system", R.id.launcherSettings to "plume", R.id.powerButton to "power")
 
+    /** Temporary M03 entry. Visible only when the combined Debug APK declares its test activity. */
+    private var vpnDebugEntry: TextView? = null
+
+    /** VPN is the rightmost button in the combined Debug APK; otherwise keep Plume's original edge. */
+    private fun atRightTopBarEdge(v: View): Boolean =
+        (vpnDebugEntry?.takeIf { it.isShown && it.isAttachedToWindow }
+            ?: findViewById<View>(shownTop().last())) === v
+
+    private fun refreshVpnDebugEntry() {
+        val activity = ComponentName(packageName,
+            "net.mullvad.mullvadvpn.app.PlumeVpnDebugActivity")
+        try {
+            packageManager.getActivityInfo(activity, 0)
+        } catch (_: PackageManager.NameNotFoundException) {
+            vpnDebugEntry?.let { (it.parent as? ViewGroup)?.removeView(it) }
+            vpnDebugEntry = null
+            return
+        }
+        val bar = wifi.parent as LinearLayout
+        val entry = vpnDebugEntry ?: TextView(this).apply {
+            text = "VPN"
+            textSize = 16f
+            gravity = Gravity.CENTER
+            contentDescription = "Mullvad VPN"
+            isFocusable = true
+            isClickable = true
+            setOnClickListener { startActivity(Intent().setComponent(activity)) }
+            setOnFocusChangeListener { _, focused ->
+                if (focused) lastTop = this
+                setTextColor(if (focused) Color.WHITE else fg)
+                background = GradientDrawable().apply {
+                    cornerRadius = dp(12).toFloat()
+                    setColor(if (focused) 0xFF266B89.toInt() else 0x66000000)
+                    setStroke(dp(2), if (focused) Color.WHITE else 0x55667788)
+                }
+            }
+        }.also { vpnDebugEntry = it }
+        // Reparenting a focused View on every top-bar refresh drops D-pad focus.
+        if (entry.parent === bar) {
+            if (!entry.isFocused) entry.setTextColor(fg)
+            return
+        }
+        (entry.parent as? ViewGroup)?.removeView(entry)
+        val anchor = findViewById<View>(shownTop().lastOrNull() ?: R.id.launcherSettings)
+        val index = (bar.indexOfChild(anchor) + 1).coerceIn(0, bar.childCount)
+        bar.addView(entry, index, LinearLayout.LayoutParams(dp(72), dp(48)).apply {
+            marginStart = dp(8)
+        })
+        entry.setTextColor(fg)
+        entry.background = GradientDrawable().apply {
+            cornerRadius = dp(12).toFloat()
+            setColor(0x66000000)
+        }
+    }
+
     private var movingTop: View? = null // the icon being moved, while Left and Right slide it
     private var topLive: List<Int> = emptyList() // the order while moving; saved when OK places the icon
     private var topBefore: List<Int> = emptyList() // the order when the move started, for Back
@@ -4638,6 +4693,7 @@ class MainActivity : Activity() {
         // Taking the focused icon out passed focus on, down to the empty app row's scroller on a cold start, and
         // then the first fill of the row did not take it. Give it back to the bar.
         focused?.let { (if (it.visibility == View.VISIBLE) it else findViewById(shown.first())).requestFocus() }
+        refreshVpnDebugEntry()
     }
 
     private fun saveTopOrder(order: List<Int>) {

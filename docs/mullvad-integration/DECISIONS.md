@@ -1,6 +1,6 @@
 # Architekturentscheidungen — M01
 
-**Status:** technische Zielarchitektur entschieden; Build-Machbarkeit muss in M02 nachgewiesen werden. Originalcode ist in M01 unangetastet.
+**Status (13.11.2026):** M01-Zielarchitektur beschlossen; integrierte Build-Machbarkeit in M02 und M03 per [CI Run 43323559922](https://github.com/Justify87/Plume_Launcher/actions/runs/43323559922) nachgewiesen. Originalcode unverändert; Shield-/Tunnel-Gerätetests ausstehend.
 
 ## A01 — Vollständiger, gepinnter Git-Submoduleintrag (angenommen)
 
@@ -38,17 +38,17 @@ Der ursprüngliche Plume-Prüfworkflow nutzt JDK 17 und kein Submodul. Integrati
 Keine App-Runtime, keine VPN-Activity, kein Login, kein Runtime-Service-Start, kein Mock-Client; keine zusätzlichen Netzwerkanalysen, Protection-Audits oder Custom-Protokolle. Buildstatus in `TEST_MATRIX.md` ehrlich als `not_run` behandeln. Vor M02 keine Feature-Parität behaupten.
 
 
-## M02 — A06: Host/Library tatsächlich als Staging implementiert (Build-Gate offen)
+## M02 — A06: Host/Library als Staging implementiert (Build-Gate durch CI bestätigt)
 
 Die in A02/A03 gewählte Architektur ist in tools/mullvad/prepare.py umgesetzt: Mullvad `android/app` ist der **einzige** Application-Host; Plumes View-Quellen werden unter `:plume-ui` als Android-Library eingebunden. Die Staging-Kopie erhält Mullvads ursprüngliches `MullvadApplication`, `MullvadVpnService`, Talpid, JNI/gRPC, Koin und die originalen Featuremodule. Nur ein temporärer Build-Diff ist notwendig; damit kann der M01-Gitlink unverändert bleiben. Originale Smartphone-Compose-Screens werden für M02 nicht als TV-UI exponiert, aber nicht aus dem Runtime-Graph entfernt.
 
-Das `ossProd`-Variant-Overlay entfernt nur die sechs Mullvad-Smartphone-Launcher-Aliasse und belässt den systemgebundenen VPN-Service. Plumes bestehendes Manifest mit HOME-/LEANBACK-Einstieg, Screensaver und Service-Registrierungen wird als Library gemergt; bei widersprüchlichem Merge hat der Host im Staging die höhere Priorität. **Bis zu einem kompilierten Manifest wurde das nicht bewiesen**.
+Das `ossProd`-Variant-Overlay entfernt nur die sechs Mullvad-Smartphone-Launcher-Aliasse und belässt den systemgebundenen VPN-Service. Plumes bestehendes Manifest mit HOME-/LEANBACK-Einstieg, Screensaver und Service-Registrierungen wird als Library gemergt; bei widersprüchlichem Merge hat der Host im Staging die höhere Priorität. **Das ursprünglich offene Manifest-Gate ist mit M02-CI und M03-CI nachgewiesen**; die echte Gerätefunktion ist weiterhin nicht geprüft.
 
 ## M02 — A07: Getrennte CI und bewusster Toolchain-Kontrast
 
 Die ursprünglichen Plume-Regeln, Java-17-Tests/Lint/Release und der APK-Größenvergleich bleiben erhalten. Der zusätzlich definierte Mullvad-CI-Job richtet SDK 37, NDK 27, Rust 1.97.1, JDK 21 und protobuf ein, erzeugt den Staging-Build und prüft die Native-SO/Relay-Datei im finalen Debug-APK. Der schwere Build wird auf Mullvad-Branches eingeschränkt. Das ist die eng gefasste Ausnahme für das VPN-Hobbyprojekt; **keine** globale Deaktivierung von Checks oder allgemeines Hardening-Projekt.
 
-Native ABI zunächst ARM64, minSdk des Integrationshosts 28. Bestehende Plume-Versionierung wird im Host weitergereicht. Fehlendes Upgrade-/Manifest-/Boot-/API-Level-/Shield-Testing bleibt offen; ebenso Release-Minification/Signierung und die tatsächliche APK-Größenzunahme. M02 ist bis zu Build-Evidenz `blocked`.
+Native ABI zunächst ARM64, minSdk des Integrationshosts 28. Bestehende Plume-Versionierung wird im Host weitergereicht. Fehlendes Upgrade-/Manifest-/Boot-/API-Level-/Shield-Testing bleibt offen; ebenso Release-Minification/Signierung und die tatsächliche APK-Größenzunahme. Das M02-Build-Gate war beim ersten Entwurf `blocked`, ist aber mit [Run 43314187927](https://github.com/Justify87/Plume_Launcher/actions/runs/43314187927) und [Run 43323559922](https://github.com/Justify87/Plume_Launcher/actions/runs/43323559922) **bestanden**. Runtime-/Shield-Funktion bleibt `not_run`.
 
 ## A08 M02: single reproducible APK workflow backed by upstream container
 
@@ -57,3 +57,15 @@ Decision: use the Mullvad Android container image pinned by the selected upstrea
 Manual workflow_dispatch and PR workflow_call both invoke the integrated job in .github/workflows/debug-apk.yml. Its integrated default produces the combined dev.plume.advanced ARM64 debug APK, checks JNI/relay/manifest/launcher registration and uploads an artifact if successful; the launcher-only alternative retains legacy Plume behavior. Existing quick PR tests and baseline release size check still run.
 
 Adapted upstream: pinned build image, original android/gradlew, :app:assembleOssProdDebug and Cargo/Gradle volume layout. Omitted upstream: self-hosted device tests, Firebase, mockapi, stagemole/play, automated scheduled testing and unrelated multi-flavor matrix; none prove M02's single APK packaging. Noninteractive Docker replaces upstream's podman -it for GitHub-hosted Actions. No app feature scope change.
+
+## A-M03 — Originaldienst und nur Debug-TV-Harness (12.11.2026)
+
+**Angenommen.** Mullvads bereits vorhandene `MullvadApplication`, `MullvadVpnService`, gRPC-/Rust-/JNI- und Boot-/Notification-Komponenten bleiben unverändert. Eine zusätzliche `Application` oder zweite VPN-Engine ist ausgeschlossen. Für M03 wird eine nur in `ossProdDebug` generierte einfache Android-View-Activity im bestehenden `:app`-Host verwendet.
+
+Die Steuerung ist strikt an `ServiceConnectionManager` und `ConnectionProxy` sowie `AccountRepository` gebunden, der angezeigte Tunnelzustand kommt aus `ManagementService.tunnelState`. `VpnService.prepare()` übernimmt den echten Systemdialog. Das Launcher-Top-Bar-Element fragt lediglich die Existenz der Activity ab; dadurch hat die unabhängige Plume-Baseline keine Mullvad-Klassenabhängigkeit.
+
+**Lebenszyklus:** Plumes Home-Activity verwaltet **keine** VPN-Bindung. Der Debug-Harness bindet den Service, löst bei `onStop` keinen Disconnect aus und unbindet erst bei `onDestroy`; Androids ursprüngliche System-VPN-Bindung muss auf der Shield real nachgewiesen werden. Kein eigener Boot-Autostart in M03. Kein künstlicher Status `Connected`.
+
+## M03-Code-Review: D-Pad-Grenze bei zusätzlichem Debug-Zugang (12.11.2026)
+
+Im ersten M03-Entwurf war der VPN-Eintrag als zusätzliche View außerhalb von `TOP_KEYS` angehängt worden. Die beiden bestehenden Navigationsmodi hielten jedoch den letzten alten `TOP_KEYS`-Button für die rechte Fokusgrenze. Entscheidung: Keine neue konfigurierbare Top-Bar-Architektur und keine zusätzliche Persistenz für den **temporären** Debug-Harness. Stattdessen nutzt `atRightTopBarEdge` den aktuell sichtbaren Debug-VPN-Button als rechten Rand und fällt sonst auf den historischen Rand zurück. Existierende dynamische VPN-View wird nicht bei jeder Top-Bar-Aktualisierung ab-/wieder angehängt. Das minimiert Seiteneffekte in Classic/Overview.

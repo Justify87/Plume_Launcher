@@ -65,8 +65,20 @@ Quelle für **alle** Zeilen: `third_party/mullvadvpn-app/` bei SHA `aa47f606b1a1
 
 ## M02 — Funktionsstatus bleibt konservativ
 
-Der **Codeeinbindungspfad** für F05 (Rust/JNI/gRPC/Tunnelverwaltung), F04 (VpnService), F47 (Relay-Assets) und F48 (Plume-HOME-Einstieg) wurde im Staging beschrieben und als Build-Generator implementiert. Ohne erfolgreiches APK/Manifest/ABI/JNI-Tests gibt es **keine** nachgewiesene funktionierende Runtime, keinen Tunnel und keine Benutzeroberfläche. Alle 48 Funktionen behalten daher bewusst `not_started`. Buildquelle vorhanden ist nicht gleich Feature-Parität. M03 muss den blockierten Compile-Nachweis aus M02 zunächst berücksichtigen.
+Der **Codeeinbindungspfad** für F05 (Rust/JNI/gRPC/Tunnelverwaltung), F04 (VpnService), F47 (Relay-Assets) und F48 (Plume-HOME-Einstieg) wurde im Staging beschrieben und als Build-Generator implementiert. Dieser Absatz beschrieb ursprünglich das noch blockierte M02-Build-Gate. **Aktuell bestanden:** [M02 CI Run 43314187927](https://github.com/Justify87/Plume_Launcher/actions/runs/43314187927) und [M03 CI Run 43323559922](https://github.com/Justify87/Plume_Launcher/actions/runs/43323559922) bestätigen ARM64-APK, Manifest, Rust/JNI und Relay-Assets. Ein echter Tunnel und D-Pad-Gerätetests sind **nicht** nachgewiesen. Die M01-Inventarzeilen bleiben historische `not_started`-Baselines; die M03-Codeanbindungen werden unten als `partial` geführt.
 
 ## M02 build workflow change (12 November 2026)
 
-A shared manual/PR integrated APK build now uses the official pinned Mullvad Android toolchain image. This does not prove functional VPN parity: F01-F48 remain not_started pending an actual packaged APK and subsequent runtime/TV/Shield tests. Do not mark any feature as pass because source modules merely compile.
+A shared manual/PR integrated APK build now uses the official pinned Mullvad Android toolchain image. The integrated APK is now packaged and CI-validated (M02 Run 43314187927; M03 Run 43323559922), but this does **not** prove functional VPN parity. The original M01 inventory statuses are historical; M03 code hookups below are `partial`, and runtime/TV/Shield tests remain `not_run`. Do not mark features as `pass` because source modules compile.
+
+## M03 — implementierte Anbindung, noch keine vollständige Funktionsabnahme
+
+| Funktionsgruppe | M03-Codeanbindung | Evidenzstatus |
+| --- | --- | --- |
+| F01, F02 | `ConnectionProxy.connect/disconnect/reconnect`, `ManagementService.tunnelState` im Debug-Harness | `partial`: Code, kein Laufzeittest |
+| F03 | `VpnService.prepare()` und Activity-Result inkl. Ablehnung, Mullvad-Prüfung in `ConnectionProxy.connect` | `partial`: kein OS-Dialog auf Shield getestet |
+| F04, F05 | Original-`MullvadVpnService`, `MullvadApplication`, Rust/JNI/gRPC aus M02 unverändert | `partial`: M02 APK-Struktur geprüft, echter Tunnel nicht getestet |
+| F26 | `AccountRepository.login(AccountNumber)` mit manueller Eingabe | `partial`: keine gültige Kontoeingabe getestet |
+| F48 | Native Android-View-Activity, sichtbarer VPN-Knopf in Classic und Overview (Debug-Variante) | `partial`: D-Pad und Fokus nicht am TV getestet |
+
+**Wichtig:** Die bestehenden Zeilen F01–F48 bleiben bis zur echten Geräte- und UI-Prüfung unverändert konservativ. M03 implementiert einen Testzugang, **keine** produktive Feature-Parität.
