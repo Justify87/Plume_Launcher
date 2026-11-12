@@ -52,6 +52,11 @@ class PreparationTests(unittest.TestCase):
         self.assertEqual(app.get(android + "icon"), "@drawable/ic_launcher_advanced")
         self.assertEqual(app.get(android + "roundIcon"), "@drawable/ic_launcher_advanced")
         self.assertEqual(app.get(android + "banner"), "@drawable/banner")
+        harness = app.find("activity")
+        self.assertIsNotNone(harness)
+        self.assertEqual(harness.get(android + "name"),
+                         "net.mullvad.mullvadvpn.app.PlumeVpnDebugActivity")
+        self.assertEqual(harness.get(android + "exported"), "false")
         replaced = set(app.get(tools + "replace").split(","))
         self.assertEqual(replaced, {
             "android:label", "android:icon", "android:roundIcon", "android:banner"
@@ -83,6 +88,7 @@ class PreparationTests(unittest.TestCase):
                 self.assertIn('net.mullvad.mullvadvpn', (upstream / "android/app/build.gradle.kts").read_text())
                 self.assertTrue((generated / "plume-ui/src/main/AndroidManifest.xml").exists())
                 self.assertTrue((generated / "app/src/ossProdDebug/AndroidManifest.xml").exists())
+                self.assertTrue((generated / "app/src/ossProdDebug/kotlin/net/mullvad/mullvadvpn/app/PlumeVpnDebugActivity.kt").exists())
                 staged_manifest = (generated / "plume-ui/src/main/AndroidManifest.xml").read_text()
                 self.assertIn("android.intent.category.HOME", staged_manifest)
                 self.assertNotIn("android:theme=\"@android:style/Theme.DeviceDefault.NoActionBar\"\n", staged_manifest.split("<application", 1)[1].split(">", 1)[0])

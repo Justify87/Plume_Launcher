@@ -70,3 +70,15 @@ Der **Codeeinbindungspfad** für F05 (Rust/JNI/gRPC/Tunnelverwaltung), F04 (VpnS
 ## M02 build workflow change (12 November 2026)
 
 A shared manual/PR integrated APK build now uses the official pinned Mullvad Android toolchain image. This does not prove functional VPN parity: F01-F48 remain not_started pending an actual packaged APK and subsequent runtime/TV/Shield tests. Do not mark any feature as pass because source modules merely compile.
+
+## M03 — implementierte Anbindung, noch keine vollständige Funktionsabnahme
+
+| Funktionsgruppe | M03-Codeanbindung | Evidenzstatus |
+| --- | --- | --- |
+| F01, F02 | `ConnectionProxy.connect/disconnect/reconnect`, `ManagementService.tunnelState` im Debug-Harness | `partial`: Code, kein Laufzeittest |
+| F03 | `VpnService.prepare()` und Activity-Result inkl. Ablehnung, Mullvad-Prüfung in `ConnectionProxy.connect` | `partial`: kein OS-Dialog auf Shield getestet |
+| F04, F05 | Original-`MullvadVpnService`, `MullvadApplication`, Rust/JNI/gRPC aus M02 unverändert | `partial`: M02 APK-Struktur geprüft, echter Tunnel nicht getestet |
+| F26 | `AccountRepository.login(AccountNumber)` mit manueller Eingabe | `partial`: keine gültige Kontoeingabe getestet |
+| F48 | Native Android-View-Activity, sichtbarer VPN-Knopf in Classic und Overview (Debug-Variante) | `partial`: D-Pad und Fokus nicht am TV getestet |
+
+**Wichtig:** Die bestehenden Zeilen F01–F48 bleiben bis zur echten Geräte- und UI-Prüfung unverändert konservativ. M03 implementiert einen Testzugang, **keine** produktive Feature-Parität.

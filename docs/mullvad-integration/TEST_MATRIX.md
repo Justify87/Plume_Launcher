@@ -124,3 +124,52 @@ adb logcat -d -s AndroidRuntime MullvadVpnService MullvadDaemon
 | Shield ABI, install, D-Pad, VPN account, tunnel and reboot | ADB on physical Shield | not_run |
 
 When CI completes, record the real job conclusion, specific failure (if any), package ID, single APK/ARM64 JNI/relay manifest and actual artifact size. The manual debug workflow exposes integrated (default) and launcher-only; GitHub Actions manual dispatch UI requires the updated workflow to be present on default branch.
+
+## M03 — Build- und Geräteabnahme (12.11.2026)
+
+### Verifizierte M02-Voraussetzung
+
+- GitHub PR [#17](https://github.com/Justify87/Plume_Launcher/pull/17) wurde am 12.11.2026 in `feature/m01-mullvad-upstream-handoff` gemergt; Merge-SHA `fdc982a9a36053a3b6c5a3d190ae90d65ab6536c`.
+- [CI Run 43314187927](https://github.com/Justify87/Plume_Launcher/actions/runs/43314187927), Commit `29869d381f35a5405fe5c3d10fabd29094d1233d`: Plume-Regeln/Unit Tests/Lint **success**, kombinierter Container-APK-Build und Paket-/VpnService-/JNI-/Asset-/Manifest-Prüfung **success**, Artifact `Plume-Mullvad-ARM64-Debug-54` (Artifact-Größe 120842117 Bytes; **nicht** als rohe APK-Größe interpretieren).
+- M02 auf Hardware weiterhin `not_run`; ein erfolgreicher APK-Build beweist keine funktionsfähige VPN-Verbindung.
+
+### M03-Pflichtprüfungen
+
+| ID | Prüfschritt | Status bei Implementierung |
+| --- | --- | --- |
+| M03-01 | `python3 -m unittest discover -s tools -p test_mullvad_prepare.py -v` | `not_run`; PR-CI vorgesehen |
+| M03-02 | `./gradlew testDebugUnitTest lintDebug` (Plume-Baseline) | `not_run`; PR-CI vorgesehen |
+| M03-03 | `bash tools/mullvad/build-integrated.sh --no-configuration-cache --max-workers=2` | `not_run`; PR-CI vorgesehen |
+| M03-04 | `python3 tools/mullvad/check_apk.py <apk>`, `aapt dump badging`, `aapt dump xmltree` (eine `dev.plume.advanced` APK, Originaldienst und Debug-Harness) | `not_run`; CI vorgesehen |
+| M03-05 | SDK-/ADB-Gerätetest: VPN-Dienst/JNI geladen, Konto, Erlaubnis, Tunnel und Exit-IP | `not_run`: kein angeschlossenes Shield-/Mullvad-Konto |
+| M03-06 | System-VPN-Freigabe verweigern; kein Connect, Fehlermeldung | `not_run`: Shield |
+| M03-07 | Wechsel in andere App, Netzwerk trennen/wiederherstellen; Tunnel-/Fehlerstatus korrekt | `not_run`: Shield |
+| M03-08 | Classic und Overview: VPN-Knopf, D-Pad, OK, Back, reguläre Launcher-Funktionen | `not_run`: Shield |
+| M03-09 | Release-Build enthält **keine** `PlumeVpnDebugActivity`, keine zusätzliche Application, kein zweites Launcher-Icon | `not_run`: strukturell aus Quell-Staging abgeleitet, APK-Nachweis offen |
+
+### ADB-Checkliste (auf einer echten Shield, Android/ABI vorher feststellen)
+
+```bash
+adb devices -l
+adb shell getprop ro.build.version.sdk
+adb shell getprop ro.product.cpu.abilist
+adb install -r <Plume-Launcher-Advanced-Mullvad-arm64-debug.apk>
+adb shell am start -n dev.plume.advanced/dev.plume.MainActivity
+# VPN-Zugang über Top-Bar (Classic und Overview) mit D-Pad/OK öffnen;
+# alternativ gezielter Activity-Start für Testzwecke:
+adb shell am start -n dev.plume.advanced/net.mullvad.mullvadvpn.app.PlumeVpnDebugActivity
+adb logcat -c
+# eigenes gültiges Mullvad-Konto eingeben, Datenschutz bestätigen,
+# VPN-Systemberechtigung zulassen, Connect abwarten:
+adb logcat -d -s MullvadVpnService MullvadDaemon PlumeM03 AndroidRuntime
+adb shell dumpsys connectivity
+adb shell dumpsys activity services dev.plume.advanced
+# Exit-IP und DNS/Tunnel-Funktion in einer tatsächlich über VPN laufenden App prüfen.
+# Dann Android-Einstellungen/andere App öffnen und Status erneut kontrollieren:
+adb shell am start -a android.settings.SETTINGS
+# Zurück zu Plume, VPN öffnen, trennen und reconnect prüfen.
+# Negativtest: Systemberechtigung auf frisch zurückgesetztem VPN-Profil ablehnen;
+# Netz kurz deaktivieren; erwartete Status-/Fehlerevents protokollieren.
+```
+
+Die Debug-Test-Activity ist `exported=false`; ADB-Shell-Direktstarts können je nach Android-Version für nicht exportierte Komponenten abgelehnt werden. In dem Fall ausschließlich den sichtbaren Plume-VPN-Einstieg verwenden. Keine Testdaten oder Kontonummer in Logs/Dokumentation übernehmen.

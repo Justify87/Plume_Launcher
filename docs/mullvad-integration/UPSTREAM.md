@@ -93,3 +93,16 @@ At the M01 pinned commit, Mullvad's .github/workflows/android-app.yml builds :ap
 This image contains JDK 21, Android SDK 37.0, build-tools 37.0.0, NDK 27.3.13750724 and Rust 1.97.1 with Android targets, according to upstream android/docker/Dockerfile. The shared Plume wrapper runs the original android/gradlew, mounts generated Mullvad source under /build plus /cargo-target, Cargo registry and Gradle cache volumes, and passes Plume app ID/version through staged Gradle and existing version properties. It removes upstream's interactive -it requirement, uses Docker on GitHub-hosted Ubuntu (Podman supported via CONTAINER_RUNNER), targets ARM64, and limits Gradle/Cargo concurrency to fit the runner.
 
 No Mullvad repository source patch or upstream SHA change. Only CI orchestrator and staged Plume-integration overlays are modified. PR and manual APK generation share the same implementation in .github/workflows/debug-apk.yml. Previously documented host SDK/NDK/Rust manual setup is superseded for M02 integrated CI. The original standalone Mullvad build and actual Shield test remain unverified.
+
+## M03 — temporäre Debug-Schnittstelle (12.11.2026)
+
+Der Pin `android/2026.12` / `aa47f606b1a159214c7279344128119fa91be5fd` bleibt identisch. **Null Änderungen am originalen Mullvad-Submodul**, also auch keine Rust-/JNI-/Daemon-/VpnService-Patches. Der bestehende `MullvadApplication`- und `MullvadVpnService`-Manifestpfad aus M02 bleibt aktiv.
+
+| Plume-verwaltete Datei | Staging-Änderung | Grund |
+| --- | --- | --- |
+| `tools/mullvad/prepare.py` | Kopiert die TV-Test-Activity nach `android/app/src/ossProdDebug/kotlin/...` und meldet sie im Debug-Overlay an | eine einzige App; Harness strikt debug-only |
+| `tools/mullvad/PlumeVpnDebugActivity.kt` | Neue Android-View-Activity mit originalem Koin-/gRPC-/Konto-/VPN-Backend | Status und echte Steuerung während M03 ohne Compose-Screens |
+| `app/src/main/java/dev/plume/MainActivity.kt` | Dynamischer Top-Bar-Zugang nur beim Vorhandensein der kombinierten Debug-Activity | Classic und Overview ohne neue Laufzeitdependency |
+| `tools/test_mullvad_prepare.py` | Prüft Staging-Quelle und Debug-Manifest-Eintrag | isolierten Release-/Debug-Pfad sicherstellen |
+
+M03 ändert die normalen Mullvad-Original-Quelldateien **nicht**. Die generierte Debug-Activity gehört zum existierenden Mullvad-Host und nutzt dessen Originalmodule, statt eigenen WireGuard-/gRPC-Code zu erzeugen. M04/M05 entfernen/ersetzen den Harness.

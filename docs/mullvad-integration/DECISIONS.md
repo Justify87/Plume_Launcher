@@ -57,3 +57,11 @@ Decision: use the Mullvad Android container image pinned by the selected upstrea
 Manual workflow_dispatch and PR workflow_call both invoke the integrated job in .github/workflows/debug-apk.yml. Its integrated default produces the combined dev.plume.advanced ARM64 debug APK, checks JNI/relay/manifest/launcher registration and uploads an artifact if successful; the launcher-only alternative retains legacy Plume behavior. Existing quick PR tests and baseline release size check still run.
 
 Adapted upstream: pinned build image, original android/gradlew, :app:assembleOssProdDebug and Cargo/Gradle volume layout. Omitted upstream: self-hosted device tests, Firebase, mockapi, stagemole/play, automated scheduled testing and unrelated multi-flavor matrix; none prove M02's single APK packaging. Noninteractive Docker replaces upstream's podman -it for GitHub-hosted Actions. No app feature scope change.
+
+## A-M03 — Originaldienst und nur Debug-TV-Harness (12.11.2026)
+
+**Angenommen.** Mullvads bereits vorhandene `MullvadApplication`, `MullvadVpnService`, gRPC-/Rust-/JNI- und Boot-/Notification-Komponenten bleiben unverändert. Eine zusätzliche `Application` oder zweite VPN-Engine ist ausgeschlossen. Für M03 wird eine nur in `ossProdDebug` generierte einfache Android-View-Activity im bestehenden `:app`-Host verwendet.
+
+Die Steuerung ist strikt an `ServiceConnectionManager` und `ConnectionProxy` sowie `AccountRepository` gebunden, der angezeigte Tunnelzustand kommt aus `ManagementService.tunnelState`. `VpnService.prepare()` übernimmt den echten Systemdialog. Das Launcher-Top-Bar-Element fragt lediglich die Existenz der Activity ab; dadurch hat die unabhängige Plume-Baseline keine Mullvad-Klassenabhängigkeit.
+
+**Lebenszyklus:** Plumes Home-Activity verwaltet **keine** VPN-Bindung. Der Debug-Harness bindet den Service, löst bei `onStop` keinen Disconnect aus und unbindet erst bei `onDestroy`; Androids ursprüngliche System-VPN-Bindung muss auf der Shield real nachgewiesen werden. Kein eigener Boot-Autostart in M03. Kein künstlicher Status `Connected`.

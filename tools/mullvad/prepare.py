@@ -116,7 +116,13 @@ def debug_variant_manifest() -> str:
         android:icon="@drawable/ic_launcher_advanced"
         android:roundIcon="@drawable/ic_launcher_advanced"
         android:banner="@drawable/banner"
-        tools:replace="android:label,android:icon,android:roundIcon,android:banner" />
+        tools:replace="android:label,android:icon,android:roundIcon,android:banner">
+        <!-- M03 debug-only TV harness; absent from release builds. -->
+        <activity android:name="net.mullvad.mullvadvpn.app.PlumeVpnDebugActivity"
+            android:exported="false"
+            android:screenOrientation="landscape"
+            android:theme="@android:style/Theme.DeviceDefault.NoActionBar" />
+    </application>
 </manifest>
 '''
 
@@ -206,6 +212,13 @@ def prepare(output: Path) -> Path:
     debug_overlay = android / "app/src/ossProdDebug/AndroidManifest.xml"
     debug_overlay.parent.mkdir(parents=True, exist_ok=True)
     debug_overlay.write_text(debug_variant_manifest(), encoding="utf-8")
+    # Keep original Mullvad sources untouched; only the debug variant gets this Activity.
+    debug_activity = (
+        android / "app/src/ossProdDebug/kotlin/net/mullvad/mullvadvpn/app"
+        / "PlumeVpnDebugActivity.kt"
+    )
+    debug_activity.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(Path(__file__).with_name("PlumeVpnDebugActivity.kt"), debug_activity)
     name_res = android / "app/src/ossProd/res/values/plume_integration.xml"
     name_res.parent.mkdir(parents=True, exist_ok=True)
     name_res.write_text(
