@@ -21,6 +21,21 @@ class PreparationTests(unittest.TestCase):
         self.assertIn('dev.plume.MainActivity', xml)
         self.assertIn('tools:node="remove"', xml)
 
+    def test_debug_variant_manifest_overrides_mullvad_debug_branding(self):
+        import xml.etree.ElementTree as ET
+        xml = prepare.debug_variant_manifest()
+        root = ET.fromstring(xml)
+        app = root.find("application")
+        android = "{http://schemas.android.com/apk/res/android}"
+        tools = "{http://schemas.android.com/tools}"
+        self.assertEqual(app.get(android + "icon"), "@drawable/ic_launcher_advanced")
+        self.assertEqual(app.get(android + "roundIcon"), "@drawable/ic_launcher_advanced")
+        self.assertEqual(app.get(android + "banner"), "@drawable/banner")
+        replaced = set(app.get(tools + "replace").split(","))
+        self.assertEqual(replaced, {
+            "android:label", "android:icon", "android:roundIcon", "android:banner"
+        })
+
     def test_prepare_isolation_and_single_application(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -44,6 +59,7 @@ class PreparationTests(unittest.TestCase):
                 self.assertIn('implementation(project(":plume-ui"))', host)
                 self.assertIn('net.mullvad.mullvadvpn', (upstream / "android/app/build.gradle.kts").read_text())
                 self.assertTrue((generated / "plume-ui/src/main/AndroidManifest.xml").exists())
+                self.assertTrue((generated / "app/src/ossProdDebug/AndroidManifest.xml").exists())
 
 
 if __name__ == "__main__":

@@ -102,6 +102,26 @@ def overlay_manifest() -> str:
 '''
 
 
+
+def debug_variant_manifest() -> str:
+    """Variant-priority overlay beats Mullvad's src/debug app icon declarations.
+
+    In Android source-set precedence, src/debug overrides src/ossProd.
+    Put Plume's app branding on the ossProdDebug variant, above both.
+    Mullvad's original debug manifest stays unmodified.
+    """
+    return '''<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <application
+        android:label="@string/plume_integration_name"
+        android:icon="@drawable/ic_launcher_advanced"
+        android:roundIcon="@drawable/ic_launcher_advanced"
+        android:banner="@drawable/banner"
+        tools:replace="android:label,android:icon,android:roundIcon,android:banner" />
+</manifest>
+'''
+
+
 def prepare(output: Path) -> Path:
     verify_upstream()
     if output.exists():
@@ -145,6 +165,9 @@ def prepare(output: Path) -> Path:
     overlay = android / "app/src/ossProd/AndroidManifest.xml"
     overlay.parent.mkdir(parents=True, exist_ok=True)
     overlay.write_text(overlay_manifest(), encoding="utf-8")
+    debug_overlay = android / "app/src/ossProdDebug/AndroidManifest.xml"
+    debug_overlay.parent.mkdir(parents=True, exist_ok=True)
+    debug_overlay.write_text(debug_variant_manifest(), encoding="utf-8")
     name_res = android / "app/src/ossProd/res/values/plume_integration.xml"
     name_res.parent.mkdir(parents=True, exist_ok=True)
     name_res.write_text(
