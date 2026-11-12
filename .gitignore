@@ -7,3 +7,6 @@ local.properties
 keystore.properties
 *.jks
 *.keystore
+
+# Derived Mullvad build (original Git submodule stays clean)
+.build/

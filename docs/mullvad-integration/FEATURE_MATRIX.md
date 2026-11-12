@@ -6,12 +6,12 @@ Quelle für **alle** Zeilen: `third_party/mullvadvpn-app/` bei SHA `aa47f606b1a1
 
 | ID | Upstream-Nutzfunktion / Originalpfad oder Original-API | Vorgesehene Plume-TV-Anbindung | Status |
 | --- | --- | --- | --- |
-| F01 | VPN verbinden, trennen, erneut verbinden; `app/service/MullvadVpnService.kt`, `lib/repository/ConnectionProxy.kt` | VPN-Startseite | not_started |
-| F02 | Echtzeit-Tunnelstatus, Fehlzustände, Reconnect; `lib/grpc/ManagementService.kt`, `lib/model` | VPN-Startseite/Status | not_started |
-| F03 | VPN-Systemfreigabe / Rechte-Dialog; `app/MainActivity.kt`, `app/service/MullvadVpnService.kt` | VPN-Ersteinrichtung | not_started |
-| F04 | Hintergrundbetrieb, Foreground-Notification, System-Revoke; `app/service/MullvadVpnService.kt`, `app/service/notifications` | OS + Status | not_started |
-| F05 | Rust-Daemon/JNI/Talpid/gRPC-/Management-IPC; `../mullvad-jni`, `../mullvad-daemon`, `../mullvad-management-interface`, `lib/talpid`, `lib/grpc` | interne Originalruntime | not_started |
-| F06 | Relay-Land/Stadt/Serverauswahl und Suche; `lib/feature/location/impl`, `lib/repository/RelayListRepository.kt` | Serverauswahl | not_started |
+| F01 | VPN verbinden, trennen, erneut verbinden; `app/service/MullvadVpnService.kt`, `lib/repository/ConnectionProxy.kt` | VPN-Startseite | partial |
+| F02 | Echtzeit-Tunnelstatus, Fehlzustände, Reconnect; `lib/grpc/ManagementService.kt`, `lib/model` | VPN-Startseite/Status | partial |
+| F03 | VPN-Systemfreigabe / Rechte-Dialog; `app/MainActivity.kt`, `app/service/MullvadVpnService.kt` | VPN-Ersteinrichtung | partial |
+| F04 | Hintergrundbetrieb, Foreground-Notification, System-Revoke; `app/service/MullvadVpnService.kt`, `app/service/notifications` | OS + Status | partial |
+| F05 | Rust-Daemon/JNI/Talpid/gRPC-/Management-IPC; `../mullvad-jni`, `../mullvad-daemon`, `../mullvad-management-interface`, `lib/talpid`, `lib/grpc` | interne Originalruntime | partial |
+| F06 | Relay-Land/Stadt/Serverauswahl und Suche; `lib/feature/location/impl`, `lib/repository/RelayListRepository.kt` | Serverauswahl | partial |
 | F07 | Relay-Filter, Anbieter, Besitztyp; `lib/feature/filter/impl`, `lib/repository/RelayListFilterRepository.kt`, `lib/usecase/ProviderToOwnershipsUseCase.kt` | Filterdialog | not_started |
 | F08 | Zuletzt verwendete Standorte/Server; `lib/usecase/RecentsUseCase.kt` | Serverauswahl | not_started |
 | F09 | Benutzerdefinierte Standortlisten bearbeiten/löschen; `lib/feature/customlist/impl`, `lib/repository/CustomListsRepository.kt` | Standortlisten | not_started |
@@ -61,3 +61,31 @@ Quelle für **alle** Zeilen: `third_party/mullvadvpn-app/` bei SHA `aa47f606b1a1
 - Reine Smartphone-Darstellung (Map/Navigation, Compose-Hilfsbibliotheken, Animationen) wird **funktional** durch TV-Views ersetzt. Funktionen wie Android-TV-Quick-Tile oder App-Icon-Tarnung können OS-bedingt fehlen; in dem Fall `unsupported_on_device` mit Gerätebeleg statt `pass` dokumentieren.
 - `play`-Billing ist im gewählten **ossProd**-Flavour nicht verfügbar. Keine Play-Abrechnung oder andere nicht vorhandenen Flavour-Funktionen als erforderliche OSS-Parität ausgeben. Zahlung nur über im OSS-Original vorhandenen Pfad.
 - Keine Statusauswertung aus Build allein: `pass` verlangt Backend + nutzbare D-Pad-TV-UI bzw. explizite OS-Funktion + reale Testevidenz.
+
+
+## M02 — Funktionsstatus bleibt konservativ
+
+Der **Codeeinbindungspfad** für F05 (Rust/JNI/gRPC/Tunnelverwaltung), F04 (VpnService), F47 (Relay-Assets) und F48 (Plume-HOME-Einstieg) wurde im Staging beschrieben und als Build-Generator implementiert. Dieser Absatz beschrieb ursprünglich das noch blockierte M02-Build-Gate. **Aktuell bestanden:** [M02 CI Run 43314187927](https://github.com/Justify87/Plume_Launcher/actions/runs/43314187927) und [M03 CI Run 43323559922](https://github.com/Justify87/Plume_Launcher/actions/runs/43323559922) bestätigen ARM64-APK, Manifest, Rust/JNI und Relay-Assets. Ein echter Tunnel und D-Pad-Gerätetests sind **nicht** nachgewiesen. Die M01-Inventarzeilen bleiben historische `not_started`-Baselines; die M03-Codeanbindungen werden unten als `partial` geführt.
+
+## M02 build workflow change (12 November 2026)
+
+A shared manual/PR integrated APK build now uses the official pinned Mullvad Android toolchain image. The integrated APK is now packaged and CI-validated (M02 Run 43314187927; M03 Run 43323559922), but this does **not** prove functional VPN parity. The original M01 inventory statuses are historical; M03 code hookups below are `partial`, and runtime/TV/Shield tests remain `not_run`. Do not mark features as `pass` because source modules compile.
+
+## M03 — implementierte Anbindung, noch keine vollständige Funktionsabnahme
+
+| Funktionsgruppe | M03-Codeanbindung | Evidenzstatus |
+| --- | --- | --- |
+| F01, F02 | `ConnectionProxy.connect/disconnect/reconnect`, `ManagementService.tunnelState` im Debug-Harness | `partial`: Code, kein Laufzeittest |
+| F03 | `VpnService.prepare()` und Activity-Result inkl. Ablehnung, Mullvad-Prüfung in `ConnectionProxy.connect` | `partial`: kein OS-Dialog auf Shield getestet |
+| F04, F05 | Original-`MullvadVpnService`, `MullvadApplication`, Rust/JNI/gRPC aus M02 unverändert | `partial`: M02 APK-Struktur geprüft, echter Tunnel nicht getestet |
+| F26 | `AccountRepository.login(AccountNumber)` mit manueller Eingabe | `partial`: keine gültige Kontoeingabe getestet |
+| F48 | Native Android-View-Activity, sichtbarer VPN-Knopf in Classic und Overview (Debug-Variante) | `partial`: D-Pad und Fokus nicht am TV getestet |
+
+**Wichtig:** Die bestehenden Zeilen F01–F48 bleiben bis zur echten Geräte- und UI-Prüfung unverändert konservativ. M03 implementiert einen Testzugang, **keine** produktive Feature-Parität.
+
+## M04-Statuspräzisierung (2026-11-13)
+
+- **F01–F03 `partial`:** Produktive TV-Statusanzeige mit Original-`ConnectionProxy`, `ManagementService` und `VpnService.prepare` als Quellimplementierung; CI-/Shield-Tunnel noch offen, **nicht `pass`**.
+- **F04/F05 `partial`:** unabhängiger Original-`MullvadVpnService` mit originalem Rust/JNI/gRPC strukturell im Vorgänger-CI geprüft; Prozess- und Tunnel-Laufzeit nach Home/Back auf Shield **nicht** geprüft.
+- **F26 `partial`:** bestehende Kontonummer-Anmeldung über originales `AccountRepository` in eigener Konto-Ansicht; Gerätelogin/Anmeldefehler noch ohne Endgerät-Prüfung.
+- **F06–F25/F27–F48** soweit nicht separat dokumentiert bleiben `not_started`; `Standorte`, `VPN-Einstellungen` und große Teile der `Diagnose` sind ausdrücklich Navigations-Shells. Kompilieren und UI-Shell allein begründen keine vollständige Parität.

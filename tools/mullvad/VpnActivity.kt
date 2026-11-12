@@ -1,0 +1,470 @@
+package net.mullvad.mullvadvpn.app
+
+import android.app.Activity
+import android.content.res.Configuration
+import android.graphics.Color
+import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
+import android.net.VpnService
+import android.os.Bundle
+import android.text.InputType
+import android.view.Gravity
+import android.view.KeyEvent
+import android.view.View
+import android.view.ViewGroup
+import android.widget.Button
+import android.widget.EditText
+import android.widget.FrameLayout
+import android.widget.LinearLayout
+import android.widget.ScrollView
+import android.widget.TextView
+import androidx.activity.ComponentActivity
+import androidx.activity.OnBackPressedCallback
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
+import net.mullvad.mullvadvpn.lib.grpc.GrpcConnectivityState
+import net.mullvad.mullvadvpn.lib.grpc.ManagementService
+import net.mullvad.mullvadvpn.lib.model.AccountNumber
+import net.mullvad.mullvadvpn.lib.model.ActionAfterDisconnect
+import net.mullvad.mullvadvpn.lib.model.DeviceState
+import net.mullvad.mullvadvpn.lib.model.DisconnectReason
+import net.mullvad.mullvadvpn.lib.model.GeoIpLocation
+import net.mullvad.mullvadvpn.lib.model.TunnelState
+import net.mullvad.mullvadvpn.lib.repository.AccountRepository
+import net.mullvad.mullvadvpn.lib.repository.ConnectionProxy
+import net.mullvad.mullvadvpn.lib.repository.UserPreferencesRepository
+import net.mullvad.mullvadvpn.serviceconnection.ServiceConnectionManager
+import org.koin.android.ext.android.getKoin
+
+/**
+ * Plume's production ten-foot VPN surface. All tunnel and account data comes from
+ * Mullvad's original management streams; this Activity never implements a tunnel.
+ * The five navigation destinations are deliberately honest about later milestones.
+ */
+class VpnActivity : ComponentActivity() {
+    private val management by lazy { getKoin().get<ManagementService>() }
+    private val connection by lazy { getKoin().get<ConnectionProxy>() }
+    private val accounts by lazy { getKoin().get<AccountRepository>() }
+    private val preferences by lazy { getKoin().get<UserPreferencesRepository>() }
+    private val serviceBinding by lazy { ServiceConnectionManager(applicationContext) }
+
+    private val sections = listOf("Status", "Standorte", "Konto", "VPN-Einstellungen", "Diagnose")
+    private val tabs = mutableListOf<Button>()
+    private val panels = mutableListOf<View>()
+    private val focusTargets = mutableListOf<View>()
+    private var page = 0
+    private var bound = false
+    private var daemonReady = false
+    // View state only: overwritten by original flows, never persisted or used as a VPN source.
+    private var latestTunnel: TunnelState? = null
+    private var latestDevice: DeviceState? = null
+    private var awaitingSystemPermission = false
+
+    private val dark by lazy {
+        val home = getSharedPreferences("home", MODE_PRIVATE)
+        when (home.getString("theme", "light")) {
+            "dark" -> true
+            "auto" -> resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK ==
+                Configuration.UI_MODE_NIGHT_YES
+            "wallpaper" -> {
+                val hue = home.getInt("glass_hue", 0xFF777777.toInt())
+                (hue shr 16 and 255) * 299 + (hue shr 8 and 255) * 587 +
+                    (hue and 255) * 114 < 128000
+            }
+            else -> false
+        }
+    }
+    private val ink get() = if (dark) Color.WHITE else 0xFF192535.toInt()
+    private val secondary get() = if (dark) 0xFFBCC9D8.toInt() else 0xFF536277.toInt()
+    private val surface get() = if (dark) 0xFF1B293B.toInt() else 0xFFE7EDF4.toInt()
+    private val accent = 0xFF247F98.toInt()
+
+    private lateinit var grpcLine: TextView
+    private lateinit var headline: TextView
+    private lateinit var tunnelLine: TextView
+    private lateinit var locationLine: TextView
+    private lateinit var deviceLine: TextView
+    private lateinit var accountLine: TextView
+    private lateinit var diagnosticLine: TextView
+    private lateinit var feedback: TextView
+    private lateinit var consentButton: Button
+    private lateinit var accountInput: EditText
+
+    private val vpnPermission =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            awaitingSystemPermission = false
+            if (result.resultCode == Activity.RESULT_OK) connect()
+            else message("Android-VPN-Freigabe abgelehnt. Keine Verbindung gestartet.")
+            renderTunnel()
+        }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(buildScreen())
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                if (page != 0) {
+                    showPage(0)
+                    tabs[0].requestFocus()
+                } else finish()
+            }
+        })
+        // StateFlow/gRPC are authoritative, including across activity recreation.
+        lifecycleScope.launch {
+            management.connectionState.collect { state ->
+                daemonReady = state == GrpcConnectivityState.Ready
+                grpcLine.text = "Mullvad-Dienst: " + if (daemonReady) "bereit" else state.toString()
+                diagnosticLine.text = grpcLine.text
+                renderTunnel()
+            }
+        }
+        lifecycleScope.launch {
+            management.tunnelState.collect { state ->
+                latestTunnel = state
+                renderTunnel()
+            }
+        }
+        lifecycleScope.launch {
+            management.deviceState.collect { state ->
+                latestDevice = state
+                val value = when (state) {
+                    is DeviceState.LoggedIn -> "Angemeldet · " + state.device.displayName()
+                    DeviceState.LoggedOut -> "Nicht angemeldet"
+                    DeviceState.Revoked -> "Geräteberechtigung widerrufen"
+                }
+                deviceLine.text = "Konto: " + value
+                accountLine.text = value
+            }
+        }
+        lifecycleScope.launch {
+            try {
+                if (preferences.preferences().isPrivacyDisclosureAccepted) bindOriginalService()
+                else {
+                    consentButton.visibility = View.VISIBLE
+                    message("Vor der ersten Mullvad-Initialisierung Datenschutzhinweis bestätigen.")
+                    showPage(0)
+                    consentButton.requestFocus()
+                }
+            } catch (error: Exception) {
+                message("Initialisierung fehlgeschlagen: " + error.safeMessage())
+            }
+        }
+        if (savedInstanceState != null) showPage(savedInstanceState.getInt("vpnPage", 0).coerceIn(0, 4))
+        else tabs[0].requestFocus()
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        outState.putInt("vpnPage", page)
+        super.onSaveInstanceState(outState)
+    }
+
+    private fun bindOriginalService() {
+        if (bound) return
+        try {
+            serviceBinding.bind()
+            bound = true
+            consentButton.visibility = View.GONE
+            message("Originaldienst wird initialisiert. Tunnelstatus kommt direkt von Mullvad.")
+        } catch (error: Exception) {
+            message("Mullvad-Dienst konnte nicht gestartet werden: " + error.safeMessage())
+        }
+    }
+
+    private fun connectWithPermission() {
+        if (!bound) return message("Mullvad ist noch nicht initialisiert.")
+        try {
+            val request = VpnService.prepare(this)
+            if (request == null) connect()
+            else {
+                awaitingSystemPermission = true
+                renderTunnel()
+                vpnPermission.launch(request)
+            }
+        } catch (error: Exception) {
+            awaitingSystemPermission = false
+            message("VPN-Systemfreigabe nicht verfügbar: " + error.safeMessage())
+            renderTunnel()
+        }
+    }
+
+    private fun connect() = withDaemon("Verbinden") {
+        connection.connect().fold(
+            { message("Verbinden fehlgeschlagen: " + it) },
+            { message("Verbindungsaufbau angefordert. Status folgt vom Originaldienst.") }
+        )
+    }
+
+    private fun withDaemon(action: String, block: suspend () -> Unit) {
+        if (!bound) return message("Mullvad ist noch nicht initialisiert.")
+        lifecycleScope.launch {
+            try {
+                if (withTimeoutOrNull(20000L) {
+                    management.connectionState.first { it == GrpcConnectivityState.Ready }
+                } == null) return@launch message(action + ": Mullvad-Daemon antwortet nicht.")
+                block()
+            } catch (error: Exception) {
+                message(action + " fehlgeschlagen: " + error.safeMessage())
+            }
+        }
+    }
+
+    private fun renderTunnel() {
+        if (!::headline.isInitialized) return
+        val state = latestTunnel
+        val title = when {
+            awaitingSystemPermission -> "Android-VPN-Freigabe"
+            !daemonReady -> "Dienst nicht erreichbar"
+            state == null -> "Warte auf Tunnelstatus"
+            state is TunnelState.Connected -> "VPN verbunden"
+            state is TunnelState.Connecting -> "VPN verbindet"
+            state is TunnelState.Disconnecting &&
+                state.actionAfterDisconnect == ActionAfterDisconnect.Reconnect -> "VPN verbindet erneut"
+            state is TunnelState.Disconnecting -> "VPN trennt"
+            state is TunnelState.Error -> "VPN-Fehler"
+            else -> "VPN getrennt"
+        }
+        headline.text = title
+        tunnelLine.text = when {
+            awaitingSystemPermission -> "Bitte den Android-Systemdialog bestätigen."
+            !daemonReady -> "Keine bestätigten Live-Daten des Mullvad-Daemons."
+            state is TunnelState.Error -> "Mullvad meldet: " + state.errorState
+            state == null -> "Verbindung wird initialisiert."
+            else -> "Originaler Tunnelzustand: " + state.javaClass.simpleName
+        }
+        val location = if (daemonReady) state?.location() else null
+        val place = location?.let { listOfNotNull(it.city, it.country).joinToString(", ") }
+        val ip = location?.ipv4?.hostAddress ?: location?.ipv6?.hostAddress
+        val prefix = if (state is TunnelState.Connected) "VPN-Ausgang" else "Standort/IP laut Mullvad"
+        locationLine.text = if (location != null) prefix + ": " +
+            listOfNotNull(place, ip, location.hostname).filter { it.isNotBlank() }.joinToString(" · ")
+        else "Standort und IP: keine bestätigten aktuellen Daten"
+    }
+
+    private fun buildScreen(): View {
+        val root = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(36), dp(26), dp(36), dp(22))
+            setBackgroundColor(if (dark) 0xFF101B29.toInt() else 0xFFF5F8FB.toInt())
+        }
+        root.addView(text("Mullvad VPN", 31f, true), LinearLayout.LayoutParams(-1, dp(55)))
+        grpcLine = text("Mullvad-Dienst: initialisiert", 15f)
+        root.addView(grpcLine)
+        val columns = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        val rail = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(0, dp(18), dp(20), 0)
+        }
+        val detail = FrameLayout(this).apply {
+            setBackgroundColor(surface)
+            clipToPadding = false
+            clipChildren = false
+        }
+        columns.addView(rail, LinearLayout.LayoutParams(dp(230), -1))
+        columns.addView(detail, LinearLayout.LayoutParams(0, -1, 1f))
+        root.addView(columns, LinearLayout.LayoutParams(-1, 0, 1f))
+        root.addView(text("D-Pad: auswählen · OK: öffnen · Back: zur Übersicht / Plume", 13f))
+
+        val status = panel()
+        headline = text("Warte auf Originaldienst", 26f, true)
+        tunnelLine = text("Noch kein bestätigter Status", 17f)
+        locationLine = text("Standort und IP: keine bestätigten aktuellen Daten", 16f)
+        deviceLine = text("Konto: wird geladen", 16f)
+        listOf(headline, tunnelLine, locationLine, deviceLine).forEach { status.addView(it) }
+        val actions = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        val connectButton = button("Verbinden") { connectWithPermission() }
+        actions.addView(connectButton, actionParams())
+        actions.addView(button("Trennen") {
+            withDaemon("Trennen") {
+                connection.disconnect(DisconnectReason.USER_INITIATED_DISCONNECT_BUTTON).fold(
+                    { message("Trennen fehlgeschlagen: " + it) },
+                    { message("Trennung angefordert. Warte auf den Originalstatus.") }
+                )
+            }
+        }, actionParams())
+        actions.addView(button("Neu verbinden") {
+            withDaemon("Neu verbinden") {
+                connection.reconnect().fold(
+                    { message("Erneutes Verbinden fehlgeschlagen: " + it) },
+                    { message("Neu verbinden angefordert. Warte auf den Originalstatus.") }
+                )
+            }
+        }, actionParams())
+        status.addView(actions)
+        consentButton = button("Datenschutzhinweis bestätigen und Dienst starten") {
+            lifecycleScope.launch {
+                try {
+                    preferences.setPrivacyDisclosureAccepted()
+                    bindOriginalService()
+                } catch (error: Exception) {
+                    message("Datenschutz-Einrichtung fehlgeschlagen: " + error.safeMessage())
+                }
+            }
+        }.apply { visibility = View.GONE }
+        status.addView(consentButton)
+        status.addView(text("Datenschutzinformationen: mullvad.net/help/privacy-policy", 13f))
+        feedback = text("Mullvad wird initialisiert.", 16f)
+        status.addView(feedback)
+        addPanel(detail, status)
+        focusTargets += connectButton
+
+        addPanel(detail, placeholder("Standorte", "Noch nicht integriert. Die originale Relay-Auswahl folgt in M05–M06."))
+        focusTargets += tabsPlaceholderTarget(detail, 1)
+
+        val account = panel()
+        account.addView(text("Konto", 25f, true))
+        accountLine = text("Kontostatus wird geladen", 17f)
+        account.addView(accountLine)
+        account.addView(text("Mit bestehender 16-stelliger Mullvad-Kontonummer anmelden:", 15f))
+        accountInput = EditText(this).apply {
+            hint = "Kontonummer"
+            inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_VARIATION_PASSWORD
+            isSingleLine = true
+            textSize = 19f
+            setTextColor(ink)
+            setHintTextColor(secondary)
+            setPadding(dp(12), dp(8), dp(12), dp(8))
+            setBackgroundColor(if (dark) 0xFF314257.toInt() else Color.WHITE)
+        }
+        account.addView(accountInput, LinearLayout.LayoutParams(dp(380), dp(54)))
+        val loginButton = button("Anmelden") {
+            val number = accountInput.text.toString().trim().replace(" ", "")
+            if (!number.matches(Regex("\\d{16}"))) message("Bitte 16 Ziffern eingeben.")
+            else withDaemon("Anmelden") {
+                accounts.login(AccountNumber(number)).fold(
+                    { message("Anmeldung fehlgeschlagen: " + it) },
+                    { accountInput.text.clear(); message("Anmeldung von Mullvad bestätigt.") }
+                )
+            }
+        }
+        account.addView(loginButton, LinearLayout.LayoutParams(dp(220), dp(56)))
+        account.addView(text("Geräteverwaltung und Zahlungsfunktionen: noch nicht integriert.", 14f))
+        addPanel(detail, account)
+        focusTargets += accountInput
+
+        addPanel(detail, placeholder("VPN-Einstellungen", "Noch nicht integriert. Originale Mullvad-Einstellungen folgen in M07–M10."))
+        focusTargets += tabsPlaceholderTarget(detail, 3)
+
+        val diagnosis = panel()
+        diagnosis.addView(text("Diagnose", 25f, true))
+        diagnosticLine = text("Mullvad-Dienst: wird geprüft", 17f)
+        diagnosis.addView(diagnosticLine)
+        diagnosis.addView(text("Loganzeige und Supportbericht: noch nicht integriert (M11).", 15f))
+        val overviewButton = button("Zur Statusübersicht") { showPage(0); tabs[0].requestFocus() }
+        diagnosis.addView(overviewButton, LinearLayout.LayoutParams(dp(245), dp(56)))
+        addPanel(detail, diagnosis)
+        focusTargets += overviewButton
+
+        sections.forEachIndexed { index, name ->
+            val tab = button(name) { showPage(index); focusTargets[index].requestFocus() }
+            tab.setOnFocusChangeListener { _, focused ->
+                paint(tab, focused, page == index)
+                if (focused) showPage(index)
+            }
+            tab.setOnKeyListener { _, key, event ->
+                if (event.action == KeyEvent.ACTION_DOWN && key == KeyEvent.KEYCODE_DPAD_RIGHT) {
+                    showPage(index)
+                    focusTargets[index].requestFocus()
+                    true
+                } else false
+            }
+            tabs += tab
+            rail.addView(tab, LinearLayout.LayoutParams(-1, dp(60)).apply { bottomMargin = dp(9) })
+        }
+        showPage(0)
+        return root
+    }
+
+    private fun tabsPlaceholderTarget(detail: FrameLayout, index: Int): View {
+        val scroll = detail.getChildAt(index) as ScrollView
+        val inner = scroll.getChildAt(0) as LinearLayout
+        return inner.getChildAt(inner.childCount - 1)
+    }
+
+    private fun placeholder(title: String, explanation: String): LinearLayout = panel().apply {
+        addView(text(title, 25f, true))
+        addView(text(explanation, 17f))
+        addView(button("Zur Statusübersicht") { showPage(0); tabs[0].requestFocus() },
+            LinearLayout.LayoutParams(dp(245), dp(56)))
+    }
+
+    private fun addPanel(parent: FrameLayout, content: LinearLayout) {
+        val scroll = ScrollView(this).apply {
+            isFillViewport = true
+            isVerticalScrollBarEnabled = false
+            addView(content)
+        }
+        parent.addView(scroll, FrameLayout.LayoutParams(-1, -1))
+        panels += scroll
+    }
+
+    private fun panel() = LinearLayout(this).apply {
+        orientation = LinearLayout.VERTICAL
+        setPadding(dp(28), dp(18), dp(28), dp(22))
+    }
+
+    private fun showPage(next: Int) {
+        page = next
+        panels.forEachIndexed { i, view -> view.visibility = if (i == next) View.VISIBLE else View.GONE }
+        tabs.forEachIndexed { i, button -> paint(button, button.isFocused, i == next) }
+    }
+
+    private fun button(title: String, click: () -> Unit) = Button(this).apply {
+        text = title
+        isAllCaps = false
+        textSize = 16f
+        isFocusable = true
+        setTextColor(ink)
+        paint(this, false)
+        setOnFocusChangeListener { view, focused -> paint(view as Button, focused) }
+        setOnClickListener { click() }
+        setOnKeyListener { _, key, event ->
+            if (event.action == KeyEvent.ACTION_DOWN && key == KeyEvent.KEYCODE_DPAD_LEFT) {
+                tabs.getOrNull(page)?.requestFocus() == true
+            } else false
+        }
+    }
+
+    private fun paint(view: Button, focused: Boolean, selected: Boolean = false) {
+        view.setTextColor(if (focused) Color.WHITE else ink)
+        view.background = GradientDrawable().apply {
+            cornerRadius = dp(12).toFloat()
+            setColor(if (focused) accent else if (selected) {
+                if (dark) 0xFF34495F.toInt() else 0xFFD6E4EF.toInt()
+            } else surface)
+            setStroke(dp(if (focused) 3 else 1), if (focused) Color.WHITE else secondary)
+        }
+    }
+
+    private fun text(value: String, size: Float, strong: Boolean = false) = TextView(this).apply {
+        text = value
+        textSize = size
+        setTextColor(if (strong) ink else secondary)
+        if (strong) setTypeface(typeface, Typeface.BOLD)
+        gravity = Gravity.CENTER_VERTICAL
+        setPadding(0, dp(7), 0, dp(7))
+    }
+
+    private fun actionParams() = LinearLayout.LayoutParams(0, dp(58), 1f).apply {
+        marginEnd = dp(10)
+    }
+
+    private fun message(value: String) {
+        feedback.text = value
+        // Do not log account numbers or other Mullvad account responses.
+    }
+
+    private fun Throwable.safeMessage() = message ?: javaClass.simpleName
+    private fun dp(value: Int) = (value * resources.displayMetrics.density).toInt()
+
+    override fun onDestroy() {
+        if (bound) {
+            serviceBinding.unbind() // never disconnect or stop the original VPN on Back/Home
+            bound = false
+        }
+        super.onDestroy()
+    }
+}

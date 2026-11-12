@@ -1,22 +1,125 @@
-# Build an installable debug APK on demand. No release keystore or secrets required.
+# One build workflow for manual debug APKs and the M02 PR.
+# Integrates Mullvad's exact pinned Android container (not a separate installed VPN APK).
 name: Build Plume Launcher Advanced Debug APK
 
 on:
   workflow_dispatch:
+    inputs:
+      variant:
+        description: "Build target: combined Plume+Mullvad or legacy launcher only"
+        type: choice
+        required: true
+        default: integrated
+        options:
+          - integrated
+          - launcher-only
+  workflow_call:
+    inputs:
+      variant:
+        type: string
+        required: false
+        default: integrated
 
 permissions:
   contents: read
 
-concurrency:
-  group: debug-apk-${{ github.ref }}
-  cancel-in-progress: false
-
 jobs:
-  build-debug:
-    name: Build and upload Advanced Debug APK
+  integrated:
+    name: Combined Plume + Mullvad ARM64 Debug APK
+    if: inputs.variant == 'integrated'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Check out original Mullvad commit and Plume
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Verify original upstream and build image
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C third_party/mullvadvpn-app rev-parse HEAD)" = aa47f606b1a159214c7279344128119fa91be5fd
+          test -z "$(git -C third_party/mullvadvpn-app status --porcelain --ignore-submodules=all)"
+          image=$(cat third_party/mullvadvpn-app/building/android-container-image.txt)
+          test "$image" = 'ghcr.io/mullvad/mullvadvpn-app-build-android@sha256:ca22c11fb8a15321f897fa169c9c9d1f7d0d9edfeea16fa04af4de71ebcf4286'
+
+      - name: Test source staging generator
+        run: python3 -m unittest discover -s tools -p test_mullvad_prepare.py -v
+
+      - name: Pull Mullvad's pinned Android toolchain image
+        run: docker pull "$(cat third_party/mullvadvpn-app/building/android-container-image.txt)"
+
+      - name: Assemble one Plume-Mullvad OSS/Prod Debug APK
+        run: bash tools/mullvad/build-integrated.sh --no-configuration-cache --max-workers=2
+
+      - name: Verify APK package, VPN components, launcher and checksum
+        shell: bash
+        run: |
+          set -euo pipefail
+          apk_dir=.build/plume-mullvad/mullvadvpn-app/android/app/build/outputs/apk/ossProd/debug
+          apk=$(find "$apk_dir" -maxdepth 1 -type f -name '*.apk' -print -quit)
+          test -n "$apk" && test -s "$apk"
+          test "$(find "$apk_dir" -maxdepth 1 -type f -name '*.apk' | wc -l)" -eq 1
+          python3 tools/mullvad/check_apk.py "$apk"
+          mkdir -p artifacts/plume-mullvad
+          image=$(cat third_party/mullvadvpn-app/building/android-container-image.txt)
+          apk_in_container="/build/android/app/build/outputs/apk/ossProd/debug/$(basename "$apk")"
+          docker run --rm -v "$PWD/.build/plume-mullvad/mullvadvpn-app:/build:ro" "$image" \
+            aapt dump badging "$apk_in_container" > artifacts/plume-mullvad/badging.txt
+          docker run --rm -v "$PWD/.build/plume-mullvad/mullvadvpn-app:/build:ro" "$image" \
+            aapt dump xmltree "$apk_in_container" AndroidManifest.xml > artifacts/plume-mullvad/manifest.txt
+          grep -Fq "package: name='dev.plume.advanced'" artifacts/plume-mullvad/badging.txt
+          grep -Fq 'dev.plume.MainActivity' artifacts/plume-mullvad/manifest.txt
+          grep -Fq 'net.mullvad.mullvadvpn.app.MullvadApplication' artifacts/plume-mullvad/manifest.txt
+          grep -Fq 'net.mullvad.mullvadvpn.app.service.MullvadVpnService' artifacts/plume-mullvad/manifest.txt
+          # M04 production TV surface must be in the APK and original harness absent.
+          grep -Fq 'net.mullvad.mullvadvpn.app.VpnActivity' artifacts/plume-mullvad/manifest.txt
+          if grep -Fq 'net.mullvad.mullvadvpn.app.PlumeVpnDebugActivity' artifacts/plume-mullvad/manifest.txt; then
+            echo "::error::Legacy M03 debug harness is still declared"
+            exit 1
+          fi
+          python3 - "$apk" <<'PY'
+          import sys
+          import zipfile
+          with zipfile.ZipFile(sys.argv[1]) as archive:
+              dexes = [archive.read(name) for name in archive.namelist()
+                       if name.startswith("classes") and name.endswith(".dex")]
+              if not any(b"VpnActivity" in dex for dex in dexes):
+                  sys.exit("Production Mullvad VPN TV Activity missing from DEX")
+              if any(b"PlumeVpnDebugActivity" in dex for dex in dexes):
+                  sys.exit("Legacy M03 debug TV harness still packaged in DEX")
+          PY
+          grep -Fq 'android.intent.category.HOME' artifacts/plume-mullvad/manifest.txt
+          if grep -Fq 'net.mullvad.mullvadvpn.feature.appearance.impl.obfuscation.MainActivityAlt' artifacts/plume-mullvad/manifest.txt; then
+            echo "::error::Mullvad smartphone launcher aliases are still present"
+            exit 1
+          fi
+          cp "$apk" artifacts/plume-mullvad/Plume-Launcher-Advanced-Mullvad-arm64-debug.apk
+          (cd artifacts/plume-mullvad && sha256sum Plume-Launcher-Advanced-Mullvad-arm64-debug.apk > SHA256SUMS)
+          {
+            echo '### Plume + Mullvad single APK'
+            echo 'Package: dev.plume.advanced; flavor: ossProdDebug; ABI: arm64-v8a'
+            echo "APK bytes: $(stat -c %s "$apk")"
+            echo "SHA-256: $(cut -d' ' -f1 artifacts/plume-mullvad/SHA256SUMS)"
+            echo 'APK, manifest and checksum available under **Artifacts**.'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload integrated debug APK and evidence
+        uses: actions/upload-artifact@v5
+        with:
+          name: Plume-Mullvad-ARM64-Debug-${{ github.run_number }}
+          path: artifacts/plume-mullvad/
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
+  launcher-only:
+    name: Legacy Plume-only debug APK
+    if: inputs.variant == 'launcher-only'
     runs-on: ubuntu-latest
     timeout-minutes: 30
-
     steps:
       - name: Check out source
         uses: actions/checkout@v5
@@ -30,37 +133,33 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v5
 
-      - name: Test, lint and build Debug APK
+      - name: Test, lint and build original Debug APK
         run: ./gradlew testDebugUnitTest lintDebug assembleDebug
 
-      - name: Verify APK and write checksum
+      - name: Verify package and write checksum
         shell: bash
         run: |
           set -euo pipefail
           apk_dir=app/build/outputs/apk/debug
           mv "$apk_dir/app-debug.apk" "$apk_dir/Plume-Launcher-Advanced-debug.apk"
           test -s "$apk_dir/Plume-Launcher-Advanced-debug.apk"
-          # Reject an accidentally un-rebranded APK, even if Gradle succeeds.
-          aapt="$(find "$ANDROID_HOME/build-tools" -maxdepth 2 -type f -name aapt | sort -V | tail -n 1)"
+          aapt=$(find "$ANDROID_HOME/build-tools" -maxdepth 2 -type f -name aapt | sort -V | tail -n 1)
           test -n "$aapt"
           "$aapt" dump badging "$apk_dir/Plume-Launcher-Advanced-debug.apk" > "$apk_dir/badging.txt"
           grep -Fq "package: name='dev.plume.advanced'" "$apk_dir/badging.txt"
           grep -Fq "application-label:'Plume Launcher Advanced'" "$apk_dir/badging.txt"
           (cd "$apk_dir" && sha256sum Plume-Launcher-Advanced-debug.apk > SHA256SUMS)
           {
-            echo "### Debug APK ready"
-            echo ""
-            echo "- Build: \`$GITHUB_RUN_NUMBER\`"
-            echo "- Commit: \`$GITHUB_SHA\`"
-            echo "- APK: \`Plume-Launcher-Advanced-debug.apk\`"
-            echo "- SHA-256: \`$(cut -d' ' -f1 "$apk_dir/SHA256SUMS")\`"
-            echo "- Download: **Artifacts** section of this workflow run."
+            echo '### Legacy Plume-only Debug APK'
+            echo "Build: $GITHUB_RUN_NUMBER"
+            echo "APK: Plume-Launcher-Advanced-debug.apk"
+            echo "SHA-256: $(cut -d' ' -f1 "$apk_dir/SHA256SUMS")"
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Upload Debug APK and checksum
+      - name: Upload original debug APK
         uses: actions/upload-artifact@v5
         with:
-          name: Plume-Launcher-Advanced-Debug-APK-${{ github.run_number }}
+          name: Plume-Only-Debug-${{ github.run_number }}
           path: |
             app/build/outputs/apk/debug/Plume-Launcher-Advanced-debug.apk
             app/build/outputs/apk/debug/SHA256SUMS
