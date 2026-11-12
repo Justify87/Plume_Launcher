@@ -2,45 +2,56 @@
 
 ```yaml
 schema: plume-mullvad-handoff/v1
-milestone: M01
-status: partial
+milestone: M02
+status: blocked
 checked_on: "2026-11-12"
 plume_repository: Justify87/Plume_Launcher
-plume_base_branch: main
-plume_base_sha: ab9bcc6c5188789c952722974834b49fe7ebae05
-feature_branch: feature/m01-mullvad-upstream-handoff
-pull_request: 16
-initial_feature_commit: 580bccb380877c4cd241223cb76631116afc562b
+plume_main_sha: ab9bcc6c5188789c952722974834b49fe7ebae05
+predecessor_branch: feature/m01-mullvad-upstream-handoff
+predecessor_pr: 16
+predecessor_head: cbe1f46bd38ac6dfee5918b255cb4f26315b3e6d
+predecessor_status: partial
+feature_branch: feature/m02-mullvad-apk-integration
+pull_request: 17
 upstream_repository: mullvad/mullvadvpn-app
 upstream_tag: android/2026.12
 upstream_sha: aa47f606b1a159214c7279344128119fa91be5fd
 upstream_path: third_party/mullvadvpn-app
 upstream_tree_modified: false
-production_vpn_implemented: false
-plume_original_ci: pass_observed
-plume_local_build: not_run
-mullvad_original_build: not_run
-shield_original_vpn_test: not_run
-m02_ready_for_build_spike: true
-m01_acceptance_complete: false
+integration_strategy: staged_mullvad_app_host_plus_plume_library
+integration_prepare: tools/mullvad/prepare.py
+integration_build: tools/mullvad/build-integrated.sh
+integration_gradle_root: .build/plume-mullvad/mullvadvpn-app/android
+integration_build_task: :app:assembleOssProdDebug
+application_id: dev.plume.advanced
+mullvad_application: net.mullvad.mullvadvpn.app.MullvadApplication
+mullvad_service: net.mullvad.mullvadvpn.app.service.MullvadVpnService
+plume_main_activity: dev.plume.MainActivity
+native_abi_target: arm64-v8a
+m02_local_build: not_run
+m02_ci_build: queued
+m02_apk_verified: false
+m02_shield_test: not_run
+m03_ready: false
 ```
 
-## Bestätigter Stand
+## Ausgangsbasis und PRs
 
-- `main` hat den oben genannten SHA; zum Prüfzeitpunkt **keine offenen PRs**. Keine Vorgänger-Meilensteine und vor M01 kein `docs/mullvad-integration/` oder `AGENTS.md`.
-- Pull Request: https://github.com/Justify87/Plume_Launcher/pull/16; initialer Handoff-Commit: `580bccb380877c4cd241223cb76631116afc562b`.
-- Mullvad `android/2026.12` ist der zuletzt **stabile** Android-Release; `android/2026.13-beta1` ist ausdrücklich nicht gewählt. Git-Tagobjekt `6d040b17e22ea445d83dd7e126e1f173ceb4b27b` zeigt auf den eingefrorenen **Commit** oben.
-- Das vollständige ursprüngliche Repository ist unverändert als Git-Submodul referenziert. Die `.gitmodules`-Datei und der Gitlink `160000` sind Bestandteile von M01. **Keine** Mullvad-Runtime, VPN-UI oder Plume-App-Datei wurde in M01 geändert.
-- Ausgewählte Architektur: im späteren **abgeleiteten Build** bleibt Mullvads `android/app` das **einzige Android-Application-Modul** mit `applicationId=dev.plume.advanced`; Plumes bestehender View-Code wird als Android-Library mit eigenem `namespace=dev.plume` eingebunden. Unveränderter Originalstand bleibt für Upstream-Referenzbuilds erhalten. Details / Risiken: `DECISIONS.md`.
-- Tatsächliche ältere Plume-CI: `main`-Debug-Lauf 43100442410 erfolgreich; PR-Lauf 43052315531 (Direktvorgänger des Merges) erfolgreich, Release-APK dort 528066 Bytes. **Kein** eigener M01-Lokalbuild, kein Mullvad-Originalbuild, kein Shield-ADB. Details: `TEST_MATRIX.md`.
-- Lokale Toolchain-Vorbedingung fehlt: im ausführenden Container keine Android SDK/NDK, kein Rust/Cargo und keine ADB-Verbindung; GitHub nicht via CLI/DNS erreichbar (`git ls-remote` Exit 128). GitHub-Repository-Aktionen und Dateiansicht waren verfügbar. Es handelt sich um eine **Umgebungsblockade für Buildnachweise**, nicht um einen festgestellten Quellcodefehler.
+- main-HEAD zu Arbeitsbeginn: ab9bcc6c5188789c952722974834b49fe7ebae05.
+- M01 ist **offen** als PR #16 und enthält das gepinnte, unveränderte Mullvad-Submodul und alle fünf Handoff-Dateien; M01-Gesamtstatus ist **partial** (ohne Android-/Rust-Build).
+- M02 ist der gestapelte **Draft-PR #17** gegen den M01-Branch, nicht gegen altes main. Der M02-Codecommmit zu Beginn ist 9b1e630247696fea7b5164bca83b850bdcfe0bf5. Keine anderen PRs wurden gemergt.
+- Das einmal gewählte Upstream-Tag android/2026.12 / SHA aa47f606b1a159214c7279344128119fa91be5fd bleibt unverändert.
 
-## Nächster Schritt — **M02** (keine stillen Upstream-Upgrades)
+## Tatsächliche Integration — noch ohne Compile-Nachweis
 
-1. Zuerst `UPSTREAM.md` / `DECISIONS.md` / `FEATURE_MATRIX.md` / `TEST_MATRIX.md` lesen, `git submodule update --init --recursive` und Gitlink-SHA mit `git -C third_party/mullvadvpn-app rev-parse HEAD` abgleichen.
-2. Mit JDK 21, SDK 37, NDK 27.3.13750724, Rust 1.97.1 und Mullvad-Buildcontainer `third_party/mullvadvpn-app/android` **unverändert** als `ossProdDebug` bauen. Erfolgs-/Fehlerlogs und resultierende APK-Größe dokumentieren. Auf Shield Konto + Verbindung nur wenn erreichbar.
-3. Einen kleinen **aus Upstream abgeleiteten Arbeitsbaum** für den kombinierten Build herstellen; Original-Submodul clean halten. Mullvad `android/app` als einziges APK beibehalten, Plume als `:plume-ui`-Library anbinden, `applicationId` gezielt überschreiben; alte Mullvad-MainActivity nicht als Benutzer-UI starten. Die Machbarkeit zuerst an `assemble` und Manifest-Merge prüfen, bevor andere Features hinzukommen.
-4. Vorhandene `tools/pr-rules.sh`-Sperren für neue Dependencies / Manifest-Permissions **nur integrationsspezifisch** lösen, nicht pauschal deaktivieren. Bestehende Plume-Baseline weiterhin separat baubar lassen.
-5. Änderungen + echte Testbefunde **in diesem Satz von fünf Dateien** in demselben M02-PR nachführen. Keine Userfunktionen als fertig markieren, bevor reale Runtime und TV-UI verdrahtet und getestet sind.
+- tools/mullvad/prepare.py verifiziert den upstream HEAD, erzeugt eine **wegwerfbare Kopie** des vollständigen Mullvad-Repositorys unter .build/ (nicht committet), kopiert Plumes originale Views, Tests, Ressourcen und Manifest in die Android-Library :plume-ui und fügt sie als Dependency in Mullvads originales :app-Application-Modul ein.
+- Nur im Staging wird die Application-ID in defaultConfig auf dev.plume.advanced geändert. Das ossProd-Manifest-Overlay macht Plumes MainActivity zum HOME-/Leanback-Einstieg und entfernt sechs Mullvad-Smartphone-Launcher-Aliasse. Mullvads MullvadApplication, MullvadVpnService, Rust/JNI, gRPC, Repository-/DI- und Relay-Dateien bleiben original.
+- Ein einziger **geplanter** installierbarer Android-App-Host (Mullvad-:app, ossProdDebug). ARM64 ist ein vorläufiges ABI-Ziel, ohne Shield-Geräteabfrage. Plume-Paketname, Kotlin-Pakete und UI-Bestand bleiben erhalten.
+- Der **ursprüngliche** Root-Build `./gradlew :app:assembleDebug` bleibt eine reine Plume-Baseline. Die **kombinierte** App wird mit `bash tools/mullvad/build-integrated.sh` beziehungsweise aus dem generierten Android-Root mit `./gradlew :app:assembleOssProdDebug` gebaut. Kein irreführender Anspruch, dass der alte Root-Befehl eine Mullvad-APK liefert.
+- Plumes bisherige Java-17-PR-Checks (Regeln, Tests, Lint, Release, Größenvergleich) bleiben aktiv. Ein zusätzlicher 120-Minuten-JDK21-/SDK37-/NDK27-/Rust1.97.1-CI-Job für Mullvad-Branches wurde definiert; zum Dokumentationszeitpunkt **noch kein Resultat**.
 
-**Offen:** Original-Mullvad-Compile, Integrations-Compile, genaue Overlays/Gradle-Compatibility, Geräteprüfung, APK-Größe integriert, Erststart/Konto, D-Pad/Back, Reboot- und Hintergrund-VPN. M01 bleibt daher `partial`; für das Gesamtprojekt besteht **keine** Feature-Parität.
+## Grenzen und M03-Handoff
+
+In dieser Ausführungsumgebung fehlen Android SDK/NDK, Rust/Cargo und ADB; GitHub ist über das Git-CLI wegen DNS nicht erreichbar. Deshalb sind weder Original-Mullvad noch die abgeleitete APK **lokal** gebaut oder auf der Shield getestet worden. Die CI-Ausführung, korrekter Manifest-Merge, JNI-Load, tatsächliche Paket-ID, Startfähigkeit und APK-Größe sind ebenfalls offen. Das Gate M02 ist **blocked**, nicht pass.
+
+**Nächste konkrete Aufgabe (noch M02, bevor M03 beginnt):** GitHub-PR #17 Build-/CI-Logs prüfen; Compiler-/Manifest-/JNI-Fehler korrigieren; Original- und Integrationsbuild erfolgreich nachweisen; APK- und Manifest-Inhalt, Größe sowie Plume-Baseline dokumentieren. Erst dann M02 auf pass setzen und in M03 die originale Mullvad-VPN-Dienstlogik an eine fernbedienbare TV-VPN-Activity anbinden. Keine UI/Feature-Parität vor realen Tests.

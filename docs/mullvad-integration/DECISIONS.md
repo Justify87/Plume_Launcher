@@ -36,3 +36,16 @@ Der ursprüngliche Plume-Prüfworkflow nutzt JDK 17 und kein Submodul. Integrati
 ## A05 — Nicht-Ziele M01
 
 Keine App-Runtime, keine VPN-Activity, kein Login, kein Runtime-Service-Start, kein Mock-Client; keine zusätzlichen Netzwerkanalysen, Protection-Audits oder Custom-Protokolle. Buildstatus in `TEST_MATRIX.md` ehrlich als `not_run` behandeln. Vor M02 keine Feature-Parität behaupten.
+
+
+## M02 — A06: Host/Library tatsächlich als Staging implementiert (Build-Gate offen)
+
+Die in A02/A03 gewählte Architektur ist in tools/mullvad/prepare.py umgesetzt: Mullvad `android/app` ist der **einzige** Application-Host; Plumes View-Quellen werden unter `:plume-ui` als Android-Library eingebunden. Die Staging-Kopie erhält Mullvads ursprüngliches `MullvadApplication`, `MullvadVpnService`, Talpid, JNI/gRPC, Koin und die originalen Featuremodule. Nur ein temporärer Build-Diff ist notwendig; damit kann der M01-Gitlink unverändert bleiben. Originale Smartphone-Compose-Screens werden für M02 nicht als TV-UI exponiert, aber nicht aus dem Runtime-Graph entfernt.
+
+Das `ossProd`-Variant-Overlay entfernt nur die sechs Mullvad-Smartphone-Launcher-Aliasse und belässt den systemgebundenen VPN-Service. Plumes bestehendes Manifest mit HOME-/LEANBACK-Einstieg, Screensaver und Service-Registrierungen wird als Library gemergt; bei widersprüchlichem Merge hat der Host im Staging die höhere Priorität. **Bis zu einem kompilierten Manifest wurde das nicht bewiesen**.
+
+## M02 — A07: Getrennte CI und bewusster Toolchain-Kontrast
+
+Die ursprünglichen Plume-Regeln, Java-17-Tests/Lint/Release und der APK-Größenvergleich bleiben erhalten. Der zusätzlich definierte Mullvad-CI-Job richtet SDK 37, NDK 27, Rust 1.97.1, JDK 21 und protobuf ein, erzeugt den Staging-Build und prüft die Native-SO/Relay-Datei im finalen Debug-APK. Der schwere Build wird auf Mullvad-Branches eingeschränkt. Das ist die eng gefasste Ausnahme für das VPN-Hobbyprojekt; **keine** globale Deaktivierung von Checks oder allgemeines Hardening-Projekt.
+
+Native ABI zunächst ARM64, minSdk des Integrationshosts 28. Bestehende Plume-Versionierung wird im Host weitergereicht. Fehlendes Upgrade-/Manifest-/Boot-/API-Level-/Shield-Testing bleibt offen; ebenso Release-Minification/Signierung und die tatsächliche APK-Größenzunahme. M02 ist bis zu Build-Evidenz `blocked`.

@@ -70,3 +70,43 @@ Erster Originaltest benötigt das **originale** `net.mullvad.mullvadvpn`-Paket u
 ## Folgeschritte
 
 M02 hat zuerst Originalbuild/Plume-Baseline und integrierte Build-Pipeline nachzuweisen, danach nur minimale lokale Patches. Jede nachgeholte Messung mit Datum, Gerätename, Betriebssystem/API-Level, ABI, Befehl, Exitcode und Artifact-Größe eintragen. Alle anderen Featurezeilen in `FEATURE_MATRIX.md` bleiben `not_started`.
+
+
+## M02 — Nachweise und offene Prüfungen (12.11.2026)
+
+| Test / Ziel | Nachweis | Ergebnis |
+| --- | --- | --- |
+| M01-Gitlink / PR | PR #16, cbe1f46bd38ac6dfee5918b255cb4f26315b3e6d | `pass_observed`: offener gestapelter Vorgänger, SHA laut M01; keine neue lokale Cloneprüfung |
+| Staging-/Host-Code | GitHub-Commit 9b1e630247696fea7b5164bca83b850bdcfe0bf5 | `partial`: echte Dateien/CI-Definition; nicht gebaut |
+| SDK/NDK/Rust/ADB lokal | command -v rustc cargo sdkmanager adb | `blocked`: alle fehlen |
+| Original Git CLI Netzwerk | git ls-remote https://github.com/Justify87/Plume_Launcher.git HEAD | `blocked`: Exit 128 / Could not resolve host: github.com |
+| Python-Staging-Tests | python3 -m unittest discover -s tools -p test_mullvad_prepare.py -v | `not_run`: CI vorgesehen |
+| Plume M02-Baseline | ./gradlew :app:assembleDebug testDebugUnitTest lintDebug assembleRelease | `not_run`: nur historische M01-CI hatte Erfolg |
+| Original Mullvad | cd third_party/mullvadvpn-app/android && ./gradlew assembleOssProdDebug | `not_run` |
+| Integrierter Host | bash tools/mullvad/build-integrated.sh | `not_run`: lokales SDK/NDK/Rust fehlt; M02-PR-CI offen |
+| APK / IDs / native Assets | python3 tools/mullvad/check_apk.py APK; aapt dump badging APK | `not_run`: keine APK vorhanden |
+| Ein Launcher / zwei Application-Klassen | merged Manifest, DEX und aapt prüfen | `not_run` |
+| Shield ABI, Installation | adb shell getprop ro.product.cpu.abilist; adb install -r APK | `not_run` |
+| Plume Classic/Overview/D-Pad/Back, Home, Updates, Screensaver | Gerätetest | `not_run` |
+| Dienst/Konto/VPN-Bindung | Gerätetest ab M03 | `not_run`; kein UI-Start/Mock in M02 |
+
+**Reproduktion mit Toolchain (noch auszuführen):**
+
+```bash
+git checkout feature/m02-mullvad-apk-integration
+git submodule update --init --recursive
+test "$(git -C third_party/mullvadvpn-app rev-parse HEAD)" = aa47f606b1a159214c7279344128119fa91be5fd
+python3 -m unittest discover -s tools -p test_mullvad_prepare.py -v
+bash tools/mullvad/build-integrated.sh
+find .build/plume-mullvad/mullvadvpn-app/android/app/build/outputs/apk -name '*.apk'
+python3 tools/mullvad/check_apk.py <integrated-debug.apk>
+aapt dump badging <integrated-debug.apk> # applicationId dev.plume.advanced prüfen
+adb devices -l
+adb shell getprop ro.build.version.sdk
+adb shell getprop ro.product.cpu.abilist
+adb install -r <integrated-debug.apk>
+adb shell am start -n dev.plume.advanced/dev.plume.MainActivity
+adb logcat -d -s AndroidRuntime MullvadVpnService MullvadDaemon
+```
+
+**M02-Abnahmestatus:** `blocked` bis erfolgreicher Build einschließlich tatsächlicher originaler Mullvad-Runtime, genau einer APK mit appId dev.plume.advanced, korrektem HOME/LEANBACK-Manifest, ARM64-SO, Relaydatei und vollständiger Build-/APK-Evidenz. Bis dahin keine Freigabe für M03.
