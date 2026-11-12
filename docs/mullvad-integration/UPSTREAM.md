@@ -39,6 +39,7 @@ Nach jedem neuen Checkout bei CI **`actions/checkout@v5` mit `submodules: recurs
 - `android/settings.gradle.kts`: Mullvad-Composite-Build `gradle/build-logic` plus die `:lib:...`-Module und Feature-`api/impl`-Module; **nicht** nur `:app` isoliert importieren.
 - `android/app/build.gradle.kts`: **Application-Plugin**, `oss` + `prod`-Flavors, Rust-Gradle-Plugin, Relay- und Release-Asset-Verzeichnisse, `jniLibs`; aktuell `applicationId=net.mullvad.mullvadvpn`. Keine konsumierbare AAR.
 - `android/gradle/libs.versions.toml`: AGP **9.3.1**, Kotlin **2.4.10**, minSdk **28**, compileSdk **37**, targetSdk **37**, NDK **27.3.13750724**.
+- `android/lib/feature/appicon/impl/src/main/AndroidManifest.xml`: exportierte Activity-Aliasse für Default/Icon-Tarnung inkl. LEANBACK-LAUNCHER. Für Originaltest den Alias, **nicht** die `exported=false` Mullvad-`MainActivity`, als ADB-Einstieg verwenden; beim kombinierten Build keinen zweiten Launcher-Eintrag ausliefern.
 - `android/app/src/main/kotlin/net/mullvad/mullvadvpn/app/MullvadApplication.kt`: Koin-App-Start/Benachrichtigungen. `.../app/service/MullvadVpnService.kt` + `MullvadDaemon.kt`: VPN-Lifecycle, JNI-Start, gRPC-Management; `.../di/AppModule.kt`, `UiModule.kt`, `VpnServiceModule.kt`: DI-Grenzen. `android/lib/{grpc,repository,model,talpid,usecase,feature,...}` bleiben Original.
 - `dist-assets/relays/relays.json`: statisches Relay-Asset (Buildsource). Ressourcen/Protobuf/JSon/DI und native Bibliotheken sind im kombinierten APK zu berücksichtigen.
 

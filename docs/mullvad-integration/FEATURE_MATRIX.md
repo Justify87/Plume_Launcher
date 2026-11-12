@@ -10,7 +10,7 @@ Quelle für **alle** Zeilen: `third_party/mullvadvpn-app/` bei SHA `aa47f606b1a1
 | F02 | Echtzeit-Tunnelstatus, Fehlzustände, Reconnect; `lib/grpc/ManagementService.kt`, `lib/model` | VPN-Startseite/Status | not_started |
 | F03 | VPN-Systemfreigabe / Rechte-Dialog; `app/MainActivity.kt`, `app/service/MullvadVpnService.kt` | VPN-Ersteinrichtung | not_started |
 | F04 | Hintergrundbetrieb, Foreground-Notification, System-Revoke; `app/service/MullvadVpnService.kt`, `app/service/notifications` | OS + Status | not_started |
-| F05 | Rust-Daemon/JNI/Talpid/Grap­h-/Management-IPC; `../mullvad-jni`, `../mullvad-daemon`, `../mullvad-management-interface`, `lib/talpid`, `lib/grpc` | interne Originalruntime | not_started |
+| F05 | Rust-Daemon/JNI/Talpid/gRPC-/Management-IPC; `../mullvad-jni`, `../mullvad-daemon`, `../mullvad-management-interface`, `lib/talpid`, `lib/grpc` | interne Originalruntime | not_started |
 | F06 | Relay-Land/Stadt/Serverauswahl und Suche; `lib/feature/location/impl`, `lib/repository/RelayListRepository.kt` | Serverauswahl | not_started |
 | F07 | Relay-Filter, Anbieter, Besitztyp; `lib/feature/filter/impl`, `lib/repository/RelayListFilterRepository.kt`, `lib/usecase/ProviderToOwnershipsUseCase.kt` | Filterdialog | not_started |
 | F08 | Zuletzt verwendete Standorte/Server; `lib/usecase/RecentsUseCase.kt` | Serverauswahl | not_started |

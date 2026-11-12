@@ -49,7 +49,7 @@ adb devices -l
 adb shell getprop ro.build.version.sdk
 adb shell getprop ro.product.cpu.abilist
 adb install -r <original-mullvad-debug.apk>
-adb shell am start -n net.mullvad.mullvadvpn/.app.MainActivity
+adb shell am start -n net.mullvad.mullvadvpn/net.mullvad.mullvadvpn.feature.appearance.impl.obfuscation.MainActivityAltDefault
 adb logcat -c
 # Konto/VPN-Zustimmung/Connect manuell auf TV vornehmen:
 adb logcat -d -s MullvadVpnService MullvadDaemon AndroidRuntime
@@ -58,7 +58,7 @@ adb shell dumpsys connectivity
 # Classic, Overview, Home, VPN/Back, Service trotz Activity-Wechsel, Neustart testen.
 ```
 
-Erster Originaltest benötigt das **originale** `net.mullvad.mullvadvpn`-Paket und **eigenes gültiges** Mullvad-Konto, Test-IP/Exit über Netzwerk (nicht bloß `dumpsys`) sowie tatsächliche Fernbedienung. Falls das Android-Original kein Leanback-Startsymbol anbietet, per ADB starten; nicht aus fehlendem Launcher-Eintrag auf VPN-Fehler schließen. **Keine** tatsächlichen Shield-Tests in M01; alle `not_run`.
+Erster Originaltest benötigt das **originale** `net.mullvad.mullvadvpn`-Paket und **eigenes gültiges** Mullvad-Konto, Test-IP/Exit über Netzwerk (nicht bloß `dumpsys`) sowie tatsächliche Fernbedienung. Das Original bietet eine exportierte Launcher-/Leanback-Activity-**Alias** im Modul `lib/feature/appicon/impl`; `app.MainActivity` selbst hat `exported=false` und darf daher **nicht** von ADB-Shell direkt als externe Komponente gestartet werden. Beim kombinierten APK diese Mullvad-Launcher-Aliasse per Manifest-Overlay entfernen/deaktivieren, damit Plume das einzige Launcher-Symbol bleibt. **Keine** tatsächlichen Shield-Tests in M01; alle `not_run`.
 
 ## Review und Ergebnisse
 
