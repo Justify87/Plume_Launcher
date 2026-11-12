@@ -15,7 +15,11 @@ upstream_tag: android/2026.12
 upstream_sha: aa47f606b1a159214c7279344128119fa91be5fd
 upstream_gitlink_unchanged: true
 production_vpn_ui: implemented_source
-m04_integrated_ci: pending
+m04_integrated_ci: observed_ci_pass
+m04_ci_run: 43328844657
+m04_ci_source_sha: 389fe3a12e639fed2d4590583c53b7b0654f620a
+m04_apk_artifact: Plume-Mullvad-ARM64-Debug-63
+m04_pr: 19
 m04_shield_test: not_run
 m04_live_vpn_test: not_run
 ```
@@ -38,7 +42,8 @@ m04_live_vpn_test: not_run
 
 - Der Arbeitscontainer hat keinen DNS-Zugriff zu GitHub für Git-Clone und keinen vollständigen Android SDK/NDK/Rust-/ADB-Gerätezugang. Build, Kotlin-Compile und Shield-Tunnel können hier nicht lokal behauptet werden.
 - Prüfen: `python3 -m unittest discover -s tools -p test_mullvad_prepare.py -v`, `./gradlew testDebugUnitTest lintDebug`, `bash tools/mullvad/build-integrated.sh`, `python3 tools/mullvad/check_apk.py <apk>`; CI-Ausgang steht in `TEST_MATRIX.md`.
-- M04 bleibt `partial` bis APK-Compile, Connected-/Reconnect-/Permission- und tatsächliche Shield-D-Pad-/Exit-IP-Prüfung erfolgreich sind.
+- **M04 CI erfolgreich:** [Run 43328844657](https://github.com/Justify87/Plume_Launcher/actions/runs/43328844657) auf Code-/Workflow-SHA `389fe3a12e639fed2d4590583c53b7b0654f620a` hat `check` und `mullvad-apk` beide als `success` beendet. Der Workflow hat den kombinierten ARM64-`ossProdDebug`-Build, das Paket `dev.plume.advanced`, den produktiven `VpnActivity`-Manifest-/DEX-Eintrag, die Abwesenheit des M03-Harness, den originalen VPN-Dienst, JNI/Relays, Plume-Unit/Lint und die Staging-Tests geprüft. Artifact `Plume-Mullvad-ARM64-Debug-63` hat **120901828 Bytes als Upload**, nicht rohe APK-Größe.
+- M04 bleibt `partial` bis Connected-/Reconnect-/Permission- und tatsächliche Shield-D-Pad-/Exit-IP-Prüfung erfolgreich sind. Original-Mullvad-Standalone-Releasebuild nicht ausgeführt; kein physisches Gerät vorhanden. Ein nachgeschalteter Dokumentationscommit enthält keine Buildcodeänderung.
 
 ## Handoff M05
 

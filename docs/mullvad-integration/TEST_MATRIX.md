@@ -193,10 +193,10 @@ Die Debug-Test-Activity ist `exported=false`; ADB-Shell-Direktstarts können je 
 | ID | Prüfung | Ergebnis / Beleg |
 | --- | --- | --- |
 | M04-01 | Quell- und Branchprüfung: M03 in `feature/m01-mullvad-upstream-handoff` bei `6c857ce`, Original-Gitlink gleich `aa47f606` | `pass`: GitHub API, PR #17/#18 merged in gestapelten Branch; `main` noch bei `0daf26b` |
-| M04-02 | `python3 -m unittest discover -s tools -p test_mullvad_prepare.py -v` | `not_run` lokal; CI-Ergebnis nach PR prüfen |
-| M04-03 | `./gradlew testDebugUnitTest lintDebug`, `sh tools/plume-install-test/run.sh` | `not_run` für M04; M03-CI war `observed_ci_pass` |
-| M04-04 | `bash tools/mullvad/build-integrated.sh` / Original-Container, `check_apk.py` | `not_run` für M04; kein neuer Build-/APK-Anspruch vor CI |
-| M04-05 | APK-Manifest: `VpnActivity` vorhanden, `PlumeVpnDebugActivity` abwesend, ein HOME-/Leanback-Einstieg, MullvadVpnService und `libmullvad_jni.so` | `not_run`; CI und `aapt dump xmltree` / DEX prüfen |
+| M04-02 | `python3 -m unittest discover -s tools -p test_mullvad_prepare.py -v` | `observed_ci_pass`: [Run 43328844657](https://github.com/Justify87/Plume_Launcher/actions/runs/43328844657), Staging-Tests; lokal `not_run` |
+| M04-03 | `./gradlew testDebugUnitTest lintDebug`, `sh tools/plume-install-test/run.sh` | `observed_ci_pass`: Run 43328844657, `check` success (Plume Unit/Lint, Installer-, Spotify-, Repository-Regeln); lokal `not_run` |
+| M04-04 | `bash tools/mullvad/build-integrated.sh` / Original-Container, `check_apk.py` | `observed_ci_pass`: Run 43328844657 `mullvad-apk`, ARM64 OSS/Prod Debug, Container, Kotlin/Rust/JNI, strukturelle APK-Prüfung, Artifact `Plume-Mullvad-ARM64-Debug-63` |
+| M04-05 | APK-Manifest: `VpnActivity` vorhanden, `PlumeVpnDebugActivity` abwesend, ein HOME-/Leanback-Einstieg, MullvadVpnService und `libmullvad_jni.so` | `observed_ci_pass`: Run 43328844657, `aapt` Badging/Manifest, DEX-Nachweis, Python-APK-Archivcheck; keine Gerätemessung |
 | M04-06 | Classic & Overview: D-Pad zum VPN-Icon/OK, Status, fünf Navigationseinträge, Back, Fokus-Rückgabe und Activity-Recreation | `not_run`, keine Shield-/Emulator-Verbindung |
 | M04-07 | echte Konto-/Android-Permission-Abfrage, verweigerte Freigabe, Connect/Disconnect/Reconnect/Fehler | `not_run`, kein angeschlossenes Shield und keine Kontodaten |
 | M04-08 | Exit-IP/Standort laut Mullvad und extern prüfen, App-Wechsel/Home und Resume ohne Tunneltrennung, Reboot | `not_run`, echte Hardware erforderlich |
@@ -218,4 +218,4 @@ adb shell dumpsys connectivity
 # Back/Home/Appwechsel, Disconnect/Reconnect, gesperrte Permission, Neustart.
 ```
 
-**Abnahme derzeit `partial`**: M04-Quellimplementierung und Code-Review möglich; Build-/APK-/Shield-/Tunnel- und Fokus-Hardwareevidenz darf erst nach Ausführung `pass` erhalten.
+**Abnahme derzeit `partial`**: M04-Quellimplementierung **und CI-Build-/APK-Strukturnachweis `observed_ci_pass`** auf Code-Commit `389fe3a`. Shield-/Tunnel-/Exit-IP- und reale D-Pad-/Fokus-Hardwareevidenz sind weiterhin `not_run`; ohne Ausführung kein vollständiges `pass`. Artifact-Uploadgröße **120901828 Bytes** ist kein APK-Rohwert. Finaler Dokumentationscommit ändert keinen Buildcode.

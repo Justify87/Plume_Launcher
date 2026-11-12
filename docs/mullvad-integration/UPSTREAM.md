@@ -117,3 +117,5 @@ M03 ändert die normalen Mullvad-Original-Quelldateien **nicht**. Die generierte
 | `tools/mullvad/PlumeVpnDebugActivity.kt` | entfernt; keine Kopie mehr in `ossProdDebug` | M03-Testharness nicht als produktive UI ausliefern |
 
 **Originaler Mullvad-SHA bleibt `aa47f606b1a159214c7279344128119fa91be5fd`**; Original-Kotlin, Gradle, Rust, JNI, gRPC, VpnService und DI im Submodul: **0 lokale Änderungen**. Nur die beim Prepare regenerierten `ossProd`-Dateien weichen vom gepinnten Original-Buildbaum ab. Kein separates VPN-Paket, kein Original-App-Compose-Einstieg als Benutzeroberfläche. Geräteprüfung weiterhin `not_run`.
+
+**M04-Nachweis:** [GitHub Actions Run 43328844657](https://github.com/Justify87/Plume_Launcher/actions/runs/43328844657), Code-/Workflow-Commit `389fe3a12e639fed2d4590583c53b7b0654f620a`, `check=success`, `mullvad-apk=success` (Containerbuild + Manifest-/DEX-/JNI-/Relays-Checks). Artifact `Plume-Mullvad-ARM64-Debug-63`, Uploadgröße 120901828 Bytes (nicht APK-Rohgröße). Keine zusätzlichen Original-Mullvad-Quellpatches. Shield-/Exit-IP-/Tunnelabnahme weiterhin `not_run`.
