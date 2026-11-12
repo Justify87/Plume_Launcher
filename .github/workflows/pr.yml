@@ -32,6 +32,9 @@ jobs:
       - name: Spotify podcast feasibility unit tests (offline)
         run: python3 -m unittest discover -s tools -p 'test_spotify_podcast_probe.py' -v
 
+      - name: Mullvad staging-script tests (no SDK needed)
+        run: python3 -m unittest discover -s tools -p 'test_mullvad_prepare.py' -v
+
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
@@ -39,10 +42,18 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v5
 
-      - name: Unit tests, lint and release build
-        run: ./gradlew testDebugUnitTest assembleDebug lintDebug assembleRelease
+      - name: Plume unit tests and lint
+        run: ./gradlew testDebugUnitTest lintDebug
+
+      # In Mullvad integration PRs the real artifact is the combined APK below.
+      # Building the standalone launcher twice and comparing its release size
+      # does not validate that combined package.
+      - name: Legacy launcher APK builds (other PRs only)
+        if: ${{ !contains(github.head_ref, 'mullvad') }}
+        run: ./gradlew assembleDebug assembleRelease
 
       - name: APK size against the base branch
+        if: ${{ !contains(github.head_ref, 'mullvad') }}
         run: |
           now=$(stat -c %s app/build/outputs/apk/release/app-release.apk)
           git worktree add -q ../base "$BASE"
@@ -63,3 +74,11 @@ jobs:
           name: lint-report
           path: app/build/reports/lint-results-debug.html
           if-no-files-found: ignore
+
+  mullvad-apk:
+    # Same pinned containerized build as the manual integrated APK workflow.
+    # Preserve the fast Plume regressions in "check" above.
+    if: contains(github.head_ref, 'mullvad') && github.head_ref != 'feature/m01-mullvad-upstream-handoff'
+    uses: ./.github/workflows/debug-apk.yml
+    with:
+      variant: integrated

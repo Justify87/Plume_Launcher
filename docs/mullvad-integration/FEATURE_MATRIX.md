@@ -61,3 +61,12 @@ Quelle für **alle** Zeilen: `third_party/mullvadvpn-app/` bei SHA `aa47f606b1a1
 - Reine Smartphone-Darstellung (Map/Navigation, Compose-Hilfsbibliotheken, Animationen) wird **funktional** durch TV-Views ersetzt. Funktionen wie Android-TV-Quick-Tile oder App-Icon-Tarnung können OS-bedingt fehlen; in dem Fall `unsupported_on_device` mit Gerätebeleg statt `pass` dokumentieren.
 - `play`-Billing ist im gewählten **ossProd**-Flavour nicht verfügbar. Keine Play-Abrechnung oder andere nicht vorhandenen Flavour-Funktionen als erforderliche OSS-Parität ausgeben. Zahlung nur über im OSS-Original vorhandenen Pfad.
 - Keine Statusauswertung aus Build allein: `pass` verlangt Backend + nutzbare D-Pad-TV-UI bzw. explizite OS-Funktion + reale Testevidenz.
+
+
+## M02 — Funktionsstatus bleibt konservativ
+
+Der **Codeeinbindungspfad** für F05 (Rust/JNI/gRPC/Tunnelverwaltung), F04 (VpnService), F47 (Relay-Assets) und F48 (Plume-HOME-Einstieg) wurde im Staging beschrieben und als Build-Generator implementiert. Ohne erfolgreiches APK/Manifest/ABI/JNI-Tests gibt es **keine** nachgewiesene funktionierende Runtime, keinen Tunnel und keine Benutzeroberfläche. Alle 48 Funktionen behalten daher bewusst `not_started`. Buildquelle vorhanden ist nicht gleich Feature-Parität. M03 muss den blockierten Compile-Nachweis aus M02 zunächst berücksichtigen.
+
+## M02 build workflow change (12 November 2026)
+
+A shared manual/PR integrated APK build now uses the official pinned Mullvad Android toolchain image. This does not prove functional VPN parity: F01-F48 remain not_started pending an actual packaged APK and subsequent runtime/TV/Shield tests. Do not mark any feature as pass because source modules merely compile.

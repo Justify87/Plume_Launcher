@@ -65,3 +65,31 @@ Offiziell veröffentlichte **fremdgebaute** APK `MullvadVPN-2026.12.apk`: **39,0
 ## Lizenz / Attribution
 
 Mullvad: Root `LICENSE.md`, `Cargo.toml` `GPL-3.0-or-later`. Plume: Root `LICENSE` GPL-3.0. Original Copyright-/Lizenzhinweise, Third-Party-NOTICE-Dateien und korrespondierenden Source bei Weitergabe der kombinierten APK verfügbar halten; später im TV zugänglich machen. Markenzeichen/Logos nicht als offizielle Mullvad-App ausgeben. Dies ist Dokumentation, kein separater Lizenzcheck.
+
+
+## M02 — dokumentierte Staging-Patches (12.11.2026)
+
+Mullvad-Gitlink und **sämtliche originalen Mullvad-Kotlin-/Rust-Dateien bleiben unverändert**. Die folgenden Änderungen existieren ausschließlich in dem von tools/mullvad/prepare.py erzeugten Arbeitsbaum unter .build/:
+
+| Abgeleiteter Mullvad-Pfad | Patch im Staging | Begründung |
+| --- | --- | --- |
+| android/settings.gradle.kts | include(":plume-ui") | Original-Host um Plume-Library ergänzen |
+| android/app/build.gradle.kts | nur defaultConfig.applicationId auf dev.plume.advanced; zusätzlich implementation(project(":plume-ui")) | ein einziges APK |
+| android/plume-ui/build.gradle.kts (neu) | com.android.library aus Mullvads AGP-Katalog, namespace dev.plume, minSdk 28, compileSdk 37, Plume-ResValue | originale Plume-Views ohne neue Application |
+| android/plume-ui/src/main und src/test (neu) | Kopie der Original-Plume-Dateien, inklusive Ressourcen/Manifest | originale Plume-Kotlin-Quellen beibehalten |
+| android/app/src/ossProd/AndroidManifest.xml (neu) | Plume-Label/-Icons, Theme für Plume MainActivity, sechs Mullvad-Appicon-Aliasse mit tools:node=remove | ein sichtbarer TV-Launcher statt konkurrierender Mullvad-Start-Icons |
+| android/app/src/ossProd/res/values/plume_integration.xml (neu) | eigener Name Plume Launcher | keine globale Umbenennung von Mullvad-Strings |
+
+**Buildpfad:** `bash tools/mullvad/build-integrated.sh` baut im temporären Mullvad-Root `:app:assembleOssProdDebug`, bewahrt dessen Plugin-/Library-/Rust-Struktur, verwendet den **originalen Mullvad Gradle Wrapper 9.7.0**, AGP 9.3.1, Kotlin 2.4.10, SDK 37, JDK 21, NDK 27.3.13750724, Rust 1.97.1 und reicht Plumes versionCode/versionName weiter. Nur ARM64 ist bis zur Shield-ABI-Prüfung konfiguriert. Relay-Datei bleibt unter dist-assets/relays/relays.json; JNI-Output stammt wie upstream aus app/build/rustJniLibs/android und dem Cargo-Workspace target/.
+
+Die separate Plume-Baseline bleibt auf AGP 9.2.1, Gradle 9.4.1, compile/targetSdk 36, minSdk 26 und Java 17; Integration erfordert minSdk 28. Es gibt **keine** Patch-Dateien im Original-Git-Submodul. Der generierte Source-Diff muss nach jedem prepare-Lauf reproduzierbar sein.
+
+**Belegstatus:** Noch kein erfolgreicher nativer Build; kein geprüftes libmullvad_jni.so, kein geprüftes Relay-Asset im fertigen APK, keine tatsächliche APK-Größe. Die neu geschaffene Build-Pipeline ist **keine** Beweiskette für ein funktionierendes VPN.
+
+## M02 CI original-container adoption (12 November 2026)
+
+At the M01 pinned commit, Mullvad's .github/workflows/android-app.yml builds :app:assembleOssProdDebug via building/container-run.sh. The image is specified by digest in building/android-container-image.txt: ghcr.io/mullvad/mullvadvpn-app-build-android@sha256:ca22c11fb8a15321f897fa169c9c9d1f7d0d9edfeea16fa04af4de71ebcf4286.
+
+This image contains JDK 21, Android SDK 37.0, build-tools 37.0.0, NDK 27.3.13750724 and Rust 1.97.1 with Android targets, according to upstream android/docker/Dockerfile. The shared Plume wrapper runs the original android/gradlew, mounts generated Mullvad source under /build plus /cargo-target, Cargo registry and Gradle cache volumes, and passes Plume app ID/version through staged Gradle and existing version properties. It removes upstream's interactive -it requirement, uses Docker on GitHub-hosted Ubuntu (Podman supported via CONTAINER_RUNNER), targets ARM64, and limits Gradle/Cargo concurrency to fit the runner.
+
+No Mullvad repository source patch or upstream SHA change. Only CI orchestrator and staged Plume-integration overlays are modified. PR and manual APK generation share the same implementation in .github/workflows/debug-apk.yml. Previously documented host SDK/NDK/Rust manual setup is superseded for M02 integrated CI. The original standalone Mullvad build and actual Shield test remain unverified.
