@@ -2,64 +2,44 @@
 
 ```yaml
 schema: plume-mullvad-handoff/v1
-milestone: M03
+milestone: M04
 status: partial
 checked_on: "2026-11-13"
-target_repository: Justify87/Plume_Launcher
 main_head_at_start: 0daf26b271c94396ea4930a73fc7db2d3ee81ab9
 base_branch: feature/m01-mullvad-upstream-handoff
-base_sha: fdc982a9a36053a3b6c5a3d190ae90d65ab6536c
-predecessor_pr: 17
-predecessor_merge_sha: fdc982a9a36053a3b6c5a3d190ae90d65ab6536c
-feature_branch: feature/m03-mullvad-real-service
-m03_source_commit: a5aea96b143d971a9096a04ecfc8411821c57470
-m03_pr: 18
+base_sha: 6c857cecd3f022a524c62f17ffddb94d0233b202
+predecessor_pr: 18
+predecessor_merge_sha: 6c857cecd3f022a524c62f17ffddb94d0233b202
+feature_branch: feature/m04-mullvad-tv-vpn-home
 upstream_tag: android/2026.12
 upstream_sha: aa47f606b1a159214c7279344128119fa91be5fd
 upstream_gitlink_unchanged: true
-m02_integrated_ci: observed_pass
-m02_ci_run: 43314187927
-m03_integrated_ci: observed_ci_pass
-m03_integrated_ci_run: 43323559922
-m03_ci_for_focus_fix: observed_ci_pass
-m03_ci_for_focus_fix_run: 43323559922
-m03_apk_artifact: Plume-Mullvad-ARM64-Debug-60
-m03_ci_first_failure: deprecated_android_system_ui_flags
-m03_ci_first_failure_run: 43319030884
-m03_runtime_test: not_run
-m03_shield_test: not_run
-production_vpn_ui: false
+production_vpn_ui: implemented_source
+m04_integrated_ci: pending
+m04_shield_test: not_run
+m04_live_vpn_test: not_run
 ```
 
-## Aktuelle Git-/Build-Fakten
+## Grundlage
 
-- M01 wurde als PR #16 nach `main` gemergt; `main` war zu M03-Beginn `0daf26b`.
-- M02 PR #17 wurde **in den noch vorhandenen M01-Feature-Branch** gemergt, nicht direkt nach `main`. Deshalb ist der tatsächliche M03-Ausgangspunkt `fdc982a` auf `feature/m01-mullvad-upstream-handoff`; kein Rebuild auf altem `main`.
-- M02 CI [Run 43314187927](https://github.com/Justify87/Plume_Launcher/actions/runs/43314187927): Plume-Checks und kombinierter ARM64-APK-Build erfolgreich, einschließlich `check_apk.py`, `aapt`-Paket-/Manifestprüfung und Artifact-Upload. **Das ist ein struktureller APK-Nachweis, kein Gerätetunneltest.**
-- Vollständiger Original-Mullvad-Submodulstand bleibt auf `aa47f606b1a159214c7279344128119fa91be5fd`; einzig generierte Dateien unter `.build/` werden ergänzt.
+- `main` enthält zum M04-Start nur M01. M02 (#17, Merge `fdc982a`) und M03 (#18, Merge `6c857ce`) wurden in `feature/m01-mullvad-upstream-handoff` gestapelt; **M04 basiert auf diesem Branch**, nicht auf altem `main`.
+- M03: CI [43323559922](https://github.com/Justify87/Plume_Launcher/actions/runs/43323559922) **observed_ci_pass** (APK inklusive original Mullvad-Rust/JNI, DEX, Manifest, Plume-Tests). Kein Gerätetest oder bestätigter VPN-Tunnel.
+- Upstream-Submodul unverändert `aa47f606b1a159214c7279344128119fa91be5fd`; die einzige Anwendung bleibt `dev.plume.advanced`.
 
-## M03-Code und reale Schnittstellen
+## M04-Implementierung
 
-- `tools/mullvad/prepare.py` kopiert `PlumeVpnDebugActivity.kt` nur nach `android/app/src/ossProdDebug/kotlin/...` und registriert sie nur im `ossProdDebug`-Manifest.
-- Die Debug-Activity ist **eine native Android-View-Activity** im bestehenden Mullvad-`:app`-Host. Sie verwendet unverändert `MullvadApplication` und Koin-`appModule`, `ServiceConnectionManager`, `AccountRepository.login(AccountNumber)`, `ConnectionProxy.connect()/disconnect()/reconnect()` und `ManagementService.connectionState/tunnelState/deviceState`.
-- Der sichtbare Plume-Top-Bar-Zugang **VPN** erscheint nur, wenn diese Debug-Activity im **gleichen Paket** installiert ist. Daher weder ein zweites Launcher-Icon noch eine zweite Android-Application; in standalone Plume / Release bleibt der Zugang unsichtbar. Gilt für Classic und Overview.
-- Android `VpnService.prepare()` fragt über den **echten Systemdialog** die Berechtigung an. Ablehnung löst keinen Connect aus. `ConnectionProxy.connect()` führt zusätzlich Mullvads originale Prüfungen aus.
-- Nach dem Verlassen der TV-VPN-Activity ruft Plumes `MainActivity.onStop()` weder VPN-Disconnect noch Daemon-Stop auf. Der Test-Harness unbindet erst bei eigener Zerstörung; der Originaldienst hat `stopWithTask=false` und verwaltet sein VPN-Systembinding selbst.
-- Originale Mullvad-Kotlin-/Rust-/JNI-/gRPC-/Service-Dateien **nicht verändert**. Die ursprünglichen Mullvad-Boot- und Notifications-Komponenten bleiben im Hostmanifest. Kein Konto hardcodiert; kein eigener Tunnel-Stack.
+- `tools/mullvad/VpnActivity.kt`: eigene native Android-TV-Activity im abgeleiteten Mullvad-OSS/Prod-Host, für Debug **und** Release. Direkte Koin-/ManagementService-Flows, `ConnectionProxy`, `AccountRepository`, echte `VpnService.prepare`-Freigabe; niemals ein alternativer Tunnelstack oder persistierter VPN-Status.
+- D-Pad-Navigation: linke Fünfer-Navigation, rechte Inhaltsfläche, Fokusrahmen, OK, Back (Unterseite → Status → Launcher), SavedInstanceState für geöffnete Seite; Kontoanmeldung aus M03 übernommen. Standorte/VPN-Einstellungen und nicht integrierte Diagnosefunktionen explizit markiert.
+- Plumes gemeinsame obere Leiste öffnet VPN in Classic und Overview. Eigenes Symbol am rechten Ende, ohne `TOP_KEYS`-/`top_bar`-Präferenzen zu verändern; Fokus-Rückgabe bei Back. Standalone Plume blendet den Einstieg bei fehlender Komponente aus.
+- Der temporäre Debug-Harness ist aus der Staging-APK entfernt (alte Datei im Repository gelöscht). Ursprünglicher Mullvad-VPN-Service bleibt autonom; Activity-`onDestroy` unbindet ohne Disconnect.
+- Mullvad-Originaldateien: **keine geändert**; ausschließlich generierte Overlay-/Staging-Ergänzungen, siehe `UPSTREAM.md`.
 
-## Evidenz und Grenzen
+## Ausführung / nachgewiesene Grenzen
 
-- M03-Änderungen: Quellcode implementiert und integrierter Plume-/Mullvad-ARM64-Build inklusive Kotlin, Rust/JNI, Manifest, DEX und Staging-Tests per CI nachgewiesen ([Run 43323559922](https://github.com/Justify87/Plume_Launcher/actions/runs/43323559922)). Die **Runtime-/Shield-/Tunnel-/D-Pad-Gerätetests sind weiterhin `not_run`**; deshalb bleibt M03 insgesamt `partial`.
-- Android SDK/NDK, Rust/Cargo und ADB stehen in der ausführenden Arbeitsumgebung nicht vollständig zur Verfügung. Keine angeschlossene Shield und keine Mullvad-Kontodaten.
-- Original Compose-MainActivity bleibt im Host enthalten, aber ohne Smartphone-Launcher-Alias. M04/M05 müssen Debug-Harness durch produktive TV-Oberflächen ersetzen.
+- Der Arbeitscontainer hat keinen DNS-Zugriff zu GitHub für Git-Clone und keinen vollständigen Android SDK/NDK/Rust-/ADB-Gerätezugang. Build, Kotlin-Compile und Shield-Tunnel können hier nicht lokal behauptet werden.
+- Prüfen: `python3 -m unittest discover -s tools -p test_mullvad_prepare.py -v`, `./gradlew testDebugUnitTest lintDebug`, `bash tools/mullvad/build-integrated.sh`, `python3 tools/mullvad/check_apk.py <apk>`; CI-Ausgang steht in `TEST_MATRIX.md`.
+- M04 bleibt `partial` bis APK-Compile, Connected-/Reconnect-/Permission- und tatsächliche Shield-D-Pad-/Exit-IP-Prüfung erfolgreich sind.
 
-## M04-Handoff
+## Handoff M05
 
-Nach grünem M03-Compile (CI bestätigt) und dem noch ausstehenden Shield-Test die Debug-Activity durch eine produktive Plume-VPN-Activity ersetzen; Top-Bar-Einstieg dauerhaft machen. **Nicht** die UI-Harness-Klasse als VPN-Engine übernehmen. Wiederverwendbare APIs: `AccountRepository.login`, `ConnectionProxy.connect/disconnect/reconnect`, `ManagementService`-Flows, `ServiceConnectionManager.bind/unbind` sowie `VpnService.prepare`. Die Service-Bindung ist Activity-unabhängig zu halten. Testkommandos und offene Fälle stehen in `TEST_MATRIX.md`.
-
-## M03-Folgeprüfung nach grünem Build (12.11.2026)
-
-- [Run 43320664681](https://github.com/Justify87/Plume_Launcher/actions/runs/43320664681): **pass_observed** für Plume/Unit/Lint, kombinierten ARM64-Gradle-/Rust-/JNI-APK-Build und die APK-/Manifest-/DEX-Prüfungen (einschließlich `PlumeVpnDebugActivity`). GitHub-Artifact `Plume-Mullvad-ARM64-Debug-58` vorhanden. Das ist kein Schild-/Tunnelnachweis.
-- Im Quellreview danach wurde ein echter **D-Pad-Folgefehler** gefunden: `homeNav` und `overviewNav` blockierten DPAD_RIGHT noch am letzten alten Top-Bar-Symbol, sodass der dynamisch angehängte VPN-Eintrag nicht zuverlässig erreichbar gewesen wäre.
-- Behebung im Commit `0ceae7e15e1cf4a90808218a1eec91354d0b4ebc`: rechtes Top-Bar-Ende berücksichtigt den sichtbaren VPN-Eintrag; der Eintrag wird nach vorhandenen Top-Bar-Symbolen eingesetzt, behält Fokus bei Neuzeichnung und aktualisiert `lastTop`. Die ursprüngliche rechte Begrenzung bleibt ohne Debug-Harness erhalten.
-- Abschließender CI-Lauf nach UI-/Fokus-Fix: [Run 43323559922](https://github.com/Justify87/Plume_Launcher/actions/runs/43323559922) auf `00eddf1` **success**, beide relevanten Jobs grün. Artifact `Plume-Mullvad-ARM64-Debug-60` (Upload-Größe 120884259 Bytes, nicht die rohe APK-Größe). D-Pad, Konto, echte Tunnelverbindung und Exit-IP bleiben bis zum Gerätetest `not_run`.
+Nächster Meilenstein: **Standortauswahl aus den originalen Mullvad-Relay-Repositories** in die bereits vorhandene `Standorte`-Detailseite einbinden. Keine Fake-Relays, keine neue VPN-Engine; F06–F08 auf gepinnten Original-APIs umsetzen. Fokus, Back, bestehende Verbindung und D-Pad auf Shield erneut testen. `TEST_MATRIX.md` mit echtem Gerätebeleg ergänzen.

@@ -187,3 +187,35 @@ Die Debug-Test-Activity ist `exported=false`; ADB-Shell-Direktstarts können je 
 - Gezielter Fix `0ceae7e15e1cf4a90808218a1eec91354d0b4ebc`: rechter Rand wird aus dem tatsächlich sichtbaren VPN-Eintrag oder dem letzten originalen Symbol ermittelt; der VPN-Eintrag bleibt bei Top-Bar-Refresh angehängt und markiert `lastTop` beim Fokus.
 - Kotlin-Warnungen im erfolgreichen Log: `Gallery.kt:259/260` nutzen expression body und return ohne expliziten Typ; laut Compiler **erst in Kotlin 2.5** ein Fehler. Der eingefrorene Upstream nutzt Kotlin 2.4.10; kein Anlass für ungefragte Migration/Refactoring in M03. Weitere harmlose Plume-Warnungen in `MainActivity.kt` 3269, 4453, 4561. **Kein** JVM-/Kotlin-weiter systematischer Ausfall im aktuellen Build nachgewiesen.
 - CI nach Fokus-Fix: [Run 43323559922](https://github.com/Justify87/Plume_Launcher/actions/runs/43323559922), Commit `00eddf11f84c5418f911d9d61caacbd141881fdf`, **success** für `check` und `mullvad-apk`; Staging-, Gradle-, Rust/JNI-, Manifest- und DEX-Prüfung erfolgreich. Artifact `Plume-Mullvad-ARM64-Debug-60`, **120884259 Bytes** Artifact-Upload (nicht rohe APK). Physischer Classic-/Overview-D-Pad-Test, Systemdialog, Konto, Exit-IP und Tunnelstatus weiterhin `not_run`.
+
+## M04 — neue Tests / Abnahme (13.11.2026)
+
+| ID | Prüfung | Ergebnis / Beleg |
+| --- | --- | --- |
+| M04-01 | Quell- und Branchprüfung: M03 in `feature/m01-mullvad-upstream-handoff` bei `6c857ce`, Original-Gitlink gleich `aa47f606` | `pass`: GitHub API, PR #17/#18 merged in gestapelten Branch; `main` noch bei `0daf26b` |
+| M04-02 | `python3 -m unittest discover -s tools -p test_mullvad_prepare.py -v` | `not_run` lokal; CI-Ergebnis nach PR prüfen |
+| M04-03 | `./gradlew testDebugUnitTest lintDebug`, `sh tools/plume-install-test/run.sh` | `not_run` für M04; M03-CI war `observed_ci_pass` |
+| M04-04 | `bash tools/mullvad/build-integrated.sh` / Original-Container, `check_apk.py` | `not_run` für M04; kein neuer Build-/APK-Anspruch vor CI |
+| M04-05 | APK-Manifest: `VpnActivity` vorhanden, `PlumeVpnDebugActivity` abwesend, ein HOME-/Leanback-Einstieg, MullvadVpnService und `libmullvad_jni.so` | `not_run`; CI und `aapt dump xmltree` / DEX prüfen |
+| M04-06 | Classic & Overview: D-Pad zum VPN-Icon/OK, Status, fünf Navigationseinträge, Back, Fokus-Rückgabe und Activity-Recreation | `not_run`, keine Shield-/Emulator-Verbindung |
+| M04-07 | echte Konto-/Android-Permission-Abfrage, verweigerte Freigabe, Connect/Disconnect/Reconnect/Fehler | `not_run`, kein angeschlossenes Shield und keine Kontodaten |
+| M04-08 | Exit-IP/Standort laut Mullvad und extern prüfen, App-Wechsel/Home und Resume ohne Tunneltrennung, Reboot | `not_run`, echte Hardware erforderlich |
+
+**Geräteabnahme (erst nach erfolgreichem M04-CI):**
+```bash
+git checkout feature/m04-mullvad-tv-vpn-home
+git submodule update --init --recursive
+python3 -m unittest discover -s tools -p test_mullvad_prepare.py -v
+bash tools/mullvad/build-integrated.sh
+adb devices -l
+adb shell getprop ro.product.cpu.abilist
+adb install -r <integrated-debug.apk>
+adb shell am start -n dev.plume.advanced/dev.plume.MainActivity
+# VPN-Icon per D-Pad in Classic und Overview öffnen. Konto/Permission/Connect auf TV.
+adb logcat -d -s AndroidRuntime MullvadVpnService MullvadDaemon
+adb shell dumpsys connectivity
+# Zusätzlich in einer Browser-App auf dem TV tatsächliche Exit-IP prüfen,
+# Back/Home/Appwechsel, Disconnect/Reconnect, gesperrte Permission, Neustart.
+```
+
+**Abnahme derzeit `partial`**: M04-Quellimplementierung und Code-Review möglich; Build-/APK-/Shield-/Tunnel- und Fokus-Hardwareevidenz darf erst nach Ausführung `pass` erhalten.

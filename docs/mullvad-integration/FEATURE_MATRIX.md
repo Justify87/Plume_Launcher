@@ -6,12 +6,12 @@ Quelle für **alle** Zeilen: `third_party/mullvadvpn-app/` bei SHA `aa47f606b1a1
 
 | ID | Upstream-Nutzfunktion / Originalpfad oder Original-API | Vorgesehene Plume-TV-Anbindung | Status |
 | --- | --- | --- | --- |
-| F01 | VPN verbinden, trennen, erneut verbinden; `app/service/MullvadVpnService.kt`, `lib/repository/ConnectionProxy.kt` | VPN-Startseite | not_started |
-| F02 | Echtzeit-Tunnelstatus, Fehlzustände, Reconnect; `lib/grpc/ManagementService.kt`, `lib/model` | VPN-Startseite/Status | not_started |
-| F03 | VPN-Systemfreigabe / Rechte-Dialog; `app/MainActivity.kt`, `app/service/MullvadVpnService.kt` | VPN-Ersteinrichtung | not_started |
-| F04 | Hintergrundbetrieb, Foreground-Notification, System-Revoke; `app/service/MullvadVpnService.kt`, `app/service/notifications` | OS + Status | not_started |
-| F05 | Rust-Daemon/JNI/Talpid/gRPC-/Management-IPC; `../mullvad-jni`, `../mullvad-daemon`, `../mullvad-management-interface`, `lib/talpid`, `lib/grpc` | interne Originalruntime | not_started |
-| F06 | Relay-Land/Stadt/Serverauswahl und Suche; `lib/feature/location/impl`, `lib/repository/RelayListRepository.kt` | Serverauswahl | not_started |
+| F01 | VPN verbinden, trennen, erneut verbinden; `app/service/MullvadVpnService.kt`, `lib/repository/ConnectionProxy.kt` | VPN-Startseite | partial |
+| F02 | Echtzeit-Tunnelstatus, Fehlzustände, Reconnect; `lib/grpc/ManagementService.kt`, `lib/model` | VPN-Startseite/Status | partial |
+| F03 | VPN-Systemfreigabe / Rechte-Dialog; `app/MainActivity.kt`, `app/service/MullvadVpnService.kt` | VPN-Ersteinrichtung | partial |
+| F04 | Hintergrundbetrieb, Foreground-Notification, System-Revoke; `app/service/MullvadVpnService.kt`, `app/service/notifications` | OS + Status | partial |
+| F05 | Rust-Daemon/JNI/Talpid/gRPC-/Management-IPC; `../mullvad-jni`, `../mullvad-daemon`, `../mullvad-management-interface`, `lib/talpid`, `lib/grpc` | interne Originalruntime | partial |
+| F06 | Relay-Land/Stadt/Serverauswahl und Suche; `lib/feature/location/impl`, `lib/repository/RelayListRepository.kt` | Serverauswahl | partial |
 | F07 | Relay-Filter, Anbieter, Besitztyp; `lib/feature/filter/impl`, `lib/repository/RelayListFilterRepository.kt`, `lib/usecase/ProviderToOwnershipsUseCase.kt` | Filterdialog | not_started |
 | F08 | Zuletzt verwendete Standorte/Server; `lib/usecase/RecentsUseCase.kt` | Serverauswahl | not_started |
 | F09 | Benutzerdefinierte Standortlisten bearbeiten/löschen; `lib/feature/customlist/impl`, `lib/repository/CustomListsRepository.kt` | Standortlisten | not_started |
@@ -82,3 +82,10 @@ A shared manual/PR integrated APK build now uses the official pinned Mullvad And
 | F48 | Native Android-View-Activity, sichtbarer VPN-Knopf in Classic und Overview (Debug-Variante) | `partial`: D-Pad und Fokus nicht am TV getestet |
 
 **Wichtig:** Die bestehenden Zeilen F01–F48 bleiben bis zur echten Geräte- und UI-Prüfung unverändert konservativ. M03 implementiert einen Testzugang, **keine** produktive Feature-Parität.
+
+## M04-Statuspräzisierung (2026-11-13)
+
+- **F01–F03 `partial`:** Produktive TV-Statusanzeige mit Original-`ConnectionProxy`, `ManagementService` und `VpnService.prepare` als Quellimplementierung; CI-/Shield-Tunnel noch offen, **nicht `pass`**.
+- **F04/F05 `partial`:** unabhängiger Original-`MullvadVpnService` mit originalem Rust/JNI/gRPC strukturell im Vorgänger-CI geprüft; Prozess- und Tunnel-Laufzeit nach Home/Back auf Shield **nicht** geprüft.
+- **F26 `partial`:** bestehende Kontonummer-Anmeldung über originales `AccountRepository` in eigener Konto-Ansicht; Gerätelogin/Anmeldefehler noch ohne Endgerät-Prüfung.
+- **F06–F25/F27–F48** soweit nicht separat dokumentiert bleiben `not_started`; `Standorte`, `VPN-Einstellungen` und große Teile der `Diagnose` sind ausdrücklich Navigations-Shells. Kompilieren und UI-Shell allein begründen keine vollständige Parität.

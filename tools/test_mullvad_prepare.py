@@ -17,7 +17,9 @@ class PreparationTests(unittest.TestCase):
         xml = prepare.overlay_manifest()
         app = ET.fromstring(xml).find("application")
         self.assertEqual(len(app.findall("activity-alias")), 6)
-        self.assertEqual(len(app.findall("activity")), 0)
+        self.assertEqual(len(app.findall("activity")), 1)
+        self.assertEqual(app.find("activity").get("{http://schemas.android.com/apk/res/android}name"),
+                         "net.mullvad.mullvadvpn.app.VpnActivity")
         self.assertIn('tools:node="remove"', xml)
 
     def test_plume_library_manifest_keeps_home_but_not_app_theme(self):
@@ -52,15 +54,24 @@ class PreparationTests(unittest.TestCase):
         self.assertEqual(app.get(android + "icon"), "@drawable/ic_launcher_advanced")
         self.assertEqual(app.get(android + "roundIcon"), "@drawable/ic_launcher_advanced")
         self.assertEqual(app.get(android + "banner"), "@drawable/banner")
-        harness = app.find("activity")
-        self.assertIsNotNone(harness)
-        self.assertEqual(harness.get(android + "name"),
-                         "net.mullvad.mullvadvpn.app.PlumeVpnDebugActivity")
-        self.assertEqual(harness.get(android + "exported"), "false")
+        self.assertIsNone(app.find("activity"))  # no duplicate debug-only entry
         replaced = set(app.get(tools + "replace").split(","))
         self.assertEqual(replaced, {
             "android:label", "android:icon", "android:roundIcon", "android:banner"
         })
+
+    def test_tv_navigation_is_explicit_and_original_service_is_reused(self):
+        kotlin = (prepare.ROOT / "tools/mullvad/VpnActivity.kt").read_text()
+        for name in ("Status", "Standorte", "Konto", "VPN-Einstellungen", "Diagnose"):
+            self.assertIn('"' + name + '"', kotlin)
+        for api in ("management.tunnelState.collect", "management.connectionState.collect",
+                    "connection.connect()", "connection.disconnect(", "connection.reconnect()",
+                    "VpnService.prepare(this)", "serviceBinding.bind()"):
+            self.assertIn(api, kotlin)
+        self.assertNotIn("PlumeVpnDebugActivity", kotlin)
+        main = (prepare.ROOT / "app/src/main/java/dev/plume/MainActivity.kt").read_text()
+        self.assertIn("net.mullvad.mullvadvpn.app.VpnActivity", main)
+        self.assertIn("refreshVpnEntry()", main)
 
     def test_prepare_isolation_and_single_application(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -88,7 +99,9 @@ class PreparationTests(unittest.TestCase):
                 self.assertIn('net.mullvad.mullvadvpn', (upstream / "android/app/build.gradle.kts").read_text())
                 self.assertTrue((generated / "plume-ui/src/main/AndroidManifest.xml").exists())
                 self.assertTrue((generated / "app/src/ossProdDebug/AndroidManifest.xml").exists())
-                self.assertTrue((generated / "app/src/ossProdDebug/kotlin/net/mullvad/mullvadvpn/app/PlumeVpnDebugActivity.kt").exists())
+                self.assertTrue((generated / "app/src/ossProd/kotlin/net/mullvad/mullvadvpn/app/VpnActivity.kt").exists())
+                self.assertFalse((generated / "app/src/ossProdDebug/kotlin/net/mullvad/mullvadvpn/app/PlumeVpnDebugActivity.kt").exists())
+                self.assertIn("VpnActivity", (generated / "app/src/ossProd/AndroidManifest.xml").read_text())
                 staged_manifest = (generated / "plume-ui/src/main/AndroidManifest.xml").read_text()
                 self.assertIn("android.intent.category.HOME", staged_manifest)
                 self.assertNotIn("android:theme=\"@android:style/Theme.DeviceDefault.NoActionBar\"\n", staged_manifest.split("<application", 1)[1].split(">", 1)[0])

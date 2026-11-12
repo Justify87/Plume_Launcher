@@ -106,3 +106,14 @@ Der Pin `android/2026.12` / `aa47f606b1a159214c7279344128119fa91be5fd` bleibt id
 | `tools/test_mullvad_prepare.py` | Prüft Staging-Quelle und Debug-Manifest-Eintrag | isolierten Release-/Debug-Pfad sicherstellen |
 
 M03 ändert die normalen Mullvad-Original-Quelldateien **nicht**. Die generierte Debug-Activity gehört zum existierenden Mullvad-Host und nutzt dessen Originalmodule, statt eigenen WireGuard-/gRPC-Code zu erzeugen. M04/M05 entfernen/ersetzen den Harness.
+
+## M04 — produktive TV-Oberfläche ohne Upstream-Diff (13.11.2026)
+
+| Plume-Datei | Staging-Pfad / Änderung | Grund |
+| --- | --- | --- |
+| `tools/mullvad/VpnActivity.kt` | `android/app/src/ossProd/kotlin/net/mullvad/mullvadvpn/app/VpnActivity.kt` (neu) | native Plume-TV-UI nutzt die **originalen** ManagementService-/Repository-/VPN-Service-Schnittstellen |
+| `tools/mullvad/prepare.py` | `android/app/src/ossProd/AndroidManifest.xml` registriert VpnActivity; Debug-Overlay behält nur Branding | dieselbe UI in kombinierten Debug/Release-Varianten |
+| `app/src/main/java/dev/plume/MainActivity.kt` und `res/drawable/ic_vpn.xml` | als `:plume-ui` im Staging | dauerhafter Classic-/Overview-Einstieg, gespeicherte Topbar unberührt |
+| `tools/mullvad/PlumeVpnDebugActivity.kt` | entfernt; keine Kopie mehr in `ossProdDebug` | M03-Testharness nicht als produktive UI ausliefern |
+
+**Originaler Mullvad-SHA bleibt `aa47f606b1a159214c7279344128119fa91be5fd`**; Original-Kotlin, Gradle, Rust, JNI, gRPC, VpnService und DI im Submodul: **0 lokale Änderungen**. Nur die beim Prepare regenerierten `ossProd`-Dateien weichen vom gepinnten Original-Buildbaum ab. Kein separates VPN-Paket, kein Original-App-Compose-Einstieg als Benutzeroberfläche. Geräteprüfung weiterhin `not_run`.

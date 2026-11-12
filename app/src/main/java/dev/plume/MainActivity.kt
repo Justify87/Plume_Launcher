@@ -534,6 +534,12 @@ class MainActivity : Activity() {
             return
         }
         resumed = true
+        if (returnFocusFromVpn) {
+            ui.post {
+                vpnEntry?.takeIf { it.isShown && it.isAttachedToWindow }?.requestFocus()
+                returnFocusFromVpn = false
+            }
+        }
         val allAppsRequested = intent.getBooleanExtra(Remap.OPEN_ALL_APPS, false)
         if (currentWallpaper().startsWith("video:")) videoWallpaper.resume()
         returnTo = null // back by another way than Home: the next Home starts again at the first tile
@@ -4605,59 +4611,66 @@ class MainActivity : Activity() {
     private val TOP_KEYS = linkedMapOf(R.id.wifi to "wifi", R.id.sourcesButton to "sources", R.id.allAppsButton to "apps",
         R.id.systemSettings to "system", R.id.launcherSettings to "plume", R.id.powerButton to "power")
 
-    /** Temporary M03 entry. Visible only when the combined Debug APK declares its test activity. */
-    private var vpnDebugEntry: TextView? = null
+    /** Integrated APK only: standalone Plume has no Mullvad host Activity. */
+    private var vpnEntry: TextView? = null
+    private var returnFocusFromVpn = false
 
-    /** VPN is the rightmost button in the combined Debug APK; otherwise keep Plume's original edge. */
+    /** VPN is appended after the user's existing configured (and possibly hidden) icons. */
     private fun atRightTopBarEdge(v: View): Boolean =
-        (vpnDebugEntry?.takeIf { it.isShown && it.isAttachedToWindow }
+        (vpnEntry?.takeIf { it.isShown && it.isAttachedToWindow }
             ?: findViewById<View>(shownTop().last())) === v
 
-    private fun refreshVpnDebugEntry() {
-        val activity = ComponentName(packageName,
-            "net.mullvad.mullvadvpn.app.PlumeVpnDebugActivity")
+    private fun refreshVpnEntry() {
+        val activity = ComponentName(packageName, "net.mullvad.mullvadvpn.app.VpnActivity")
         try {
             packageManager.getActivityInfo(activity, 0)
         } catch (_: PackageManager.NameNotFoundException) {
-            vpnDebugEntry?.let { (it.parent as? ViewGroup)?.removeView(it) }
-            vpnDebugEntry = null
+            vpnEntry?.let { (it.parent as? ViewGroup)?.removeView(it) }
+            vpnEntry = null
             return
         }
         val bar = wifi.parent as LinearLayout
-        val entry = vpnDebugEntry ?: TextView(this).apply {
+        val entry = vpnEntry ?: TextView(this).apply {
             text = "VPN"
             textSize = 16f
             gravity = Gravity.CENTER
-            contentDescription = "Mullvad VPN"
+            contentDescription = "Mullvad VPN öffnen"
             isFocusable = true
             isClickable = true
-            setOnClickListener { startActivity(Intent().setComponent(activity)) }
-            setOnFocusChangeListener { _, focused ->
-                if (focused) lastTop = this
+            setCompoundDrawablesWithIntrinsicBounds(R.drawable.ic_vpn, 0, 0, 0)
+            compoundDrawablePadding = dp(6)
+            setOnClickListener {
+                returnFocusFromVpn = true
+                try { startActivity(Intent().setComponent(activity)) }
+                catch (_: ActivityNotFoundException) { returnFocusFromVpn = false; toast("VPN nicht verfügbar") }
+            }
+            setOnFocusChangeListener { view, focused ->
+                if (focused) lastTop = view
                 setTextColor(if (focused) Color.WHITE else fg)
+                compoundDrawableTintList = ColorStateList.valueOf(if (focused) Color.WHITE else fg)
                 background = GradientDrawable().apply {
                     cornerRadius = dp(12).toFloat()
                     setColor(if (focused) 0xFF266B89.toInt() else 0x66000000)
                     setStroke(dp(2), if (focused) Color.WHITE else 0x55667788)
                 }
             }
-        }.also { vpnDebugEntry = it }
-        // Reparenting a focused View on every top-bar refresh drops D-pad focus.
-        if (entry.parent === bar) {
-            if (!entry.isFocused) entry.setTextColor(fg)
+        }.also { vpnEntry = it }
+        // Stable attachment avoids losing DPAD focus on theme/toolbar refreshes.
+        if (entry.parent === bar && bar.indexOfChild(entry) == bar.childCount - 1) {
+            if (!entry.isFocused) {
+                entry.setTextColor(fg)
+                entry.compoundDrawableTintList = ColorStateList.valueOf(fg)
+            }
             return
         }
+        val focused = entry.isFocused
         (entry.parent as? ViewGroup)?.removeView(entry)
-        val anchor = findViewById<View>(shownTop().lastOrNull() ?: R.id.launcherSettings)
-        val index = (bar.indexOfChild(anchor) + 1).coerceIn(0, bar.childCount)
-        bar.addView(entry, index, LinearLayout.LayoutParams(dp(72), dp(48)).apply {
+        bar.addView(entry, LinearLayout.LayoutParams(dp(104), dp(48)).apply {
             marginStart = dp(8)
         })
         entry.setTextColor(fg)
-        entry.background = GradientDrawable().apply {
-            cornerRadius = dp(12).toFloat()
-            setColor(0x66000000)
-        }
+        entry.compoundDrawableTintList = ColorStateList.valueOf(fg)
+        if (focused) entry.requestFocus()
     }
 
     private var movingTop: View? = null // the icon being moved, while Left and Right slide it
@@ -4693,7 +4706,7 @@ class MainActivity : Activity() {
         // Taking the focused icon out passed focus on, down to the empty app row's scroller on a cold start, and
         // then the first fill of the row did not take it. Give it back to the bar.
         focused?.let { (if (it.visibility == View.VISIBLE) it else findViewById(shown.first())).requestFocus() }
-        refreshVpnDebugEntry()
+        refreshVpnEntry()
     }
 
     private fun saveTopOrder(order: List<Int>) {

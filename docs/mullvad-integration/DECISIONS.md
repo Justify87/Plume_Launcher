@@ -69,3 +69,10 @@ Die Steuerung ist strikt an `ServiceConnectionManager` und `ConnectionProxy` sow
 ## M03-Code-Review: D-Pad-Grenze bei zusätzlichem Debug-Zugang (12.11.2026)
 
 Im ersten M03-Entwurf war der VPN-Eintrag als zusätzliche View außerhalb von `TOP_KEYS` angehängt worden. Die beiden bestehenden Navigationsmodi hielten jedoch den letzten alten `TOP_KEYS`-Button für die rechte Fokusgrenze. Entscheidung: Keine neue konfigurierbare Top-Bar-Architektur und keine zusätzliche Persistenz für den **temporären** Debug-Harness. Stattdessen nutzt `atRightTopBarEdge` den aktuell sichtbaren Debug-VPN-Button als rechten Rand und fällt sonst auf den historischen Rand zurück. Existierende dynamische VPN-View wird nicht bei jeder Top-Bar-Aktualisierung ab-/wieder angehängt. Das minimiert Seiteneffekte in Classic/Overview.
+
+## M04 — A08: TV-Activity im vorhandenen Original-Host
+
+- Die zuvor debug-only registrierte Harness-Activity wird durch `net.mullvad.mullvadvpn.app.VpnActivity` im **`ossProd`-SourceSet** ersetzt. Das Plume-:plume-ui-Modul könnte die originalen Mullvad-Koin-/gRPC-Abhängigkeiten nicht ohne zusätzliche API-Abstraktion ansprechen; die direkte View-Activity im abgeleiteten Host ist konservativer und hält den Upstream unverändert.
+- Das Plume-Toppanel erkennt die vorhandene Host-Activity nur über `PackageManager` und öffnet sie explizit im eigenen Paket. Ein zusätzliches Icon rechts vom vorhandenen, frei sortierbaren `TOP_KEYS`-Set ist gewollt: **keine** Migration oder Löschung gespeicherter `top_bar`-Werte; gleicher Einstieg in Classic/Overview.
+- Der UI-Status ist ausschließlich die letzte In-Memory-Ausgabe der Original-`ManagementService`-Flows. Bei nicht bereitem Daemon wird kein alter Tunnelstatus als live dargestellt. Die Activity darf den System-VPN-Zustimmungsdialog starten, aber den Tunnel bei Back/Home nicht beenden.
+- Navigations-Shell für spätere Meilensteine: `Status`, `Standorte`, `Konto`, `VPN-Einstellungen`, `Diagnose`. Noch fehlende Funktionsflächen tragen einen klaren Hinweis; keine Demo-Daten oder Umleitungen auf die Mullvad-Smartphone-Compose-UI.
