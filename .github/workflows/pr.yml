@@ -32,6 +32,9 @@ jobs:
       - name: Spotify podcast feasibility unit tests (offline)
         run: python3 -m unittest discover -s tools -p 'test_spotify_podcast_probe.py' -v
 
+      - name: Mullvad staging-script tests (no SDK needed)
+        run: python3 -m unittest discover -s tools -p 'test_mullvad_prepare.py' -v
+
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
@@ -63,3 +66,62 @@ jobs:
           name: lint-report
           path: app/build/reports/lint-results-debug.html
           if-no-files-found: ignore
+
+  mullvad-apk:
+    # This large Rust/JNI job is specific to the Plume×Mullvad integration,
+    # not a replacement for the fast launcher regression job above.
+    if: contains(github.head_ref, 'mullvad') && github.head_ref != 'feature/m01-mullvad-upstream-handoff'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Verify the pinned original upstream
+        run: |
+          test "$(git -C third_party/mullvadvpn-app rev-parse HEAD)" = aa47f606b1a159214c7279344128119fa91be5fd
+          test -z "$(git -C third_party/mullvadvpn-app status --porcelain --ignore-submodules=all)"
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v5
+
+      - name: Install Android SDK 37, NDK 27 and Rust build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y protobuf-compiler libprotobuf-dev gcc g++ pkg-config libssl-dev clang cmake
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;android-37" "build-tools;37.0.0" "ndk;27.3.13750724"
+          rustup toolchain install 1.97.1 --profile minimal
+          rustup target add aarch64-linux-android --toolchain 1.97.1
+
+      - name: Assemble integrated ARM64 OSS/Prod debug APK
+        run: |
+          export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/27.3.13750724"
+          export NDK_TOOLCHAIN_DIR="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          export AR_aarch64_linux_android="$NDK_TOOLCHAIN_DIR/llvm-ar"
+          export CC_aarch64_linux_android="$NDK_TOOLCHAIN_DIR/aarch64-linux-android26-clang"
+          export CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER="$NDK_TOOLCHAIN_DIR/aarch64-linux-android26-clang"
+          export RUSTUP_TOOLCHAIN=1.97.1
+          bash tools/mullvad/build-integrated.sh --no-configuration-cache --max-workers=2 -Dorg.gradle.jvmargs=-Xmx3g
+
+      - name: Inspect combined APK
+        run: |
+          apk=$(find .build/plume-mullvad/mullvadvpn-app/android/app/build/outputs/apk/ossProd/debug -name '*.apk' -print -quit)
+          test -n "$apk"
+          python3 tools/mullvad/check_apk.py "$apk"
+          "$ANDROID_HOME/build-tools/37.0.0/aapt" dump badging "$apk" | grep "package: name='dev.plume.advanced'"
+          echo "Integrated APK bytes: $(stat -c %s "$apk")" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload integrated debug APK
+        if: success()
+        uses: actions/upload-artifact@v5
+        with:
+          name: plume-mullvad-arm64-debug
+          path: .build/plume-mullvad/mullvadvpn-app/android/app/build/outputs/apk/ossProd/debug/*.apk
+          if-no-files-found: error
