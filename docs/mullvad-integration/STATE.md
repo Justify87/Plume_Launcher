@@ -19,13 +19,13 @@ integrated_min_sdk: 28
 supported_abi: arm64-v8a
 m11_ci: observed_ci_pass
 m11_ci_run: 43433569189
-m12_ci: not_yet_observed
+m12_ci: in_progress_not_yet_confirmed
 m12_release_gate: pending_ci
 m12_shield: hardware_pending
 m12_local_android_build: not_run_no_sdk_or_checkout
 m12_original_submodule_diff: none
 m12_release_signing: unsigned_upstream_by_design
-m12_pr: pending_creation
+m12_pr: 29
 next_step: validate_pr_ci_then_physical_shield
 ```
 
@@ -51,3 +51,9 @@ next_step: validate_pr_ci_then_physical_shield
 - `.github/workflows/pr.yml`, `.github/workflows/debug-apk.yml`: M12-Plume-Builds und native Debug+Release-Gates; `tools/mullvad/check_apk.py` und `tools/test_mullvad_apk.py`: ARM64-ELF/Relay-JSON plus Offline-Tests.
 - `UPSTREAM.md` dokumentiert die Originaldifferenz, `FEATURE_MATRIX.md` F01–F48 und offene Tests; `TEST_MATRIX.md` enthält die vollständige Shield- und Metrik-Abnahme; `RELEASE.md` Installation/Update.
 - PR-CI auswerten und beobachtete Resultate/Größen nachtragen, Fehler korrigieren; danach physische Shield Pro 2019 mit gültigem Konto. M12 bleibt **partial** bis echter Geräteabnahme.
+
+## M12 ABI-Binärreview und nachgemessene Baseline
+
+- M11-Debug aus CI 43433569189 / Artifact 14043766791: **121321933 Bytes**, SHA256 `8bedd39977a829a255eec333ef08aea9faae8d3bcc2ee497dcc3596977c8f2f5`, 839 Einträge, ARM64-ELF-JNI (e_machine 183) und gültige Relay-JSON.
+- Systematischer Fehler: zusätzliche AndroidX-Shared-Libraries für ARM32/x86/x86_64 ohne Mullvad-JNI; `aapt` bewarb deshalb falsche CPU-Kompatibilität. M12 behebt dies **nur im generierten Build** mittels `abiFilters += "arm64-v8a"` und prüft es für Debug+Release; Originalquellen weiterhin unverändert.
+- Aktueller PR: [#29](https://github.com/Justify87/Plume_Launcher/pull/29). Ergebnisse der nachfolgenden CI-Neustarts erst bei beobachtetem Abschluss als pass eintragen. Bis Shield-/Live-Tunneltest weiterhin `partial`.
