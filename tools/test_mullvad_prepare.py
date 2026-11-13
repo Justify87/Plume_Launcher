@@ -210,6 +210,35 @@ class PreparationTests(unittest.TestCase):
         self.assertNotIn("setWireguardQuantumResistant(", advanced)  # M07 owns the original control
         self.assertNotIn("connection.reconnect(", location)  # matching upstream selector behavior
 
+    def test_m10_network_uses_original_api_and_relay_repositories(self):
+        activity = (prepare.ROOT / "tools/mullvad/VpnActivity.kt").read_text()
+        ui = (prepare.ROOT / "tools/mullvad/VpnNetworkUi.kt").read_text()
+        for text in ('"Netzwerk"', "networkUi.start()", "networkUi.onDaemonReady(daemonReady)",
+                     "networkUi.handleBack()", "VpnNetworkUi("):
+            self.assertIn(text, activity)
+        for contract in ("settings.settingsUpdates.collect", "wireguard.wireguardConstraints.collect",
+                         "relays.portRanges.collect", "relays.shadowsocksPortRanges.collect",
+                         "settings.setObfuscation(mode)", "settings.setCustomWireguardPort(port)",
+                         "settings.setCustomUdp2TcpObfuscationPort(port)",
+                         "settings.setCustomShadowsocksObfuscationPort(port)",
+                         "settings.setCustomLwoObfuscationPort(port)",
+                         "api.accessMethods.collect", "api.currentAccessMethod.collect",
+                         "api.getShadowsocksCiphers()", "api.testCustomApiAccessMethod(proxy)",
+                         "api.testApiAccessMethodById(item.id)",
+                         "api.setCurrentApiAccessMethod(item.id)",
+                         "api.setEnabledApiAccessMethod(item.id, !item.enabled)",
+                         "api.addApiAccessMethod(", "api.updateApiAccessMethod(",
+                         "api.removeApiAccessMethod(item.id)",
+                         "overrides.relayOverrides.collect", "overrides.applySettingsPatch(json)",
+                         "overrides.clearAllOverrides()", "ActivityResultContracts.OpenDocument()",
+                         "InetAddressValidator.getInstance().isValid(address)"):
+            self.assertIn(contract, ui)
+        for forbidden in ("HttpURLConnection", "SharedPreferences", "VpnService.Builder",
+                          "addDisallowedApplication(", "Socket("):
+            self.assertNotIn(forbidden, ui)
+        self.assertIn('with_name("VpnNetworkUi.kt")',
+                      (prepare.ROOT / "tools/mullvad/prepare.py").read_text())
+
     def test_prepare_isolation_and_single_application(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -242,6 +271,7 @@ class PreparationTests(unittest.TestCase):
                 self.assertTrue((generated / "app/src/ossProd/kotlin/net/mullvad/mullvadvpn/app/VpnSettingsUi.kt").exists())
                 self.assertTrue((generated / "app/src/ossProd/kotlin/net/mullvad/mullvadvpn/app/VpnSplitTunnelingUi.kt").exists())
                 self.assertTrue((generated / "app/src/ossProd/kotlin/net/mullvad/mullvadvpn/app/VpnAdvancedUi.kt").exists())
+                self.assertTrue((generated / "app/src/ossProd/kotlin/net/mullvad/mullvadvpn/app/VpnNetworkUi.kt").exists())
                 self.assertFalse((generated / "app/src/ossProdDebug/kotlin/net/mullvad/mullvadvpn/app/PlumeVpnDebugActivity.kt").exists())
                 self.assertIn("VpnActivity", (generated / "app/src/ossProd/AndroidManifest.xml").read_text())
                 staged_manifest = (generated / "plume-ui/src/main/AndroidManifest.xml").read_text()
