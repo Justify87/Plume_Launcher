@@ -5,7 +5,7 @@
 | Schritt | Abhängigkeit | Konkretes Deliverable | Stand 2026-11-13 | Branch / PR | Review |
 | --- | --- | --- | --- | --- | --- |
 | M00 | Plume baseline; #32 + #33 merged | Originalreferenz, Verträge, Baseline, Inventar | **source/reference+CI passed; hardware not applicable** | [#32](https://github.com/Justify87/Plume_Launcher/pull/32) + [#33](https://github.com/Justify87/Plume_Launcher/pull/33) merged; [CI success 43509990732](https://github.com/Justify87/Plume_Launcher/actions/runs/43509990732) | `REVIEWS.md#M00` |
-| M01 | M00 merged `59c7988` | Exakte Nuvio-Provider-/Paket-/Opt-in-Zuordnung, separate ungereenderte Daten | **implemented; partial_pending_pr_ci_and_shield** | [Draft #34](https://github.com/Justify87/Plume_Launcher/pull/34) (`feature/vdesign-m01-nuvio-provider`) | `REVIEWS.md#M01` |
+| M01 | M00 merged `59c7988` | Exakte Nuvio-Provider-/Paket-/Opt-in-Zuordnung, separate ungereenderte Daten | **code CI passed, hardware pending; final docs CI pending** | [Draft #34](https://github.com/Justify87/Plume_Launcher/pull/34) (`feature/vdesign-m01-nuvio-provider`) | `REVIEWS.md#M01` |
 | M02 | M01 | Drei Datenkategorien, Dedupe, Prozent vs. Dauer, Release/Countdown | not_started | — | pending |
 | M03 | M02 | einziges V-Layout und Sidebar; sichere App-/VPN-Ziele | not_started | — | pending |
 | M04 | M03 | echte Hero-/Standard-/Mini-Poster + typografische Overlays/Focus | not_started | — | pending |
@@ -33,3 +33,5 @@
 
 
 **M01-Gate, beobachtet 2026-11-13:** Source-Code und reine JVM-Tests vorhanden; PR-CI auf dem finalen Dokumentationscommit noch `pending`, echte Shield-/Android-TV-11-Channel-Browsability `hardware_pending`. Das M00-Referenz-Gate ist abgeschlossen; frühere M00-Notizen in historischen Absätzen dürfen nicht mit dem aktuellen M01-Status verwechselt werden. Kein Merge erteilt.
+
+**Nachtrag M01:** [CI #43513105647](https://github.com/Justify87/Plume_Launcher/actions/runs/43513105647) für Code-HEAD `30084ee9` `completed/success`; der `check`-Job führte Unit-Tests, Lint, Debug-/Release-Builds und APK-Vergleich erfolgreich aus (+2848 Bytes). Vorheriger [Run #43512433898](https://github.com/Justify87/Plume_Launcher/actions/runs/43512433898) mit zwei Testfehlern wurde im Commit `30084ee9` ursächlich behoben. Neuer CI-Lauf für diesen Dokumentationscommit separat auswerten. Shield und realer TV-Provider bleiben `hardware_pending`.

@@ -66,3 +66,17 @@ Die folgenden Statuswerte sind **beobachtete** Ergebnisse oder `not_run`; späte
 | Shield Pro 2019, Android-TV-Provider-Opt-in, Mullvad Runtime, Pixelreferenz | kein physisches Gerät oder echter UI-Screenshot erreichbar | **hardware_pending / not_run** |
 
 Nur GitHub-Lauf mit zugehörigem finalen Commit nachträglich als CI-Pass werten. Der Launcher wird in M01 nicht neu gerendert; visuelle Abnahme M03–M08.
+
+
+### M01 — tatsächliche GitHub-CI-Ergebnisse nach Code-Fix
+
+| Gate | Exakte Evidenz | Ergebnis |
+| --- | --- | --- |
+| Früher PR-Check `9480a941...` | [Run 43512433898](https://github.com/Justify87/Plume_Launcher/actions/runs/43512433898), [Job 132185785148](https://github.com/Justify87/Plume_Launcher/actions/runs/43512433898/job/132185785148) | **failure**, 213 Unit-Tests, 2 Fehler (Serien-Dedupe / Legacy-Doppelung) |
+| Fehlerkorrektur | [Commit 30084ee9](https://github.com/Justify87/Plume_Launcher/commit/30084ee9fd630c805e799e4c2bec20416310bb05), beide Fehlerursachen in `AndroidTvMediaSource.kt` korrigiert | **committed**, vorherige Tests beibehalten |
+| Korrigierte Tests + Lint | [Run 43513105647](https://github.com/Justify87/Plume_Launcher/actions/runs/43513105647), [check 132188191911](https://github.com/Justify87/Plume_Launcher/actions/runs/43513105647/job/132188191911) auf `30084ee9...` | **passed**, Gradle `testDebugUnitTest lintDebug` |
+| Debug + Release | gleicher Job, `assembleDebug assembleRelease` | **passed** |
+| Release-APK gegen main | gleicher Job, Release APK: vorher 529422, nachher 532270 Bytes | **passed**, +2848 Bytes |
+| M01-nativer Mullvad-APK-Job | Run 43513105647, Branch-Bedingung des Workflows | **skipped**, kein nativer Runtime-Pass |
+| CI für nachgezogenen Dokumentations-HEAD | wird nach diesem Commit neu ausgelöst, anschließend realen URL/Status prüfen | **pending**, nicht vorweggenommen |
+| Physische Shield 2019, echte TV-Channel-Opt-in/Permission-Laufzeit | kein Gerät angebunden | **hardware_pending**, kein Screenshot-Vergleich |

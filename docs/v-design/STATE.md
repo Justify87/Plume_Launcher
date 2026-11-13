@@ -9,7 +9,7 @@ main_head_observed: 59c7988d4b019c12647550095e24f8cf62aece33
 nuvio_branch: dev
 nuvio_head_observed: be4b84a84e004a2d36405601683df000d8dc446a
 active_milestone: M01
-active_status: partial_pending_pr_ci_and_shield
+active_status: partial_hardware_pending
 predecessor_milestone: M00
 predecessor_pr: 33
 predecessor_merged: true
@@ -17,13 +17,20 @@ predecessor_merge_sha: 59c7988d4b019c12647550095e24f8cf62aece33
 m00_final_ci_run: 43509990732
 m00_final_ci_result: check_success_mullvad_apk_skipped
 work_branch: feature/vdesign-m01-nuvio-provider
-work_head_sha_at_documentation: 9480a9417ec62e95909547372510151d8f3c29dc
+work_head_sha_at_documentation: 30084ee9fd630c805e799e4c2bec20416310bb05
 current_pr: 34
 current_pr_state: open_draft_not_merged
 m01_local_unit_test: not_run_no_checkout_or_android_sdk
-m01_test_code: added_pending_ci_execution
-m01_android_build: not_run_local
-m01_ci: pending_final_docs_head_checks
+m01_test_code: passed_ci_unit_tests_and_lint_43513105647
+m01_android_build: ci_debug_and_release_built_43513105647_local_not_run
+m01_ci: success_check_43513105647_code_head_30084ee9
+m01_ci_job: 132188191911
+m01_first_failed_run: 43512433898
+m01_first_failure: two_unit_tests_fixed_in_30084ee9
+m01_final_docs_head_ci: pending_new_run
+m01_release_apk_before_bytes: 529422
+m01_release_apk_after_bytes: 532270
+m01_release_apk_delta_bytes: 2848
 m01_shield: hardware_pending
 reference_sha256: 95af66ad04f462867b5d52825c7e1946ac68b5e40bed52c07f4e74c085218f25
 reference_git_blob_sha: d1b14c00a6478cb3b49fcbbd637e0aa71db5df18
@@ -34,7 +41,7 @@ reference_verified_in_m01: true
 nuvio_feeds_snapshot: isolated_not_rendered
 next_milestone: M02_after_M01_review_and_CI
 blockers:
-  - "M01 PR #34 final CI outcome not yet observed"
+  - "CI for final documentation-only commit not yet observed; preceding code commit 30084ee9 check succeeded"
   - "Physical Shield TV provider/approval/permission integration not tested"
 ```
 
@@ -66,3 +73,10 @@ blockers:
 Der reale Referenzblob wurde erneut aus GitHub-Base64 dekodiert, unabhängig SHA-256 berechnet (`95af66ad04f462867b5d52825c7e1946ac68b5e40bed52c07f4e74c085218f25` = Referenzdatei), JPEG/JFIF-Signatur und 1536×864 verifiziert. Nuvio `dev@be4b84a` nur gelesen. Provider-IDs/Opt-in werden nun im vorhandenen TV-IO-Pfad getrennt gelesen; noch keine V-Design-Kacheln. `NuvioProviderFeeds` wird atomar auf die drei Gruppen aktualisiert, bei fehlender Permission geleert. Nur ausdrücklich browsable Channels werden gelesen. Für klassisches Watch Next bleibt ein In-Progress-Rückgriff mit positiver Position, **niemals** für Available/Upcoming. Alte Classic-/SmartTube-Anzeige ist in M01 weiter vorhanden und wird erst in späteren Meilensteinen visuell ersetzt.
 
 **Noch nicht abgenommen:** CI auf dem endgültigen M01-PR-HEAD, Android TV 11 Provider-Opt-in in Laufzeit, Shield Pro 2019, visuelles Live-Screenshot- und Mullvad-Geräteverhalten. Keine realen Hardware-Erfolge behauptet. M02 darf nur auf dem realen M01-HEAD fortsetzen und übernimmt fachliche Datenqualität/Sortierung/Verknüpfung.
+
+
+## M01 — finaler Code-CI-Nachtrag (13.11.2026)
+
+- [PR #34](https://github.com/Justify87/Plume_Launcher/pull/34) (Draft, ungemergt). Erster [Run 43512433898](https://github.com/Justify87/Plume_Launcher/actions/runs/43512433898) auf `9480a941...` endete `failure` mit **2 fehlgeschlagenen Tests von 213**: `differentShowsWithSameEpisodeTitleAndGenericIntentRemainDistinct` und `classicMixedEntriesDoNotBecomeAvailableOrUpcoming`. Es handelte sich um echte M01-Dedupe-/Fallback-Regressionsbefunde, keine Gradle-Infrastrukturfehler. Code-Fix [30084ee9](https://github.com/Justify87/Plume_Launcher/commit/30084ee9fd630c805e799e4c2bec20416310bb05) vermeidet Serien-Kollision bei expliziten Serien-IDs und doppelte Legacy-Fallback-Sätze.
+- [Korrigierter Run 43513105647](https://github.com/Justify87/Plume_Launcher/actions/runs/43513105647) auf Code-SHA `30084ee9fd630c805e799e4c2bec20416310bb05`: **completed/success**. [Job check 132188191911](https://github.com/Justify87/Plume_Launcher/actions/runs/43513105647/job/132188191911): `testDebugUnitTest lintDebug` **success**, `assembleDebug assembleRelease` **success**, APK-Größenvergleich **success**. Release-APK: **529422 → 532270 Bytes (+2848 Bytes)**. `mullvad-apk` in diesem PR nach Branch-Regel **skipped**, das ist **kein** ausgeführter Mullvad-Integrationstest. Lokale Gradle-/Hardware-Abnahme weiterhin `not_run`.
+- Nach diesem Dokumentationscommit entsteht ein neuer PR-HEAD, dessen CI unabhängig zu prüfen ist; daher noch keine vorweggenommene finale CI-Behauptung. **M01 bleibt `partial_hardware_pending`** bis echter Android-TV-11-/Shield-Test des Package-/Provider-/Browsable-Pfads. Kein Merge erteilt. Nächster technischer Meilenstein **M02**.
