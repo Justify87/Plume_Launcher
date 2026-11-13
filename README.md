@@ -72,7 +72,7 @@ wallpapers, Continue Watching configuration or launcher/Home setup.
 If a source is not installed, TV listings access is denied, a provider fails or the device is offline,
 the Home screen remains usable. Retry by returning to the launcher, checking permissions/channels or
 opening the source app. There is no perpetual network service, automatic Spotify history or promise
-that every streaming service exposes its progress. The [M11 Shield test matrix](docs/m11-release-acceptance.md)
+that every streaming service exposes its progress. The [historical M11 Shield test matrix](docs/archive/legacy-features/overview-ui/m11-release-acceptance.md)
 records what still needs physical-device confirmation.
 
 ### Classic home — inherited and usable
