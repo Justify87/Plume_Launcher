@@ -2,55 +2,58 @@
 
 ```yaml
 schema: plume-mullvad-handoff/v1
-milestone: M11
+milestone: M12
 status: partial
-checked_on: "2026-11-13"
-main_head_at_start: 056b1c5245982ee8fddfe581ee859735511aae14
-predecessor_milestone: M10
-predecessor_pr: 27
+checked_on: '2026-11-13'
+main_head_at_start: 2efdcbe7b9bfbba6a1c3918025cd413053fdbd46
+predecessor_milestone: M11
+predecessor_pr: 28
 predecessor_merged_into_main: true
 base_branch: main
-feature_branch: feature/m11-mullvad-diagnostics-tv
+feature_branch: feature/m12-mullvad-regression-release
 upstream_tag: android/2026.12
 upstream_sha: aa47f606b1a159214c7279344128119fa91be5fd
 upstream_gitlink_unchanged: true
 single_apk_application_id: dev.plume.advanced
-m10_ci: observed_ci_pass
-m10_ci_run: 43423552657
+integrated_min_sdk: 28
+supported_abi: arm64-v8a
 m11_ci: observed_ci_pass
-m11_ci_run: 43431639278
-m11_ci_code_commit: 48eee9561ff19338b61e066014e9d632b5f268a5
-m11_ci_apk_entries: 839
-m11_ci_artifact: Plume-Mullvad-ARM64-Debug-89
-m11_ci_artifact_id: 14039849900
-m11_pr: 28
-m11_pr_state: open_draft
-m11_shield_test: hardware_pending
-m11_local_android_build: not_run
-m11_build_proven_in_github_actions: true
-m11_pinned_container_build: observed_ci_pass
-m11_original_submodule_diff: none
-next_milestone: M12
+m11_ci_run: 43433569189
+m12_ci: in_progress_not_yet_confirmed
+m12_release_gate: pending_ci
+m12_shield: hardware_pending
+m12_local_android_build: not_run_no_sdk_or_checkout
+m12_original_submodule_diff: none
+m12_release_signing: unsigned_upstream_by_design
+m12_pr: 29
+next_step: validate_pr_ci_then_physical_shield
 ```
 
-## Abgeschlossene Vorgänger / konkrete Referenzen
+## Tatsächliche Vorgänger und Architektur
+- M01–M03 Original-Mullvad-Commit als Submodul, originaler Rust/JNI/gRPC/Daemon/VpnService in **einer** APK.
+- M04–M06 eigenständige D-Pad-VPN-Activity in Plume Classic/Overview, Konto, Relaylisten und benutzerdefinierte Listen.
+- M07–M10 DNS/LAN/Boot, Split Tunneling, Multihop/DAITA/PQ, Obfuskation/API-Zugang/Overrides.
+- M11 Diagnose, Notifications, Version/Locale; PR #28 in main gemergt. Letzter [M11-CI 43433569189](https://github.com/Justify87/Plume_Launcher/actions/runs/43433569189) `check=success`, `mullvad-apk=success`. KEIN echter Shield-/Tunneltest.
+- Keine neue Änderung im Mullvad-Gitlink/Original. Weiterhin ausschließlich regenerierbare `ossProd`-TV-Overlays und die M11-`ClassNames.kt`-PendingIntent-Umleitung.
 
-- M01–M03: Originalquelle angepinnt und ein integrierter Host mit Mullvad-Rust/JNI/gRPC; M02 CI 43314187927, M03 CI 43323559922. Keine Endgeräte-Funktionstests.
-- M04–M06: Produktive VPN-Activity, Mullvad-Konto/Devices/Voucher und Relaylisten; CI M06 43339177759.
-- M07: DNS, LAN, Start/Boot, WireGuard-Basiswerte: PR #22, CI 43343996225.
-- M08: Split Tunneling mit Android-TV-App-Liste: PR #23, CI 43402989685.
-- M09: Multihop, DAITA, PQ: PR #24; nachträglicher Review PR #26, CI 43412061826.
-- M10: Verschleierung/API-Zugang/Server-IP: PR #27 in `main` `056b1c5245982ee8fddfe581ee859735511aae14`; CI 43423552657 `success`, ARM64-Debug-APK mit Rust/JNI/Relays. Hardware weiterhin nicht getestet.
+## M12-Gates (vor PR-CI)
+| Gate | Ehrlicher Status |
+| --- | --- |
+| Plume-Regressionschecks, Tests, lint, Debug/Release, Größenbaseline | not_run; GitHub-PR-Job vorgesehen |
+| Native Original-Runtime ARM64: Debug und R8-Release + Manifest/JNI/Relays | not_run; GitHub-PR-Job vorgesehen |
+| APK-Validator + Offline-Negativtests | not_run; CI vorbereitet |
+| F01–F48 Funktionszuordnung / Quellreview | reviewed, Hardware `hardware_pending` |
+| Release-Key/Update | Upstream-Release **unsigned**, gleiches Plume-Signaturzertifikat nötig |
+| Reale Shield, VPN-Lifecycle, D-Pad, Konto, OS und Boot | hardware_pending |
+| Roh-APK-Größe, Launcher-Startzeit, RAM VPN aus/verbunden | not_measured |
 
-## M11 Codepfade
+## Handoff / Pfade
+- `.github/workflows/pr.yml`, `.github/workflows/debug-apk.yml`: M12-Plume-Builds und native Debug+Release-Gates; `tools/mullvad/check_apk.py` und `tools/test_mullvad_apk.py`: ARM64-ELF/Relay-JSON plus Offline-Tests.
+- `UPSTREAM.md` dokumentiert die Originaldifferenz, `FEATURE_MATRIX.md` F01–F48 und offene Tests; `TEST_MATRIX.md` enthält die vollständige Shield- und Metrik-Abnahme; `RELEASE.md` Installation/Update.
+- PR-CI auswerten und beobachtete Resultate/Größen nachtragen, Fehler korrigieren; danach physische Shield Pro 2019 mit gültigem Konto. M12 bleibt **partial** bis echter Geräteabnahme.
 
-- `tools/mullvad/VpnDiagnosticsUi.kt`: native Original-`ProblemReportRepository`-Logs/Export/Support, In-App-Notification-Controller, Version/Changelog, gespeicherte Notifications-Option, OS-App-Benachrichtigungsstatus und Sprache (API 33+; gemeinsame APK).
-- `tools/mullvad/VpnActivity.kt`: achte VPN-Seite „Diagnose“ produktiv verdrahtet, Live-Account-/Daemon-Events, D-Pad-Fokus, M11-Lifecycle, originale Benachrichtigungs-/VPN-Zustimmungs-Aktion.
-- `tools/mullvad/prepare.py`: M11-UI-Staging; **einziger notwendiger Originalkopie-Diff** `MAIN_ACTIVITY_CLASS` → `VpnActivity` in generiertem `lib/common/.../ClassNames.kt`. Original-Gitlink, Service, DAITA, Rust/JNI, gRPC unverändert. Dadurch öffnen QS- und Push-PendingIntents die native TV-Activity.
-- `tools/test_mullvad_prepare.py`: bindungs-/stagingbezogene M11-Assertions, reproduzierbarer Pure-Python-Generatorcheck.
+## M12 ABI-Binärreview und nachgemessene Baseline
 
-## Nachweis, Risiken, M12-Handoff
-
-- `FEATURE_MATRIX.md`: alle F01–F48 mit Originalpfad, TV-Pfad, Status `implemented`/`hardware_pending`/`not_applicable` und Einzelevidenz; reine Phone-UI-/Play-Billing-Ausnahmen begründet.
-- `TEST_MATRIX.md`: M11-01–12 dokumentiert. **Bestätigt:** [GitHub Actions 43431639278](https://github.com/Justify87/Plume_Launcher/actions/runs/43431639278), Codecommit `48eee9561ff19338b61e066014e9d632b5f268a5`, beide relevanten Jobs `success`, ARM64 OSS/Prod Debug `BUILD SUCCESSFUL in 9m 30s`, 839 APK-Einträge inkl. original Rust/JNI/Relay, Artifact `Plume-Mullvad-ARM64-Debug-89` (ID `14039849900`). **Nicht bestätigt:** jede Shield-/D-Pad-/Live-VPN-/Berichts- und Notification-Gerätefunktion.
-- **M12:** den bestätigten M11-APK-Artefakt-Run 43431639278 / Codecommit `48eee956...` als Baseline nehmen; ein reiner Dokumentations-Nachtrag nach dem Run verändert keine Kotlin-/Generator-Datei. Dann Shield 2019 Android-TV-ADB mit gültigem Mullvad-Konto: VPN nach Home/Back, F34–F37/42/45, QS-Tile/Notification-PendingIntents, API-33-Sprachverhalten und vollständige D-Pad-Navigation tatsächlich abnehmen. M01–M10 Hardwarelücken in `TEST_MATRIX.md` ebenfalls schließen. Kein `tested` vor gemessener Geräte-/Build-Evidenz.
+- M11-Debug aus CI 43433569189 / Artifact 14043766791: **121321933 Bytes**, SHA256 `8bedd39977a829a255eec333ef08aea9faae8d3bcc2ee497dcc3596977c8f2f5`, 839 Einträge, ARM64-ELF-JNI (e_machine 183) und gültige Relay-JSON.
+- Systematischer Fehler: zusätzliche AndroidX-Shared-Libraries für ARM32/x86/x86_64 ohne Mullvad-JNI; `aapt` bewarb deshalb falsche CPU-Kompatibilität. M12 behebt dies **nur im generierten Build** mittels `abiFilters += "arm64-v8a"` und prüft es für Debug+Release; Originalquellen weiterhin unverändert.
+- Aktueller PR: [#29](https://github.com/Justify87/Plume_Launcher/pull/29). Ergebnisse der nachfolgenden CI-Neustarts erst bei beobachtetem Abschluss als pass eintragen. Bis Shield-/Live-Tunneltest weiterhin `partial`.

@@ -286,6 +286,9 @@ class PreparationTests(unittest.TestCase):
             upstream = root / "upstream"
             (upstream / "android/app").mkdir(parents=True)
             (upstream / "android/settings.gradle.kts").write_text('include(":app")\n')
+            (upstream / "android/build.gradle.kts").write_text(
+                'this.skipDirtyCheck.set(preflightSkipDirtyCheck)\n'
+            )
             (upstream / "android/app/build.gradle.kts").write_text(
                 'android { defaultConfig { applicationId = "net.mullvad.mullvadvpn" } }\n'
             )
@@ -308,6 +311,16 @@ class PreparationTests(unittest.TestCase):
                 self.assertIn('include(":plume-ui")', (generated / "settings.gradle.kts").read_text())
                 host = (generated / "app/build.gradle.kts").read_text()
                 self.assertIn("dev.plume.advanced", host)
+                self.assertIn('abiFilters += "arm64-v8a"', host)
+                self.assertNotIn("abiFilters", (upstream / "android/app/build.gradle.kts").read_text())
+                self.assertIn(
+                    "this.skipDirtyCheck.set(true)",
+                    (generated / "build.gradle.kts").read_text()
+                )
+                self.assertIn(
+                    "this.skipDirtyCheck.set(preflightSkipDirtyCheck)",
+                    (upstream / "android/build.gradle.kts").read_text()
+                )
                 self.assertIn('implementation(project(":plume-ui"))', host)
                 self.assertIn('net.mullvad.mullvadvpn', (upstream / "android/app/build.gradle.kts").read_text())
                 self.assertTrue((generated / "plume-ui/src/main/AndroidManifest.xml").exists())

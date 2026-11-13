@@ -203,9 +203,33 @@ def prepare(output: Path) -> Path:
     old = 'applicationId = "net.mullvad.mullvadvpn"'
     if content.count(old) != 1:
         raise RuntimeError("Unexpected Mullvad applicationId declaration")
-    content = content.replace(old, 'applicationId = "dev.plume.advanced"', 1)
+    # Rust/JNI is built for ARM64 only. Without a packaging filter, native
+    # AndroidX libraries would falsely advertise ARM32/x86 compatibility.
+    # Change only the disposable host; never patch pinned Mullvad sources.
+    content = content.replace(old, '''applicationId = "dev.plume.advanced"
+        ndk {
+            abiFilters += "arm64-v8a"
+        }''', 1)
     content += '\n// Plume integration: TV views are a library, not a second APK.\ndependencies { implementation(project(":plume-ui")) }\n'
     host_build.write_text(content, encoding="utf-8")
+
+    # Mullvad's releasePreflight executes "git status --porcelain", but the
+    # disposable source tree intentionally excludes .git and is modified by
+    # this generator. Keep releasePreflight itself (including build header),
+    # while skipping only its impossible git cleanliness check in this copy.
+    root_build = android / "build.gradle.kts"
+    root_contents = root_build.read_text(encoding="utf-8")
+    original_preflight = "this.skipDirtyCheck.set(preflightSkipDirtyCheck)"
+    if root_contents.count(original_preflight) != 1:
+        raise RuntimeError("Unexpected pinned Mullvad releasePreflight contract")
+    root_build.write_text(
+        root_contents.replace(
+            original_preflight,
+            "this.skipDirtyCheck.set(true) // Disposable Plume host has no .git",
+            1,
+        ),
+        encoding="utf-8",
+    )
 
     library = android / "plume-ui"
     source = ROOT / "app/src"

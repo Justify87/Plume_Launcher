@@ -189,3 +189,15 @@ Die historische Inventartabelle bleibt unverändert; diese Fortschreibung ist f�
 - **F28 / Store:** OSS/Prod nutzt Mullvads reguläre Konto-/Bezahl-Webseite in `VpnAccountUi`; Google-Play-Billing ist kein Bestandteil des gepinnten OSS/Prod-Flavours. Keine leere TV-Kauffunktion.
 - **F46:** Originaler Connection-Path-UseCase für die Smartphone-Kartenvisualisierung ist keine separate Tunnel-Einstellfunktion. `VpnActivity`/`VpnAdvancedUi` zeigen bestätigte Entry-/Exit-Werte und gRPC-/Offline-Zustände als Text, keine ungeprüften Kartendaten.
 - **M11 Evidenzstand:** Quell-APIs am Tag `android/2026.12` / `aa47f606b1a159214c7279344128119fa91be5fd` geprüft. [CI-Run 43431639278](https://github.com/Justify87/Plume_Launcher/actions/runs/43431639278) an M11-Codecommit `48eee9561ff19338b61e066014e9d632b5f268a5`: `check=success`, `mullvad-apk=success`, 839 APK-Einträge mit Rust/JNI/Relay-Assets. Alle **48** Inventarpositionen sind einzeln klassifiziert. Kein Shield-D-Pad-, Live-VPN-, QS-Tile- oder Mail-Sende-Pass. Reine App-Store-Listing-Aktionen aus Mullvads Smartphone-App sind bei der neuen gemeinsamen `dev.plume.advanced`-Launcher-APK ohne Play-Store-Eintrag **nicht anwendbar**; Kontoverlängerung erfolgt via regulärem Mullvad-Weblink (F28).
+
+## M12 — gepinntes Gesamtinventar und Grenzen (13.11.2026)
+
+- Die verbindliche M11-Tabelle F01–F48 wurde erneut als **48 eindeutige** Gruppen auf Pin `aa47f606b1a159214c7279344128119fa91be5fd` gezählt und mit TV-Quellankern gesichtet; kein neues bestätigtes Original-Feature erfunden.
+- `implemented` heißt vorhandene Backend-/View-Bindung, **nicht** Endgerät-Parität. Alle entsprechenden Funktionsgruppen bleiben für Shield/VPN-D-Pad **partial/hardware_pending**, kein unverdientes `tested`/`pass` durch CI.
+- Echte Hardwarepflicht: F01–F05 Tunnel/VpnService; F06–F12 Relays/Multihop/DAITA; F13–F24 DNS/LAN/Split/Boot; F25 Tile; F26–F33 Konto; F34–F39 Diagnose/Locale; F42–F48 Status/Navigationspfade.
+- F40/F41 bleiben `not_applicable` für Smartphone-Compose-Theme/Tarnungsicon, F25/F39 nur mit Gerätetest `unsupported_on_device`; `ossProd` ohne Play-Billing. Original-M06-Singlehop-Any-Reset weiter nicht exponiert.
+- M12-APK-Prüfungen messen Binär-/Build-Eigenschaften, **keine** VPN-Tunnelwirkung, App-Routing oder D-Pad-Erreichbarkeit. Geräteprotokoll siehe `TEST_MATRIX.md`.
+
+### M12 ABI-Konsistenz zur Featuregruppe F05
+
+F05 (Rust-Daemon/JNI/Talpid/gRPC) setzt den vorhandenen Original-ARM64-JNI-Kern voraus. Die M11-APK bewarb zusätzlich ARMv7-/x86-/x86_64-Abhängigkeiten, hatte aber dort **keine** Mullvad-JNI. M12 filtert deshalb im **generierten** Host alle anderen nativen ABIs. Für ARM64 gilt bis zum Gerätestest weiterhin `partial`; Nicht-ARM64 wird nicht mehr als kompatible VPN-Plattform behauptet. CI-Gate in `debug-apk.yml` und `check_apk.py`.
