@@ -20,7 +20,15 @@ m08_initial_commit: 0e64a56f35fdfa860e1a5e25f7fcb01af633562b
 m08_initial_ci: observed_ci_pass
 m08_initial_ci_run: 43402989685
 m08_final_ci: not_verified_after_final_review_commits
-m09_ci: not_run
+m09_pr: 24
+m09_pr_merged_into_main: true
+m09_merged_main_sha: 0df3ead5749ad5a3f465029308c104e9babe67d1
+m09_postmerge_review_branch: feature/m09-mullvad-postmerge-ui-review
+m09_postmerge_review_ci: pending
+m09_initial_commit: 0b3af65b302398fc175284fccad65e0f1eee6315
+m09_initial_ci: observed_ci_pass
+m09_initial_ci_run: 43409181838
+m09_final_ci: pending_after_review_fixes
 m09_shield_test: hardware_pending
 m08_shield_test: hardware_pending
 m06_ci: observed_ci_pass
@@ -127,3 +135,13 @@ Der Originalcode registriert `VoucherRepository` und `NewDeviceRepository` in `u
 - **Review:** Kein neuer VPN-Stack, keine eigene Relay-Paarungsregel, kein zusätzlicher Speicher, keine Neuverbindung nur wegen Standortwahl; explizite Neuverbindung über vorhandenen `ConnectionProxy`-Pfad. Ein Modus ist erst als aktiv markiert, wenn Original-Flow ihn bestätigt. `WHEN_NEEDED` lässt keinen manuell gewählten Entry zu; `ALWAYS` erlaubt ihn.
 - **Abnahmestand:** `partial` bis CI-Kotlin/Rust/JNI-/APK-Gate und echte TV-/Tunnelprüfung. Staging-Assertions erweitert; lokale Android-Toolchain/Shield nicht vorhanden. Den aktuellen CI-Lauf erst nach PR-Anlage als nachgewiesen eintragen. `hardware_pending`: D-Pad, Single/Multi/Auto, reale Entry-/Exit-Relays, DAITA-Filter, PQ-/Tunnelwirkung, Standardwerte, Neustart/Background.
 - **M10-Handoff:** auf gemergtem M09-`main` oder gestapeltem Feature-Branch aufbauen; originale Anti-Zensur-/Obfuskations- und Netzwerkoptionen integrieren, `setCustomWireguardPort` als Obfuskationsport bezeichnen, nicht als generischen WireGuard-Port. Bestehende M06–M09-Repositories/Views erhalten; alle Hardwareprüfungen nachholen, bevor `pass` gesetzt wird.
+
+### M09 CI / Review-Korrekturen (nach Merge von PR #24)
+
+- **Erster Build:** [Actions 43409181838](https://github.com/Justify87/Plume_Launcher/actions/runs/43409181838) auf `0b3af65b302398fc175284fccad65e0f1eee6315` hat `check=success` und `mullvad-apk=success`, inklusive Quell-Staging, Kotlin/Rust/JNI-`ossProdDebug`-Build und APK-Manifest-/Assets-Gate. Das belegt **noch keine Shield-VPN-Wirkung**.
+- **Review-Fix:** Bei Rückkehr aus Multihop-Entry-/Exit-Auswahl in die normale Standortnavigation den Browser wieder in `RelayListType.Single` setzen; die Bestätigungsmeldung eines Tunnels auch beim erneuten Erreichen des Daemons synchronisieren. Modus/PQ bei getrenntem Daemon nicht als aktuell aktiv markieren, obwohl ein älterer Flowwert im Speicher steht.
+- **Finale CI:** Nach dieser Revision erneut auf **neuen** PR-HEAD prüfen und Ergebnis eintragen; der erste grüne Lauf gilt ausschließlich für den ersten Commit. M09 bis dahin `partial`, Shield `hardware_pending`.
+
+**Änderung der PR-Basis während der Umsetzung:** PR #24 wurde am 13.11.2026 10:41:36 UTC extern nach `main` gemergt (Merge-Commit `0df3ead5749ad5a3f465029308c104e9babe67d1`). Die nachträglichen Review-Fixes liegen deshalb **nicht** im ersten M09-PR, sondern müssen auf einem eigenen Branch `feature/m09-mullvad-postmerge-ui-review` direkt vom genannten Merge-Commit in einem separaten PR geprüft werden. Der erste grüne M09-Build gilt nur für den bereits gemergten Commit `0b3af65b...`; neue Review-Fixes erst nach neuem CI als gebaut bewerten.
+
+**CI-Branchkonvention:** `.github/workflows/pr.yml` startet den integrierten `mullvad-apk`-Job nur bei PR-Head-Refs mit `mullvad` im Namen. Der erste Post-Merge-Review-PR #25 wurde deshalb vor der finalen Abnahme durch einen identischen Review-Branch mit `mullvad` im Namen ersetzt; **der in PR #25 übersprungene APK-Job ist kein Testpass**. Der neu eröffnete Review-PR wird vollständig geprüft.
