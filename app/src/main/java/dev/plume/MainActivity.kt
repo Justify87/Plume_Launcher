@@ -5769,7 +5769,7 @@ class MainActivity : Activity() {
                 android.util.Log.w("Plume", "continue watching failed ($e)")
                 mediaFeed.replaceSource("tv", emptyList())
                 nuvioProviderFeeds = NuvioProviderFeeds.EMPTY
-            nuvioDashboardFeed = NuvioDashboardFeed.EMPTY
+                nuvioDashboardFeed = NuvioDashboardFeed.EMPTY
                 emptyList()
             }
             ui.post {
