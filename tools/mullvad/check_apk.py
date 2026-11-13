@@ -26,7 +26,7 @@ def check_apk(path: str) -> int:
         # ELF64, little-endian, e_machine = EM_AARCH64 (183).
         if (
             len(header) != 20
-            or header[:4] != b"\\x7fELF"
+            or header[:4] != b"\x7fELF"
             or header[4] != 2
             or header[5] != 1
             or int.from_bytes(header[18:20], "little") != 183

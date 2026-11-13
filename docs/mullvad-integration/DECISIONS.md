@@ -138,3 +138,12 @@ Original `SplitTunnelingRepository` bleibt alleiniger Schreibpfad zu Daemon/gRPC
 **Routing-Minimalpatch:** Im regenerierten Host ausschließlich `MAIN_ACTIVITY_CLASS` auf `VpnActivity` umbiegen; sonst würden Mullvad-Notification-PendingIntents und Quick Tile die originale Smartphone-`MainActivity` statt Plume öffnen. Gepinnte Submodulquelle 1:1 erhalten.
 **Sprache/UI:** Android >= 13: originale `LanguageRepository` setzt gemeinsame App-Locale und weist sichtbar darauf hin, dass Plume ebenfalls betroffen ist. Auf niedrigeren Android-Versionen OS-Locale. Mullvad-Compose-Theme und Smartphone-Icon-Alias-Umschaltung sind reine Präsentationsfunktionen, die mit einer einzigen HOME-App nicht sinnvoll zu duplizieren sind (`not_applicable` statt erfundener Controls).
 **Grenze:** Keine reale Shield-/Offline-/QS-Tile-/Sendepfadprüfung im GitHub-Connector-Kontext. Keine Produktivfreigabe ohne M12-Hardwaretests und erfolgreichen integrierten APK-CI.
+
+## A-M12 — Original-R8-Release und reproduzierbare Regression (13.11.2026)
+
+- Gezielte CI-Erweiterung statt neuen VPN-/DI-Architekturen: `ossProdDebug` und `ossProdRelease` im **selben** gepinnten Original-Mullvad-Container prüfen, ohne Änderungen an den Originalquellen.
+- Validierung der originalen ARM64-JNI als ELF64 AArch64 und parsebare Relay-JSON statt reinem Dateinamenscheck; synthetische ZIP-Negativtests sichern den Validator ab.
+- Bestehende Plume-Tests beibehalten; M12 lässt ausdrücklich `assembleDebug`, `assembleRelease` und Größenvergleich gegen PR-Basis laufen. Originale Compose-UI-/Launcher-Registrierung nicht wieder freischalten.
+- Mullvad-Original-Release bleibt `signingConfig=null`; unsigned Paket nur zur Build-/R8-Abnahme, später extern mit **gleichem** Plume-Key signieren; CI-Debug-Key nicht als beständiger Update-Key behaupten.
+- Keine reale Shield/ADB im aktuellen Umfeld; Netzwerk, App-Routen, UX und RAM bleiben offen. `VpnActivity` nicht exported: D-Pad-Abnahme über sichtbaren Classic-/Overview-VPN-Zugang.
+

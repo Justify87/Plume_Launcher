@@ -14,7 +14,7 @@ spec.loader.exec_module(checker)
 
 def arm64_elf(machine=183):
     header = bytearray(20)
-    header[0:4] = b"\\x7fELF"
+    header[0:4] = b"\x7fELF"
     header[4] = 2
     header[5] = 1
     header[18:20] = machine.to_bytes(2, "little")
@@ -28,7 +28,7 @@ class IntegratedApkStructureTest(unittest.TestCase):
         self.path = Path(self.temp.name) / "integrated.apk"
         self.entries = {
             "AndroidManifest.xml": b"manifest",
-            "classes.dex": b"dex\\n035\\x00",
+            "classes.dex": b"dex\n035\x00",
             "lib/arm64-v8a/libmullvad_jni.so": arm64_elf(),
             "assets/relays.json": b'{"countries":[]}',
         }

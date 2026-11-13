@@ -537,3 +537,57 @@ adb shell dumpsys connectivity
 **M11 Review-Fix Versionszustand:** `AppVersionInfoRepository.versionInfo` initialisiert `isSupported=true`, auch ohne erreichbaren Originaldienst. Die TV-UI zeigt solange `Supportstatus unbekannt (Dienst nicht erreichbar)` statt eines falschen Erfolgs. Der ursprüngliche Repositorywert bleibt unverändert; erst bei `GrpcConnectivityState.Ready` wird sein Supportflag ausgegeben. Source-Assertion ergänzt; CI und Shield-Abnahme noch erforderlich.
 
 **M11 TV-Export-Fallback:** Manche Android-TV-Firmwares besitzen keinen SAF-Dateidialog. `CreateDocument.launch` fängt in der Diagnose-UI einen fehlenden/fehlerhaften Picker ab und zeigt statt eines Activity-Crashs eine Fehlermeldung; erfolgreiche Picker-Auswahl schreibt weiterhin alle Original-Mullvad-Logzeilen. Shield-Test bleibt `hardware_pending`.
+
+## M12 — Regression, Build, Release und physische Shield-Abnahme (13.11.2026)
+
+Basis `main` `2efdcbe7b9bfbba6a1c3918025cd413053fdbd46` (M11 PR #28 gemergt). **Vor dem M12-PR-CI sind alle unten genannten neuen automatischen Tests `not_run`.** Vorheriger M11-CI [43433569189](https://github.com/Justify87/Plume_Launcher/actions/runs/43433569189) erfolgreich. Lokal fehlen Android-SDK, Git-Submodul-Checkout und ADB-Shield.
+
+| Gate | Reproduktion | Status vor CI |
+| --- | --- | --- |
+| M12-01 Regeln | `sh tools/pr-rules.sh "$BASE"` | not_run |
+| M12-02 Installer | `sh tools/plume-install-test/run.sh` | not_run |
+| M12-03 Spotify | `python3 -m unittest discover -s tools -p test_spotify_podcast_probe.py -v` | not_run |
+| M12-04 Generator | `python3 -m unittest discover -s tools -p test_mullvad_prepare.py -v` | not_run |
+| M12-05 APK-Validator | `python3 -m unittest discover -s tools -p test_mullvad_apk.py -v` | not_run |
+| M12-06 Launcher | `./gradlew testDebugUnitTest lintDebug assembleDebug assembleRelease` | not_run |
+| M12-07 Originalbuild | `bash tools/mullvad/build-integrated.sh --no-configuration-cache --max-workers=2 :app:assembleOssProdRelease` (Original-Container) | not_run |
+| M12-08 Packaging | `check_apk.py` für Debug/Release, `aapt dump badging/xmltree`, SHA256, ARM64 | not_run |
+| M12-09 Signatur | Upstream `signingConfig=null`, Release ist unsigned | source_reviewed; Update hardware_pending |
+| M12-10 Größen/Leistung | Roh-APK, RAM/PSS bei VPN aus/verbunden, Launcher-Start und Fokus | not_measured |
+
+### ADB-Vorbereitung und korrigierter Activity-Aufruf
+```bash
+adb devices -l
+adb shell getprop ro.product.model
+adb shell getprop ro.build.version.sdk
+adb shell getprop ro.product.cpu.abilist
+adb install -r Plume-Launcher-Advanced-Mullvad-arm64-debug.apk
+adb shell monkey -p dev.plume.advanced -c android.intent.category.LEANBACK_LAUNCHER 1
+# VPN im Plume-Classic/Overview-Launcher mit der Fernbedienung öffnen.
+adb shell dumpsys package dev.plume.advanced
+adb shell dumpsys connectivity
+adb shell dumpsys meminfo dev.plume.advanced
+adb logcat -d -s AndroidRuntime MullvadVpnService MullvadDaemon
+```
+**Korrektur älterer Testanleitung:** Direktes `adb shell am start -n dev.plume.advanced/net.mullvad.mullvadvpn.app.VpnActivity` ist wegen absichtlich `exported=false` nicht zulässig. Der Einstieg erfolgt durch die exportierte Plume-HOME-Activity.
+
+### Physische Shield TV Pro 2019 — gesamte Matrix `hardware_pending`
+| Testblock | Eigene reale Evidenz aufnehmen |
+| --- | --- |
+| Anmeldung | Erstanmeldung, gültiges Konto, Kontozeit, Gutschein, Geräteliste/-limit, Logout und Fehlerzustände |
+| Tunnel/Android | System-VPN-Zustimmung/Verweigerung, Connect/Disconnect/Reconnect, echte Exit-IP, Revocation und Always-on |
+| Lebenszyklus | Home/Back/Appwechsel mit weiterlaufendem VPN, Offline/WLAN-Wechsel, Standby/Wake, Boot/Autoconnect |
+| Server/Multihop | Standort/Filter/Custom Lists, Entry-/Exit, NIE/BEI BEDARF/IMMER, DAITA/Post-Quantum, tatsächlicher Verbindungsweg |
+| Basiswerte | IPv6, DNS/Filter/Custom-Server, LAN, MTU, IP-Version, Persistenz nach Neustart |
+| Split Tunneling | TV-/Sideload-/Systemapp-Liste, Ausschlüsse, reale App-Routen, Paketwechsel, Android Lockdown |
+| Netzwerk | Obfuskation/Ports, API-Zugriff/CRUD/Test, Server-IP-JSON/Reset, Fehler/Offline |
+| Diagnose/OS | echte Logs/SAF-Export, Support mit Freigabe, Benachrichtigungen/Tap/QS, Sprache/API-Level/Changelog |
+| Plume | Classic und Overview → VPN, acht Seiten D-Pad/OK/Back/Fokusrestore, 720p/1080p, Originalfunktionen, HOME |
+| Update | Gleiches Package **und** identische Signatur, `adb install -r`, Plume-Prefs/Konto/VPN nach Update |
+
+### Größen- und Leistungsprotokoll (noch `not_measured`)
+- Baseline: M11-Artifact-ZIP 121357240 Byte aus CI 43433569189 ist **nicht** die Roh-APK-Größe. M11-/M12-Debug-Roh-APK herunterladen; `stat -c '%s %n' *.apk` + `sha256sum *.apk` protokollieren, Release/R8 separat.
+- Auf derselben Shield mit dokumentierter OS-/Firmware-Version und Auflösung fünf Kalt-/Warmstart-Messungen via `adb shell am start -W -n dev.plume.advanced/dev.plume.MainActivity`; Erststart/Cachezustand trennen.
+- `adb shell dumpsys meminfo dev.plume.advanced` (PSS/RSS) VPN aus und verbunden, danach Home/Appwechsel. `am force-stop` im verbundenen Test vermeiden. D-Pad-Fokusfallen/merkliche Verzögerung real beobachten.
+- Grünen Compiler/CI-Lauf **nicht** mit realer Shield-Funktion gleichsetzen. `M12=partial` bis Gerätetests nachgewiesen sind.
+
