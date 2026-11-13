@@ -73,6 +73,7 @@ jobs:
           docker run --rm -v "$PWD/.build/plume-mullvad/mullvadvpn-app:/build:ro" "$image" \
             aapt dump xmltree "$apk_in_container" AndroidManifest.xml > artifacts/plume-mullvad/manifest.txt
           grep -Fq "package: name='dev.plume.advanced'" artifacts/plume-mullvad/badging.txt
+          grep -Fxq "native-code: 'arm64-v8a'" artifacts/plume-mullvad/badging.txt
           grep -Fq 'dev.plume.MainActivity' artifacts/plume-mullvad/manifest.txt
           grep -Fq 'net.mullvad.mullvadvpn.app.MullvadApplication' artifacts/plume-mullvad/manifest.txt
           grep -Fq 'net.mullvad.mullvadvpn.app.service.MullvadVpnService' artifacts/plume-mullvad/manifest.txt
@@ -113,6 +114,7 @@ jobs:
           docker run --rm -v "$PWD/.build/plume-mullvad/mullvadvpn-app:/build:ro" "$image" \
             aapt dump xmltree "$release_in_container" AndroidManifest.xml > artifacts/plume-mullvad/release-manifest.txt
           grep -Fq "package: name='dev.plume.advanced'" artifacts/plume-mullvad/release-badging.txt
+          grep -Fxq "native-code: 'arm64-v8a'" artifacts/plume-mullvad/release-badging.txt
           grep -Fq 'dev.plume.MainActivity' artifacts/plume-mullvad/release-manifest.txt
           grep -Fq 'net.mullvad.mullvadvpn.app.MullvadApplication' artifacts/plume-mullvad/release-manifest.txt
           grep -Fq 'net.mullvad.mullvadvpn.app.service.MullvadVpnService' artifacts/plume-mullvad/release-manifest.txt
