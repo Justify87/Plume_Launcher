@@ -5,48 +5,56 @@ schema: plume-v-design-handoff/v1
 checked_on: "2026-11-13"
 repository: Justify87/Plume_Launcher
 base_branch: main
-main_head_observed: fbf2473711c50d03eb76afe8fd0a722af1faf136
+main_head_observed: 78666326d97c5692eaa49f652da77c9a16e5433c
 nuvio_branch: dev
 nuvio_head_observed: be4b84a84e004a2d36405601683df000d8dc446a
 active_milestone: M00
-active_status: partial
+active_status: partial_pending_pr_ci
 predecessor_milestone: null
 predecessor_pr: null
 predecessor_merged: not_applicable
-predecessor_head_sha: null
-work_branch: feature/vdesign-m00-bootstrap-contract
-work_head_sha_observed: c8b02415e8aa8a79bd9428db6e0b2737942d1c47
-work_head_note: "Last confirmed implementation commit before metadata commit; live HEAD always check PR #32"
-current_pr: 32
-current_pr_state: open_draft
-local_tests: passed_local_zip_sha_image_source_review_only
-android_build: not_run_no_checkout_sdk_network
-ci: in_progress_observed_not_success
-ci_run_url: https://github.com/Justify87/Plume_Launcher/actions/runs/43505553469
+completed_bootstrap_pr: 32
+completed_bootstrap_merged: true
+completed_bootstrap_merge_sha: 78666326d97c5692eaa49f652da77c9a16e5433c
+work_branch: feature/vdesign-m00-reference-completion
+reference_commit_observed: e1c13b2783aa632c2cbf391b10eb923426f8fc81
+work_head_sha_observed: e1c13b2783aa632c2cbf391b10eb923426f8fc81
+work_head_note: "Reference-only commit; subsequent documentation commit and PR head must be verified live"
+current_pr: pending_creation
+current_pr_state: pending_creation
+local_tests: passed_sha256_header_dimensions_and_git_blob_identity
+android_build: not_run_no_local_android_sdk_or_checkout
+ci: pending_new_pr
+ci_previous_m00_run: "43505553469 cancelled; no success claim"
 shield: hardware_pending
-visual_comparison: not_run_no_app_screen
+visual_comparison: not_run_no_launcher_screenshot
 reference_sha256: 95af66ad04f462867b5d52825c7e1946ac68b5e40bed52c07f4e74c085218f25
-reference_present_in_repo: false
-next_milestone: M00_reference_binary_completion_then_M01
+reference_git_blob_sha: d1b14c00a6478cb3b49fcbbd637e0aa71db5df18
+reference_present_in_repo: true
+reference_path: docs/v-design/REFERENCE.png
+reference_encoding: JPEG_JFIF_under_original_png_filename
+next_milestone: M01_after_M00_CI_review
 blockers:
-  - "Original REFERENCE.png is readable from user ZIP locally but cannot be uploaded as binary by available GitHub connector"
-  - "No local cloned Android project / Android SDK / physical Shield evidence"
+  - "New PR CI has not yet been observed to pass"
+  - "No local Android SDK/checkout or Shield runtime evidence; Shield acceptance belongs to M08"
 ```
 
-## Baseline und Abhängigkeiten
+## Baseline / tatsächliche Repository-Geschichte
 
-- **Plume main:** `fbf2473711c50d03eb76afe8fd0a722af1faf136` — letzter Merge archivierte Mullvad-Docs; kein vorhandener V-Design-Vorgänger-PR, keine offenen Plume-PRs bei Abfrage.
-- **Nuvio dev:** `be4b84a84e004a2d36405601683df000d8dc446a` — #23 neue drei optionale Preview-Kanäle gemergt, klassischer `CONTINUE` bleibt.
-- Mullvad M12 PR #29 ist gemergt (`9efbfc1e...`), echte Submodul-Originalintegration und Plume-Paket `dev.plume.advanced` bewahren. Historischer Status: `docs/archive/legacy-features/mullvad-vpn/STATE.md`, nach Archivierung **nicht** `docs/mullvad-integration/STATE.md`.
-- M00 verändert **keine** Kotlin-/XML-/Rust-/VPN-/Gradle-Datei. Keine produktive UI-Arbeit vor M01.
+- **Plume `main` beim Nachtrag:** `78666326d97c5692eaa49f652da77c9a16e5433c`. [PR #32](https://github.com/Justify87/Plume_Launcher/pull/32) wurde am 13.11.2026 gemergt, **obwohl sein Image-Gate offen war**. Historische Implementierungsbasis des PRs: `fbf2473711c50d03eb76afe8fd0a722af1faf136`.
+- **Nuvio `dev`:** `be4b84a84e004a2d36405601683df000d8dc446a`, vier normale Preview Channels, klassischer `CONTINUE` bleibt Mixed-Feed.
+- Mullvad-Dokumentation wurde nach `docs/archive/legacy-features/mullvad-vpn/` archiviert; `docs/mullvad-integration/STATE.md` existiert nicht mehr. Rust/JNI/VpnService und `dev.plume.advanced` bleiben unberührt.
+- M00 ist Dokumentations- und Bildvertrag; **kein** Kotlin-/XML-/Mullvad-/Provider-Refactor und **kein** ausgeführter UI-Screenshotvergleich.
 
-## M00 Ergebnis und nächster Zugriff
+## Normatives Bild — jetzt direkt per Git-Blob identisch
 
-**Teilweise umgesetzt:** Contracts/Source-Inventur/Review/Testmatrix im PR-Zweig. Originalbinärbild SHA lokal korrekt, jedoch **nicht im Git-Commit**; M00-Gate bleibt offen. Nach echtem Commit/PR CI-Daten ergänzen, niemals `passed` durch Annahme. M01 beginnt erst nach verifiziertem SHA-gleiches `REFERENCE.png` und Freigabe des gemergten/gestapelten M00-Standes.
+- Der bereits vorhandene Upload `docs/v-design/Plume_V_Design_REFERENCE_original.png` wurde als **Git-Blob `d1b14c00a6478cb3b49fcbbd637e0aa71db5df18`** gelesen; SHA-256 wurde unabhängig aus seinen über GitHub übertragenen Base64-Bytes berechnet: **`95af66ad04f462867b5d52825c7e1946ac68b5e40bed52c07f4e74c085218f25`**; Größe **249663 Bytes**; **1536×864**. Die SHA-Implementierung wurde gegen bekannte SHA-256-Testvektoren (`abc`, leerer String) geprüft.
+- **Wichtig:** Die vom ZIP geerbte Dateiendung `.png` ist irreführend. Die unveränderten Originalbytes beginnen mit `FF D8 FF E0` (JPEG/JFIF). **Nicht konvertieren:** Das würde den SHA-Vertrag brechen. Dies ist eine Dokumentationsreferenz, kein Android-Drawable.
+- Commit [`e1c13b2783aa632c2cbf391b10eb923426f8fc81`](https://github.com/Justify87/Plume_Launcher/commit/e1c13b2783aa632c2cbf391b10eb923426f8fc81) referenziert exakt **denselben** Git-Blob als `docs/v-design/REFERENCE.png` und entfernt nur den temporären Alias. Die Git-Binäridentität wird nach dem PR-Commit erneut geprüft.
 
-## PR / CI Evidence nach GitHub-Write
+## CI / Handoff
 
-- Dokumentations-Implementierungscommit: `c8b02415e8aa8a79bd9428db6e0b2737942d1c47` (GitHub `feature/vdesign-m00-bootstrap-contract`). GitHub-Vergleich gegen Baseline: 1 Commit, 0 behind, **genau zehn neue `docs/v-design/*`-Textdateien**, keine Source-/Mullvad-Diffs.
-- **Draft-PR:** [#32](https://github.com/Justify87/Plume_Launcher/pull/32), offen, ungemergt; GitHub meldet mergeable, **keine Mergefreigabe**.
-- **PR-CI:** [Run 43505553469](https://github.com/Justify87/Plume_Launcher/actions/runs/43505553469), beim ersten Abruf `in_progress`, `conclusion=null`; nicht als grün markiert. Nach Abschluss explizit nachprüfen.
-- Wegen des Git-Selbstbezugs bildet `work_head_sha_observed` den *vorherigen bestätigten* Dokumentationscommit ab; dieser reine Metadaten-Nachtrag hat einen zusätzlichen SHA, der über [PR #32](https://github.com/Justify87/Plume_Launcher/pull/32/commits) überprüfbar ist.
+- Historischer [PR-#32-CI-Run 43505553469](https://github.com/Justify87/Plume_Launcher/actions/runs/43505553469) endete **`cancelled`**, nicht `success`. Main Combined-Status lieferte `statuses: []`.
+- Aktueller Ergänzungs-PR wird nach Commit-Erstellung eingetragen bzw. ist über Branch `feature/vdesign-m00-reference-completion` auffindbar. Bis zu einer **beobachteten** CI-Prüfung Status **`partial_pending_pr_ci`**, nicht `passed`.
+- **M01**: Nuvio `IN_PROGRESS` / `AVAILABLE` / `UPCOMING` anhand Channel-`internal_provider_id` anbinden, Installationspaket/Provider-Berechtigungen real prüfen; keine SmartTube-Medien und keine Mischkanal-Aufteilung.
+- Keine Merge-Aktion ohne neue ausdrückliche Nutzerfreigabe.

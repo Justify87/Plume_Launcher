@@ -1,5 +1,7 @@
 # V-Design — echte Milestone-Reviews
 
+> Der erste M00-Eintrag unten dokumentiert den historischen PR-#32-Prüfzeitpunkt **vor** dessen Merge. Der verifizierte Nachtrag danach ist maßgeblich für den aktuellen Stand; `STATE.md` ist kanonisch.
+
 ## M00 — Bootstrap-Vertrag — 2026-11-13
 
 - **Reale Git-Basis:** Plume `main@fbf2473711c50d03eb76afe8fd0a722af1faf136`, Nuvio `dev@be4b84a84e004a2d36405601683df000d8dc446a`; kein V-Design-Vorgänger-PR. Work branch `feature/vdesign-m00-bootstrap-contract`. Implementierungscommit `c8b02415e8aa8a79bd9428db6e0b2737942d1c47`, [Draft-PR #32](https://github.com/Justify87/Plume_Launcher/pull/32) offen/unmerged; CI [Run 43505553469](https://github.com/Justify87/Plume_Launcher/actions/runs/43505553469) zunächst `in_progress`/ohne Conclusion.
@@ -17,3 +19,12 @@
 ### Review-Pflicht für M01–M08
 
 Für jeden Meilenstein Datum, tatsächlichen Base-/Work-Commit und PR, Scope und Dateidiff, Datenquelle, Null-/Security-/Intent-Verhalten, Referenzvergleich (nur mit realen Screenshots), D-Pad/HOME/Back/Shield, ausgeführte Tests, exakte CI-Run/Job-URLs und beobachteten Endstatus, systematische Folgefehler, Entscheidung (`passed/partial/blocked`) und Handoff als eigenen Abschnitt ergänzen. **Nie** `passed` ohne Evidenz.
+
+## M00 — Nachtragsreview, tatsächlicher Image-Gate-Abschluss — 2026-11-13
+
+- **Repo-Basis:** Plume `main@78666326d97c5692eaa49f652da77c9a16e5433c` nach bereits gemergtem [PR #32](https://github.com/Justify87/Plume_Launcher/pull/32); Nuvio `dev@be4b84a84e004a2d36405601683df000d8dc446a` nur gelesen. Branch `feature/vdesign-m00-reference-completion`, Image-Commit [`e1c13b2783aa632c2cbf391b10eb923426f8fc81`](https://github.com/Justify87/Plume_Launcher/commit/e1c13b2783aa632c2cbf391b10eb923426f8fc81); keine anderen Commits überschrieben.
+- **Bild-Gate unabhängig geprüft:** Bestehendes GitHub-Binary via `fetch_file(encoding=base64)` abgerufen, Bytes aus Base64 dekodiert, unabhängige SHA-256-Implementierung gegen SHA-Testvektoren `abc`/leer geprüft. Größe **249663**, JPEG-JFIF-`FF D8 FF E0`, **1536×864**, SHA-256 `95af66ad04f462867b5d52825c7e1946ac68b5e40bed52c07f4e74c085218f25` = SHA-Datei. `REFERENCE.png` zeigt auf exakt denselben Blob `d1b14c00a6478cb3b49fcbbd637e0aa71db5df18`, nicht neu generiert oder verändert. Alter falsch benannter Alias entfernt.
+- **Scope:** Ausschließlich `docs/v-design/*` mit normativem Originalbild und aktualisierten Verträgen/State/Handoff/Review/Testevidenz. Kein Kotlin/XML/Gradle, keine App-Datenquelle, Berechtigungen, Nuvio- oder Mullvad-Änderungen; Bildformat ist eine **geerbte Eigenschaft des Originals**, kein Designwechsel.
+- **CI-Ehrlichkeit:** Alter M00-PR-Run [43505553469](https://github.com/Justify87/Plume_Launcher/actions/runs/43505553469) wurde `cancelled`; Main Combined-Status enthält keine Success-Belege. Neuer PR-Run wird nach Erstellung unabhängig geprüft und erst dann in Status übernommen. Lokale Gradle-/Emulator-/Shield-Tests **not_run** (keine Android-SDK/Checkout-/Geräteumgebung); echter Launcher-Screenshotvergleich **not_run**, Android-VPN-Runtime **nicht** getestet.
+- **Systematische Risiken:** Dateiendung täuscht PNG vor (Bildlader/CI dürfen den Typ nicht allein aus der Extension ableiten). Nuvio `com.nuvio.tv` vs. ältere Plume-Aliase, synthetische 100-s-Positionen, Provider-Visibility, release-date-only, Navigation, HDMI/All Apps/Long-OK und Mullvad bleiben wie im `DATA_CONTRACT.md` / `INVENTORY.md` dokumentiert.
+- **Entscheidung:** **partial_pending_pr_ci**. Originalbild-Gate bestanden; M00 erst nach neuer PR-/CI-Abnahme `passed`, M01 deshalb noch nicht begonnen.
