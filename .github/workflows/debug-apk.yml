@@ -45,14 +45,16 @@ jobs:
           image=$(cat third_party/mullvadvpn-app/building/android-container-image.txt)
           test "$image" = 'ghcr.io/mullvad/mullvadvpn-app-build-android@sha256:ca22c11fb8a15321f897fa169c9c9d1f7d0d9edfeea16fa04af4de71ebcf4286'
 
-      - name: Test source staging generator
-        run: python3 -m unittest discover -s tools -p test_mullvad_prepare.py -v
+      - name: Test source staging generator and APK validator
+        run: |
+          python3 -m unittest discover -s tools -p test_mullvad_prepare.py -v
+          python3 -m unittest discover -s tools -p test_mullvad_apk.py -v
 
       - name: Pull Mullvad's pinned Android toolchain image
         run: docker pull "$(cat third_party/mullvadvpn-app/building/android-container-image.txt)"
 
-      - name: Assemble one Plume-Mullvad OSS/Prod Debug APK
-        run: bash tools/mullvad/build-integrated.sh --no-configuration-cache --max-workers=2
+      - name: Assemble combined Plume-Mullvad OSS/Prod Debug and unsigned Release (R8)
+        run: bash tools/mullvad/build-integrated.sh --no-configuration-cache --max-workers=2 :app:assembleOssProdRelease
 
       - name: Verify APK package, VPN components, launcher and checksum
         shell: bash
@@ -97,13 +99,40 @@ jobs:
             exit 1
           fi
           cp "$apk" artifacts/plume-mullvad/Plume-Launcher-Advanced-Mullvad-arm64-debug.apk
-          (cd artifacts/plume-mullvad && sha256sum Plume-Launcher-Advanced-Mullvad-arm64-debug.apk > SHA256SUMS)
+          # The original Mullvad RELEASE build intentionally has signingConfig=null.
+          # Treat its output as an unsigned R8/release validation artifact, never as
+          # an installable update. Only the debug APK is ready for sideloading.
+          release_dir=.build/plume-mullvad/mullvadvpn-app/android/app/build/outputs/apk/ossProd/release
+          release_apk=$(find "$release_dir" -maxdepth 1 -type f -name '*.apk' -print -quit)
+          test -n "$release_apk" && test -s "$release_apk"
+          test "$(find "$release_dir" -maxdepth 1 -type f -name '*.apk' | wc -l)" -eq 1
+          python3 tools/mullvad/check_apk.py "$release_apk"
+          release_in_container="/build/android/app/build/outputs/apk/ossProd/release/$(basename "$release_apk")"
+          docker run --rm -v "$PWD/.build/plume-mullvad/mullvadvpn-app:/build:ro" "$image" \
+            aapt dump badging "$release_in_container" > artifacts/plume-mullvad/release-badging.txt
+          docker run --rm -v "$PWD/.build/plume-mullvad/mullvadvpn-app:/build:ro" "$image" \
+            aapt dump xmltree "$release_in_container" AndroidManifest.xml > artifacts/plume-mullvad/release-manifest.txt
+          grep -Fq "package: name='dev.plume.advanced'" artifacts/plume-mullvad/release-badging.txt
+          grep -Fq 'dev.plume.MainActivity' artifacts/plume-mullvad/release-manifest.txt
+          grep -Fq 'net.mullvad.mullvadvpn.app.MullvadApplication' artifacts/plume-mullvad/release-manifest.txt
+          grep -Fq 'net.mullvad.mullvadvpn.app.service.MullvadVpnService' artifacts/plume-mullvad/release-manifest.txt
+          grep -Fq 'net.mullvad.mullvadvpn.app.VpnActivity' artifacts/plume-mullvad/release-manifest.txt
+          grep -Fq 'android.intent.category.HOME' artifacts/plume-mullvad/release-manifest.txt
+          if grep -Eq 'PlumeVpnDebugActivity|net.mullvad.mullvadvpn.feature.appearance.impl.obfuscation.MainActivityAlt' artifacts/plume-mullvad/release-manifest.txt; then
+            echo "::error::Legacy or Mullvad-phone entry is exported in release manifest"
+            exit 1
+          fi
+          cp "$release_apk" artifacts/plume-mullvad/Plume-Launcher-Advanced-Mullvad-arm64-release-unsigned.apk
+          (cd artifacts/plume-mullvad && sha256sum \
+            Plume-Launcher-Advanced-Mullvad-arm64-debug.apk \
+            Plume-Launcher-Advanced-Mullvad-arm64-release-unsigned.apk > SHA256SUMS)
           {
-            echo '### Plume + Mullvad single APK'
-            echo 'Package: dev.plume.advanced; flavor: ossProdDebug; ABI: arm64-v8a'
-            echo "APK bytes: $(stat -c %s "$apk")"
-            echo "SHA-256: $(cut -d' ' -f1 artifacts/plume-mullvad/SHA256SUMS)"
-            echo 'APK, manifest and checksum available under **Artifacts**.'
+            echo '### Plume + Mullvad: same single package in Debug and Release variants'
+            echo 'Package: dev.plume.advanced; flavor: ossProd; ABI: arm64-v8a'
+            echo "Debug APK bytes: $(stat -c %s "$apk")"
+            echo "Unsigned R8 release APK bytes: $(stat -c %s "$release_apk")"
+            echo 'Release is UNSIGNED by original Mullvad build configuration: sign with the existing Plume update key before installation.'
+            echo 'APK sizes, manifests, checksums and both variant outputs are under **Artifacts**.'
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload integrated debug APK and evidence

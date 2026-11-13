@@ -35,6 +35,9 @@ jobs:
       - name: Mullvad staging-script tests (no SDK needed)
         run: python3 -m unittest discover -s tools -p 'test_mullvad_prepare.py' -v
 
+      - name: Mullvad APK structural validator regression tests (offline)
+        run: python3 -m unittest discover -s tools -p 'test_mullvad_apk.py' -v
+
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
@@ -49,11 +52,11 @@ jobs:
       # Building the standalone launcher twice and comparing its release size
       # does not validate that combined package.
       - name: Legacy launcher APK builds (other PRs only)
-        if: ${{ !contains(github.head_ref, 'mullvad') }}
+        if: ${{ !contains(github.head_ref, 'mullvad') || startsWith(github.head_ref, 'feature/m12-') }}
         run: ./gradlew assembleDebug assembleRelease
 
       - name: APK size against the base branch
-        if: ${{ !contains(github.head_ref, 'mullvad') }}
+        if: ${{ !contains(github.head_ref, 'mullvad') || startsWith(github.head_ref, 'feature/m12-') }}
         run: |
           now=$(stat -c %s app/build/outputs/apk/release/app-release.apk)
           git worktree add -q ../base "$BASE"
