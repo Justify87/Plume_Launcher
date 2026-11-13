@@ -219,3 +219,54 @@ adb shell dumpsys connectivity
 ```
 
 **Abnahme derzeit `partial`**: M04-Quellimplementierung **und CI-Build-/APK-Strukturnachweis `observed_ci_pass`** auf Code-Commit `389fe3a`. Shield-/Tunnel-/Exit-IP- und reale D-Pad-/Fokus-Hardwareevidenz sind weiterhin `not_run`; ohne Ausführung kein vollständiges `pass`. Artifact-Uploadgröße **120901828 Bytes** ist kein APK-Rohwert. Finaler Dokumentationscommit ändert keinen Buildcode.
+
+
+## M05 — Konto, Geräte, Gutschein, Kontoaktionen (2026-11-13)
+
+| ID | Prüfung | Aktuelles Ergebnis | Beleg/Grenze |
+| --- | --- | --- | --- |
+| M05-01 | `main`-HEAD, keine offenen PRs, M04 #19 gemergt, Mullvad-Stable erneut geprüft | `pass_observed` | GitHub API: `main` = `81017e4de5f24660fdfa45ef2c4734914bb0a796`; Stable `android/2026.12` |
+| M05-02 | Staging-Unit-Tests inkl. neuer Account-View und Null-Originaldiff | `not_run` | `python3 -m unittest discover -s tools -p test_mullvad_prepare.py -v`; GitHub CI nach PR |
+| M05-03 | Plume-Regressionschecks | `not_run` | `./gradlew testDebugUnitTest lintDebug` und `sh tools/plume-install-test/run.sh`; GitHub CI nach PR |
+| M05-04 | ARM64 OSS/Prod Kotlin/Rust/JNI-Integrationsbuild | `not_run` | `bash tools/mullvad/build-integrated.sh`; GitHub CI nach PR |
+| M05-05 | APK-Paket, ein Launcher, Originalservice, JNI, Relay-Assets und neue Konto-UI im DEX | `not_run` | `python3 tools/mullvad/check_apk.py <apk>`; `aapt dump xmltree`, `dexdump`; Hardware noch nicht geprüft |
+| M05-06 | D-Pad/OK/Back, TV-Tastatur in Classic/Overview, Fokus auf Login bzw. Konto und AlertDialog | `not_run` | Kein Android-TV-Gerät verbunden |
+| M05-07 | Echte Anmeldung/Abmeldung, Kontoerstellung und Laufzeit, Prozessneustart | `not_run` | Kein Mullvad-Testkonto/Shield vorhanden; nie echte Kontonummer in Logs/PR |
+| M05-08 | API offline/ungültige Kontonummer, Fehlertext und Wiederholung | `not_run` | Shield/Emulator; keine Credentials loggen |
+| M05-09 | Gerätelimit, Gerät anzeigen, Entfernen, Widerruf und erneutes Login | `not_run` | Benötigt autorisierte Konten mit Geräten; Gerät umbenennen laut Original-API nicht verfügbar |
+| M05-10 | Gutscheincode und Konto löschen inkl. doppelte Bestätigung, offizieller Web-Zeitkauf | `not_run` | Nur mit eigens freigegebenem Testgutschein/Testkonto; keine produktiven Konten löschen |
+
+**Reproduktion (CI/SDK-Host):**
+
+```bash
+git checkout feature/m05-mullvad-accounts-tv
+git submodule update --init --recursive
+python3 -m unittest discover -s tools -p test_mullvad_prepare.py -v
+./gradlew testDebugUnitTest lintDebug
+sh tools/plume-install-test/run.sh
+bash tools/mullvad/build-integrated.sh
+python3 tools/mullvad/check_apk.py <generated-ossProdDebug.apk>
+```
+
+**NVIDIA Shield Pro (2019) / Fernbedienung, sobald verfügbar:**
+
+```bash
+adb devices -l
+adb shell getprop ro.build.version.sdk
+adb shell getprop ro.product.cpu.abilist
+adb install -r <generated-ossProdDebug.apk>
+adb shell am start -n dev.plume.advanced/dev.plume.MainActivity
+# Classic und Overview: VPN-Icon → Konto → Konto-ID eingeben → Anmelden.
+# Originalzustand/Gültig-bis anzeigen; neu starten und Status erneut aufrufen.
+# Geräteliste laden, eigenes Gerät markieren; nur kontrollierte Testgeräte entfernen.
+# Gutschein/Account-Delete nur über freigegebene TEST-Zugänge, nie produktive Konten.
+# Offline-Modus, ungültige ID, Back/OK/DPAD-LEFT, TV-Keyboard und AlertDialogs prüfen.
+# Anschließend VPN-Connect/Disconnect/Exit-IP testen; Home/Back darf Tunnel nicht stoppen.
+adb logcat -d -s AndroidRuntime MullvadVpnService MullvadDaemon
+adb shell dumpsys connectivity
+```
+
+M05 bleibt `partial` bis CI **und** Live-/Shield-Kontoabnahme tatsächlich nachgewiesen sind. Ein erfolgreiches Compiler-Gate wird später nur als `observed_ci_pass` ergänzt, nie als Ersatz für Geräteevidenz.
+
+
+**M05 DI-Folgefehlerprüfung:** Source-Audit am gepinnten Upstream: `MullvadApplication` lädt nur `appModule`; originales `MainActivity` lädt `uiModule`/`paymentModule`. M05-VPN-Activity-Overlay lädt diese beiden Module vor `buildScreen()`. Test `test_m05_account_ui_uses_original_repositories` prüft den Modulaufruf; tatsächliche Runtime-/Koin-Auflösung bleibt `not_run` bis zum Geräte- oder Instrumentationstest.

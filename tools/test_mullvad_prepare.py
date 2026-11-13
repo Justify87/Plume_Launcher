@@ -73,6 +73,29 @@ class PreparationTests(unittest.TestCase):
         self.assertIn("net.mullvad.mullvadvpn.app.VpnActivity", main)
         self.assertIn("refreshVpnEntry()", main)
 
+    def test_m05_account_ui_uses_original_repositories(self):
+        vpn = (prepare.ROOT / "tools/mullvad/VpnActivity.kt").read_text()
+        account = (prepare.ROOT / "tools/mullvad/VpnAccountUi.kt").read_text()
+        self.assertIn("VpnAccountUi(", vpn)
+        self.assertIn("accounts.accountData.collect", vpn)
+        self.assertIn("accountUi.onDeviceState(state)", vpn)
+        # uiModule owns VoucherRepository/NewDeviceRepository; smartphone MainActivity
+        # is not launched in Plume. The original host modules must still be loaded.
+        self.assertIn("loadKoinModules(listOf(uiModule, paymentModule))", vpn)
+        for api in (
+            "accounts.login(", "accounts.logout()", "accounts.createAccount()",
+            "accounts.refreshAccountData()", "accounts.deleteAccount()",
+            "devices.deviceList(", "devices.removeDevice(", "vouchers.submitVoucher(",
+            "newDevices.newDeviceCreated()", "createAccountUri(",
+        ):
+            self.assertIn(api, account)
+        self.assertNotIn("SharedPreferences", account)
+        self.assertNotIn("HttpURLConnection", account)
+        self.assertNotIn("renameDevice(", account)
+        self.assertIn("private var deviceState: DeviceState? = null", account)
+        self.assertIn("Mullvad-Kontostatus wird geladen", account)
+        self.assertIn("A fresh expiry", account)
+
     def test_prepare_isolation_and_single_application(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -100,6 +123,7 @@ class PreparationTests(unittest.TestCase):
                 self.assertTrue((generated / "plume-ui/src/main/AndroidManifest.xml").exists())
                 self.assertTrue((generated / "app/src/ossProdDebug/AndroidManifest.xml").exists())
                 self.assertTrue((generated / "app/src/ossProd/kotlin/net/mullvad/mullvadvpn/app/VpnActivity.kt").exists())
+                self.assertTrue((generated / "app/src/ossProd/kotlin/net/mullvad/mullvadvpn/app/VpnAccountUi.kt").exists())
                 self.assertFalse((generated / "app/src/ossProdDebug/kotlin/net/mullvad/mullvadvpn/app/PlumeVpnDebugActivity.kt").exists())
                 self.assertIn("VpnActivity", (generated / "app/src/ossProd/AndroidManifest.xml").read_text())
                 staged_manifest = (generated / "plume-ui/src/main/AndroidManifest.xml").read_text()

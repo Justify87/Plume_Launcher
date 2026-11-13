@@ -89,3 +89,22 @@ A shared manual/PR integrated APK build now uses the official pinned Mullvad And
 - **F04/F05 `partial`:** unabhängiger Original-`MullvadVpnService` mit originalem Rust/JNI/gRPC strukturell im Vorgänger-CI geprüft; Prozess- und Tunnel-Laufzeit nach Home/Back auf Shield **nicht** geprüft.
 - **F26 `partial`:** bestehende Kontonummer-Anmeldung über originales `AccountRepository` in eigener Konto-Ansicht; Gerätelogin/Anmeldefehler noch ohne Endgerät-Prüfung.
 - **F06–F25/F27–F48** soweit nicht separat dokumentiert bleiben `not_started`; `Standorte`, `VPN-Einstellungen` und große Teile der `Diagnose` sind ausdrücklich Navigations-Shells. Kompilieren und UI-Shell allein begründen keine vollständige Parität.
+
+
+## M05 — Konto-/Geräte-Feature-Matrix (Codeanbindung ≠ Hardware-Pass)
+
+| ID | Originalpfad / reale Plume-UI | Stand und offener Nachweis |
+| --- | --- | --- |
+| F26 | `AccountRepository.login/logout/createAccount`, `LoginAccountError` → native Konto-Seite mit Android-TV-EditText und Bestätigungen | `partial`: Quellimplementierung; echter Login/Logout und Keyboard auf Shield `not_run` |
+| F27 | `AccountRepository.accountData/refreshAccountData` → Kontoübersicht und Ablauf in Ortszeit | `partial`: Live-Flow angebunden, echter Ablauf-/Neustarttest `not_run` |
+| F28 | `AccountRepository.getWebsiteAuthToken` + originaler `createAccountUri` → offizieller Mullvad-Kontolink | `partial`: OSS ohne Play-Billing; TV-Browser/Weiterleitung `not_run` |
+| F29 | `VoucherCode.fromString` / `VoucherRepository.submitVoucher` → Gutscheinformular | `partial`: realer Gutschein/Fehlermeldung `not_run` |
+| F30 | `DeviceRepository.deviceList/removeDevice` → Liste, eigenes Gerät markiert, Entfernung mit Bestätigung | `partial`: Login-, Remove- und Gerätewiderruf-Test `not_run`; Umbenennung **nicht im gepinnten Android-Repository verfügbar**, daher `not_applicable_upstream_api` |
+| F31 | `LoginAccountError.MaxDevicesReached` / `NewDeviceRepository.newDeviceCreated` → Limit-Geräteliste, Entfernen und Wiederanmeldung | `partial`: Gerätelimit-Szenario `not_run` |
+| F32 | `AccountRepository.deleteAccount` → zweite Kontonummernbestätigung und Backend-Resultat | `partial`: echter Löschtest ohne freigegebenes Testkonto `not_run` |
+| F33 | `AccountRepository.accountData.expiryDate`, `DeviceState.Revoked/LoggedOut` → abgelaufen/widerrufen angezeigt | `partial`: Ablauf offline/live `not_run`; keine synthetischen Zustände |
+
+**Abnahme:** Keine Zeile `pass` ohne Originalfunktion **und** benutzbare TV-UI **und** tatsächliche Testevidenz. Original-Smartphone-Compose-UI wird nicht als Plume-Kontooberfläche geöffnet. Ein getrennt installiertes Mullvad-Paket gibt keine privaten Accounts an `dev.plume.advanced` weiter.
+
+
+**M05 Bootstrap-Review:** `VoucherRepository` und `NewDeviceRepository` sind im originalen `uiModule`, nicht im bei Application-Start geladenen `appModule`; die Plume-`VpnActivity` lädt daher wie Mullvads MainActivity `uiModule` und `paymentModule`. Ohne diesen Schritt wären F29/F31 auf Gerät nicht auflösbar. Staging-Assertion ergänzt; Gerätepass bleibt offen.
