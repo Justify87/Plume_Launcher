@@ -428,3 +428,11 @@ adb shell dumpsys connectivity
 ```
 
 **Review-Entscheidung:** keine originalen Mullvad-Dateien oder VPN-Krypto verändert, ein einziges APK; originaler Relay-Filter und `ModifyMultihopUseCase` statt eigener Server-Paarung; M07-PQ-Writer wiederverwendet; keine Fake-Effektivzustände. CI-/Shield-Ergebnisse erst nach realen Runs ergänzen. M09 `partial` bis vollständiger Abnahme, M10 kann auf derselben Original-Runtime aufbauen.
+
+### M09 zusätzlicher Build- und Review-Nachweis — nach Merge von PR #24
+
+- Erste vollständige CI auf `0b3af65b302398fc175284fccad65e0f1eee6315`: [Run 43409181838](https://github.com/Justify87/Plume_Launcher/actions/runs/43409181838), `check=success`, `mullvad-apk=success`, `Legacy Plume-only debug APK=skipped` (workflowabhängig). Python-Staging, Plume-Regressionen, originale Kotlin/Rust/JNI-Apk und APK-Struktur damit **`observed_ci_pass`** für diesen Commit.
+- Nachreview: D-Pad-Rail wechselt vom temporären Entry-/Exit-Browser zur normalen Singlehop-Ansicht; Daemon-Reconnect übernimmt aktuellen echten Tunnelstatus; Offline-Labels für Multihop/DAITA/PQ zeigen ohne laufenden Originaldienst keine bestätigte Aktivierung. Tests der Staging-Regeln um diese Bedingungen erweitert.
+- **Neuer Review-Commit:** In Folgeprüfung den frischen CI-Status separat auswerten; `Run 43409181838` ist kein Buildnachweis für spätere Änderungen. Shield-Tests bleiben unabhängig davon `hardware_pending`.
+
+**Post-Merge-Situation:** PR #24 wurde während der M09-Review-Arbeit nach `main` gemergt, bevor die nachträglichen UI-Korrekturen Teil des PRs waren. Deshalb werden diese isoliert auf `main` `0df3ead5749ad5a3f465029308c104e9babe67d1` als `feature/m09-postmerge-ui-review` erneut getestet. `Run 43409181838` ist grün für den M09-Merge, **kein** finaler Buildbeleg für das Folge-Review.

@@ -204,6 +204,9 @@ class PreparationTests(unittest.TestCase):
                     "TunnelState.Connected", "entryHostname", "openQuantum()"):
             self.assertIn(api, advanced)
         self.assertIn("fun focusQuantum()", settings)
+        self.assertIn("if (index != 1 && returnFromAdvanced)", vpn)
+        self.assertIn("advancedUi.onTunnelState(if (daemonReady) latestTunnel else null)", vpn)
+        self.assertIn("val mode = if (daemonReady) constraints?.multihop else null", advanced)
         self.assertIn('with_name("VpnAdvancedUi.kt")',
                       (prepare.ROOT / "tools/mullvad/prepare.py").read_text())
         self.assertNotIn("SharedPreferences", advanced)
