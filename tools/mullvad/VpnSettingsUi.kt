@@ -86,6 +86,11 @@ internal class VpnSettingsUi(
         generalFirst.requestFocus()
     }
 
+    fun focusQuantum() {
+        showDns(false)
+        quantumButton.requestFocus()
+    }
+
     fun handleBack(): Boolean {
         if (!dnsOpen) return false
         showDns(false)

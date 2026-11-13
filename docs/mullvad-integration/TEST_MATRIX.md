@@ -387,3 +387,44 @@ adb logcat -d -s AndroidRuntime MullvadVpnService MullvadDaemon
 Geräteumgebung nicht verbunden. Keine Shield-/Routing-/Persistenz-Passes ohne Logs, Netzwerkbeleg und D-Pad-Prüfung.
 
 **Nachtrag:** Review korrigiert M08-Handoff-Markdown und ergänzt sichtbaren EditText-Fokusrahmen. Für den finalen PR-HEAD muss der erneut gestartete CI-Lauf getrennt geprüft werden. Shield-Fälle M08-04–09 bleiben unverändert `hardware_pending`.
+
+## M09 — Multihop, DAITA, PQ, Review und Hardwareabnahme (13.11.2026)
+
+**Ausgang:** `main` `560ee47cffb1640af7ac9dd889b6441f78efc824`, M08 PR #23 gemergt, keine offenen PRs. Upstream-SHA `aa47f606b1a159214c7279344128119fa91be5fd` unverändert. Neue Plume-Views benötigen die originale Kotlin-/Rust-APK-CI; lokale Android-Toolchain und erreichbare Shield stehen dem GitHub-Connector-Kontext nicht zur Verfügung. Keine nicht ausgeführten Tests als `pass` ausgeben.
+
+| M09-Test | Reproduktion/Nachweis | Stand |
+| --- | --- | --- |
+| Ursprungs-Pin und Gitlink | `git ls-tree HEAD third_party/mullvadvpn-app`; `git -C third_party/mullvadvpn-app rev-parse HEAD` | `partial`: GitHub-Quelle geprüft, kein kompletter lokaler Checkout |
+| Original-API-Klassen und UI-Anbindung | Quellen gegen festen Tag `android/2026.12`, `VpnAdvancedUi`, `VpnLocationUi`, `VpnActivity`, `prepare.py` | `partial`: Quellprüfung, noch kein Gerätebeleg |
+| Staging / Duplikatfreiheit | `python3 -m unittest discover -s tools -p test_mullvad_prepare.py -v` | `not_run` bis CI/neuer Checkout |
+| Plume-Regression | `./gradlew testDebugUnitTest assembleDebug lintDebug assembleRelease`; `sh tools/plume-install-test/run.sh` | `not_run` bis CI/neuer Checkout |
+| Ein-Plume-APK inkl. Rust/JNI/Relay-Assets | `bash tools/mullvad/build-integrated.sh`, `python3 tools/mullvad/check_apk.py <apk>` | `not_run` bis CI/neuer Checkout |
+| Live: Multihop NEVER → WHEN_NEEDED → ALWAYS → NEVER | Android-TV-VPN-UI + bestätigte `wireguardConstraints.multihop`-States, jeweils wirklicher Tunnelstatus | `hardware_pending` |
+| Live: Entry automatisch, Länder/Städte/Hosts, Exit, Filter | Standorte in „Erweitert“ wählen; gültig/ungültig/same host; DAITA-Constraints; keine erzwungene Neuverbindung | `hardware_pending` |
+| Live: DAITA aus/an und wieder aus | Original-Relayfilter, Persistenz, Tunnel/Fehlerstatus nach Umschalten | `hardware_pending` |
+| Live: Post-Quantum an/aus und wieder Standard | M09→M07 Navigation; `QuantumResistantState.On/Off` vom Daemon; reconnect/Tunnel | `hardware_pending` |
+| Live: Migration und Netzwerkfehler | Bei tatsächlich vorhandener Upstream-Migrationsmeldung Originalstatus/Bestätigung; Offline-/Daemon-Ausfall | `hardware_pending` |
+| Live: Classic/Overview D-Pad/OK/Back/Home/Neustart | Fokus/Rückkehr zu „Erweitert“, Unabhängigkeit der VPN-Verbindung von Plumes Home-Activity | `hardware_pending` |
+
+**Reproduzierbarer Build-/Hardware-Block:**
+```bash
+git checkout feature/m09-mullvad-multihop-daita-tv
+git submodule update --init --recursive
+test "$(git -C third_party/mullvadvpn-app rev-parse HEAD)" = aa47f606b1a159214c7279344128119fa91be5fd
+python3 -m unittest discover -s tools -p test_mullvad_prepare.py -v
+./gradlew testDebugUnitTest assembleDebug lintDebug assembleRelease
+sh tools/plume-install-test/run.sh
+bash tools/mullvad/build-integrated.sh
+python3 tools/mullvad/check_apk.py <integrated-debug.apk>
+adb devices -l
+adb shell getprop ro.build.version.sdk
+adb shell getprop ro.product.cpu.abilist
+adb install -r <integrated-debug.apk>
+adb logcat -c
+# Danach in Classic und Overview „VPN“ → „Erweitert“ per D-Pad öffnen,
+# Original-Konto anmelden, Systemfreigabe bestätigen und alle Matrixfälle prüfen.
+adb logcat -d -s MullvadVpnService MullvadDaemon AndroidRuntime
+adb shell dumpsys connectivity
+```
+
+**Review-Entscheidung:** keine originalen Mullvad-Dateien oder VPN-Krypto verändert, ein einziges APK; originaler Relay-Filter und `ModifyMultihopUseCase` statt eigener Server-Paarung; M07-PQ-Writer wiederverwendet; keine Fake-Effektivzustände. CI-/Shield-Ergebnisse erst nach realen Runs ergänzen. M09 `partial` bis vollständiger Abnahme, M10 kann auf derselben Original-Runtime aufbauen.

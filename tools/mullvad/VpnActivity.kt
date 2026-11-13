@@ -32,6 +32,9 @@ import net.mullvad.mullvadvpn.lib.model.ActionAfterDisconnect
 import net.mullvad.mullvadvpn.lib.model.DeviceState
 import net.mullvad.mullvadvpn.lib.model.DisconnectReason
 import net.mullvad.mullvadvpn.lib.model.GeoIpLocation
+import net.mullvad.mullvadvpn.lib.model.MultihopMode
+import net.mullvad.mullvadvpn.lib.model.RelayHopType
+import net.mullvad.mullvadvpn.lib.model.RelayListType
 import net.mullvad.mullvadvpn.lib.model.TunnelState
 import net.mullvad.mullvadvpn.lib.repository.AutoStartAndConnectOnBootRepository
 import net.mullvad.mullvadvpn.lib.repository.WireguardConstraintsRepository
@@ -45,11 +48,14 @@ import net.mullvad.mullvadvpn.lib.repository.ConnectionProxy
 import net.mullvad.mullvadvpn.lib.repository.CustomListsRepository
 import net.mullvad.mullvadvpn.lib.repository.RelayListFilterRepository
 import net.mullvad.mullvadvpn.lib.repository.RelayListRepository
+import net.mullvad.mullvadvpn.lib.repository.MultihopMigrationRepository
 import net.mullvad.mullvadvpn.lib.repository.SettingsRepository
 import net.mullvad.mullvadvpn.lib.usecase.FilteredRelayListUseCase
 import net.mullvad.mullvadvpn.lib.usecase.ProviderToOwnershipsUseCase
 import net.mullvad.mullvadvpn.lib.usecase.RecentsUseCase
 import net.mullvad.mullvadvpn.lib.usecase.SelectSinglehopUseCase
+import net.mullvad.mullvadvpn.lib.usecase.ModifyMultihopUseCase
+import net.mullvad.mullvadvpn.lib.usecase.HopSelectionUseCase
 import net.mullvad.mullvadvpn.lib.usecase.customlists.CustomListsRelayItemUseCase
 import net.mullvad.mullvadvpn.lib.repository.UserPreferencesRepository
 import net.mullvad.mullvadvpn.lib.repository.SplitTunnelingRepository
@@ -61,7 +67,7 @@ import org.koin.core.context.loadKoinModules
 /**
  * Plume's production ten-foot VPN surface. All tunnel and account data comes from
  * Mullvad's original management streams; this Activity never implements a tunnel.
- * The five navigation destinations are deliberately honest about later milestones.
+ * Navigation surfaces are incrementally bound to the original upstream features.
  */
 class VpnActivity : ComponentActivity() {
     private val management by lazy { getKoin().get<ManagementService>() }
@@ -85,6 +91,7 @@ class VpnActivity : ComponentActivity() {
             getKoin().get<RecentsUseCase>(),
             getKoin().get<SettingsRepository>(),
             getKoin().get<SelectSinglehopUseCase>(),
+            getKoin().get<ModifyMultihopUseCase>(),
             getKoin().get<ProviderToOwnershipsUseCase>(),
             ::withDaemon,
             { tabs.getOrNull(1)?.requestFocus() },
@@ -115,14 +122,46 @@ class VpnActivity : ComponentActivity() {
             ink, secondary, surface, accent,
         )
     }
+    private val advancedUi by lazy {
+        VpnAdvancedUi(
+            this,
+            getKoin().get<SettingsRepository>(),
+            getKoin().get<WireguardConstraintsRepository>(),
+            getKoin().get<HopSelectionUseCase>(),
+            getKoin().get<MultihopMigrationRepository>(),
+            getKoin().get<UserPreferencesRepository>(),
+            ::withDaemon,
+            { tabs.getOrNull(5)?.requestFocus() },
+            { openAdvancedLocation(RelayListType.Multihop(RelayHopType.ENTRY)) },
+            {
+                val always = getKoin().get<WireguardConstraintsRepository>()
+                    .wireguardConstraints.value?.multihop == MultihopMode.ALWAYS
+                openAdvancedLocation(
+                    if (always) RelayListType.Multihop(RelayHopType.EXIT)
+                    else RelayListType.Single,
+                )
+            },
+            { showPage(3); settingsUi.focusQuantum() },
+            {
+                withDaemon("Neu verbinden") {
+                    connection.reconnect().fold(
+                        { message("Neu verbinden fehlgeschlagen: " + it) },
+                        { message("Neu verbinden angefordert. Status folgt vom Originaldienst.") },
+                    )
+                }
+            },
+            ink, secondary, surface, accent,
+        )
+    }
     private val preferences by lazy { getKoin().get<UserPreferencesRepository>() }
     private val serviceBinding by lazy { ServiceConnectionManager(applicationContext) }
 
-    private val sections = listOf("Status", "Standorte", "Konto", "VPN-Einstellungen", "Split Tunneling", "Diagnose")
+    private val sections = listOf("Status", "Standorte", "Konto", "VPN-Einstellungen", "Split Tunneling", "Erweitert", "Diagnose")
     private val tabs = mutableListOf<Button>()
     private val panels = mutableListOf<View>()
     private val focusTargets = mutableListOf<View>()
     private var page = 0
+    private var returnFromAdvanced = false
     private var bound = false
     private var daemonReady = false
     // View state only: overwritten by original flows, never persisted or used as a VPN source.
@@ -175,9 +214,17 @@ class VpnActivity : ComponentActivity() {
         locationUi.start()
         settingsUi.start()
         splitTunnelingUi.start()
+        advancedUi.start()
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 if (page == 3 && settingsUi.handleBack()) return
+                if (page == 1 && returnFromAdvanced) {
+                    returnFromAdvanced = false
+                    locationUi.showFor(RelayListType.Single)
+                    showPage(5)
+                    advancedUi.requestPrimaryFocus()
+                    return
+                }
                 if (page != 0) {
                     showPage(0)
                     tabs[0].requestFocus()
@@ -191,6 +238,7 @@ class VpnActivity : ComponentActivity() {
                 locationUi.onDaemonReady(daemonReady)
                 settingsUi.onDaemonReady(daemonReady)
                 splitTunnelingUi.onDaemonReady(daemonReady)
+                advancedUi.onDaemonReady(daemonReady)
                 grpcLine.text = "Mullvad-Dienst: " + if (daemonReady) "bereit" else state.toString()
                 diagnosticLine.text = grpcLine.text
                 renderTunnel()
@@ -200,6 +248,7 @@ class VpnActivity : ComponentActivity() {
         lifecycleScope.launch {
             management.tunnelState.collect { state ->
                 latestTunnel = state
+                advancedUi.onTunnelState(if (daemonReady) state else null)
                 renderTunnel()
             }
         }
@@ -231,7 +280,7 @@ class VpnActivity : ComponentActivity() {
                 message("Initialisierung fehlgeschlagen: " + error.safeMessage())
             }
         }
-        if (savedInstanceState != null) showPage(savedInstanceState.getInt("vpnPage", 0).coerceIn(0, 5))
+        if (savedInstanceState != null) showPage(savedInstanceState.getInt("vpnPage", 0).coerceIn(0, 6))
         else tabs[0].requestFocus()
     }
 
@@ -245,6 +294,13 @@ class VpnActivity : ComponentActivity() {
     override fun onSaveInstanceState(outState: Bundle) {
         outState.putInt("vpnPage", page)
         super.onSaveInstanceState(outState)
+    }
+
+    private fun openAdvancedLocation(type: RelayListType) {
+        returnFromAdvanced = true
+        locationUi.showFor(type)
+        showPage(1)
+        locationUi.requestPrimaryFocus()
     }
 
     private fun bindOriginalService() {
@@ -413,6 +469,11 @@ class VpnActivity : ComponentActivity() {
         addLocationPanel(detail, splitTunnelingUi.build())
         focusTargets += splitTunnelingUi.primaryFocus
 
+        val advanced = panel()
+        advanced.addView(advancedUi.build())
+        addPanel(detail, advanced)
+        focusTargets += advancedUi.primaryFocus
+
         val diagnosis = panel()
         diagnosis.addView(text("Diagnose", 25f, true))
         diagnosticLine = text("Mullvad-Dienst: wird geprüft", 17f)
@@ -427,9 +488,14 @@ class VpnActivity : ComponentActivity() {
             val tab = button(name) {
                 showPage(index)
                 if (index == 2) accountUi.requestPrimaryFocus()
-                else if (index == 1) locationUi.requestPrimaryFocus()
+                else if (index == 1) {
+                    returnFromAdvanced = false
+                    locationUi.showFor(RelayListType.Single)
+                    locationUi.requestPrimaryFocus()
+                }
                 else if (index == 3) settingsUi.requestPrimaryFocus()
                 else if (index == 4) splitTunnelingUi.requestPrimaryFocus()
+                else if (index == 5) advancedUi.requestPrimaryFocus()
                 else focusTargets[index].requestFocus()
             }
             tab.setOnFocusChangeListener { _, focused ->
@@ -440,9 +506,14 @@ class VpnActivity : ComponentActivity() {
                 if (event.action == KeyEvent.ACTION_DOWN && key == KeyEvent.KEYCODE_DPAD_RIGHT) {
                     showPage(index)
                     if (index == 2) accountUi.requestPrimaryFocus()
-                    else if (index == 1) locationUi.requestPrimaryFocus()
+                    else if (index == 1) {
+                        returnFromAdvanced = false
+                        locationUi.showFor(RelayListType.Single)
+                        locationUi.requestPrimaryFocus()
+                    }
                     else if (index == 3) settingsUi.requestPrimaryFocus()
                     else if (index == 4) splitTunnelingUi.requestPrimaryFocus()
+                    else if (index == 5) advancedUi.requestPrimaryFocus()
                     else focusTargets[index].requestFocus()
                     true
                 } else false

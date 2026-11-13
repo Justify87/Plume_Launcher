@@ -148,3 +148,18 @@ Original-Pin bleibt `android/2026.12` / `aa47f606b1a159214c7279344128119fa91be5f
 ## M08 — Originalquellen unverändert
 
 Keine Änderungen an `third_party/mullvadvpn-app`, originalen `SplitTunnelingRepository`, `SplitTunnelingUseCase`, `ApplicationsProvider`, `MigrateSplitTunneling` oder Rust/JNI. Im regenerierbaren Host kommt nur `VpnSplitTunnelingUi.kt` hinzu (`tools/mullvad/prepare.py`); `VpnActivity.kt` erhält TV-Rail-Integration. Pin: `aa47f606b1a159214c7279344128119fa91be5fd`. Das originale `SplitTunnelingUseCase` leert die dargestellten Ausschlüsse bei deaktiviertem Feature; die TV-View liest zur Anzeige dauerhaft gespeicherter Werte stattdessen direkt den originalen Repository-Flow `excludedApps`. Kein neuer Speicher. Prüfen: `git diff --submodule=log -- third_party/mullvadvpn-app`.
+
+## M09 — fortgeschrittene Tunnel-Views, Original vollständig unverändert
+
+**Einziger Upstream:** `android/2026.12` auf `aa47f606b1a159214c7279344128119fa91be5fd`, Gitlink `third_party/mullvadvpn-app` unverändert. Änderungen an originalen Mullvad-Dateien: **0**. Rust/Daemon/JNI/gRPC/Protokoll, `android/app/src/main`, `android/lib/**` bleiben bitgleich.
+
+| Plume-Datei | Abgeleiteter Staging-Pfad / Grund |
+| --- | --- |
+| `tools/mullvad/VpnAdvancedUi.kt` (neu) | `android/app/src/ossProd/kotlin/net/mullvad/mullvadvpn/app/VpnAdvancedUi.kt`: originale Multihop-/DAITA-/Migration-States und TV-Schalter |
+| `tools/mullvad/VpnLocationUi.kt` | Bisheriger M06-Standortbrowser auch für `RelayListType.Multihop(ENTRY/EXIT)`, originale `ModifyMultihopUseCase`-Auswahl; keine zweite Relay-Datenbank |
+| `tools/mullvad/VpnActivity.kt` | Rail-Einstieg „Erweitert“, Tunnel-Entry/Exit aus `TunnelState`, D-Pad-/Back-Integration |
+| `tools/mullvad/VpnSettingsUi.kt` | Minimaler Fokus-Entry-Point zum bestehenden M07-`QuantumResistantState.On/Off`-Schalter |
+| `tools/mullvad/prepare.py` | Kopiert die neue TV-View ausschließlich in die disposable `ossProd`-Kopie |
+| `tools/test_mullvad_prepare.py` | Staging-/Architektur-Assertions, keine Android/Rust-Patches |
+
+**Originalschnittstellen:** `WireguardConstraintsRepository`, `SettingsRepository`, `FilteredRelayListUseCase`, `ModifyMultihopUseCase`, `HopSelectionUseCase`, `MultihopMigrationRepository`, `RelayListFilterRepository`, `ConnectionProxy`. `ConnectionPathUseCase` liefert Geokoordinaten, keine verlässliche Hostname-Anzeige; dafür wird der bestehende `TunnelState.Connected.location` gelesen. Wiederherstellbarer Build: `python3 tools/mullvad/prepare.py`, `bash tools/mullvad/build-integrated.sh`. Kein Upgrade des Upstream-Pins und kein zusätzliches APK.

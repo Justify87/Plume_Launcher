@@ -148,3 +148,17 @@ M07 liefert keine Anti-Zensur-`setCustomWireguardPort`-Funktion (M10), keine Spl
 | F24 Sperrmodus | ehrlicher Warntext: Android-Lockdown kann Ausnahmen blockieren; kein unbewiesener Routing-/Sperrmodusstatus | `partial`: Lockdown-Netztest `hardware_pending` |
 
 Original `MigrateSplitTunneling` nicht verändert; die Device-Abnahme aus M01–M07 bleibt separat offen.
+
+## M09 — fortgeschrittene Tunnelmodi, aktueller Implementierungsstand
+
+Die ursprüngliche Inventartabelle oben beschreibt weiterhin die historische M01-Baseline. Für diese M09-Ausbaustufe gelten nachfolgende **aktuelle** Zustände; `partial` heißt Quellanbindung und TV-UI vorhanden, aber ohne abgeschlossene reale Shield-/Tunnelabnahme.
+
+| ID | Original-API am Pin `aa47f606...` | Plume-TV-Integration | M09-Status |
+| --- | --- | --- | --- |
+| F10 Multihop/Entry/Exit | `WireguardConstraintsRepository.setMultihop`, `ModifyMultihopUseCase`/`MultihopChange`, `HopSelectionUseCase`, `FilteredRelayListUseCase(RelayListType.Multihop)`, `RelayListFilterRepository` | „Erweitert“: Nie/Bei Bedarf/Immer; M06-Browser als Entry/Exit, automatische Entry-Wahl, getrennte Originalfilter; aktiver Hostname nur aus Tunnel | `partial`, `hardware_pending` |
+| F11 Migration | `MultihopMigrationRepository.multihopMigrationState/clearMultihopMigrationState`, `UserPreferencesRepository.setHasSeenMultihopMigrationGuide` | Migrierte Einstellung anzeigen, geprüftes Originalereignis bestätigen; keine eigene Migration | `partial`, `hardware_pending` |
+| F12 DAITA | `SettingsRepository.setDaitaEnabled`, `Settings.tunnelOptions.daitaSettings.enabled`; `FilteredRelayListUseCase` | Aktivieren/Deaktivieren, Original-StateFlow, DAITA-abhängige Relayliste | `partial`, `hardware_pending` |
+| F13 Post-Quantum | `SettingsRepository.setWireguardQuantumResistant`, `QuantumResistantState.On/Off`, `settingsUpdates` | M07-Schalter bleibt der einzige Writer; M09 zeigt Backendstatus und springt dorthin | `partial`, `hardware_pending` |
+| F46 Verbindungspfad | `TunnelState.Connected.location.entryHostname/hostname`, `HopSelectionUseCase`; `ConnectionPathUseCase` ist geo-/kartenorientiert | getrennte Anzeige von konfigurierten Hops und tatsächlich bestätigter Entry-/Exit-Verbindung | `partial`, `hardware_pending` |
+
+**Keine Parität durch statische Ansicht allein:** `pass` erst nach GitHub-Kotlin/Rust/JNI-/APK-Build **und** realem TV-/VPN-Test. `WHEN_NEEDED` und DAITA können Entry-Verfügbarkeit einschränken; von Mullvad gelieferte Optionen nicht mit Plume-eigenen Regeln überschreiben. Nur zwei PQ-Zustände; keine zusätzliche Sicherheitseinstellung im Release.

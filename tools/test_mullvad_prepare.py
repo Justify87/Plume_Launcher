@@ -104,12 +104,12 @@ class PreparationTests(unittest.TestCase):
         self.assertIn("locationUi.onDaemonReady(daemonReady)", activity)
         self.assertIn("locationUi.requestPrimaryFocus()", activity)
         for api in (
-            "filteredRelays(RelayListType.Single)", "newFilterOnSearch(query)",
+            "filteredRelays(type)", "newFilterOnSearch(query)",
             "chooseSinglehop(item)", "relays.refreshRelayList()",
             "filters.updateSelectedOwnership(", "filters.updateSelectedProviders(",
             "lists.createCustomList(", "lists.updateCustomListName(",
             "lists.updateCustomListLocations(", "lists.deleteCustomList(",
-            "recents(RelayListType.Single)", "settings.setRecentsEnabled(",
+            "recents(type)", "settings.setRecentsEnabled(",
         ):
             self.assertIn(api, browser)
         self.assertNotIn("HttpURLConnection", browser)
@@ -179,6 +179,37 @@ class PreparationTests(unittest.TestCase):
         self.assertIn('with_name("VpnSplitTunnelingUi.kt")',
                       (prepare.ROOT / "tools/mullvad/prepare.py").read_text())
 
+    def test_m09_advanced_modes_reuse_original_repositories_and_m06_browser(self):
+        vpn = (prepare.ROOT / "tools/mullvad/VpnActivity.kt").read_text()
+        location = (prepare.ROOT / "tools/mullvad/VpnLocationUi.kt").read_text()
+        advanced = (prepare.ROOT / "tools/mullvad/VpnAdvancedUi.kt").read_text()
+        settings = (prepare.ROOT / "tools/mullvad/VpnSettingsUi.kt").read_text()
+        for name in ('"Erweitert"', "advancedUi.start()", "advancedUi.onDaemonReady(daemonReady)",
+                     "advancedUi.onTunnelState(", "openAdvancedLocation(",
+                     "RelayListType.Multihop(RelayHopType.ENTRY)",
+                     "RelayListType.Multihop(RelayHopType.EXIT)",
+                     "locationUi.showFor(RelayListType.Single)"):
+            self.assertIn(name, vpn)
+        for api in ("ModifyMultihopUseCase", "MultihopChange.Entry(Constraint.Any)",
+                    "MultihopChange.Entry(Constraint.Only(item))",
+                    "MultihopChange.Exit(item)", "filteredRelays(type)",
+                    "recents(type)", "selectedEntryOwnership.collect",
+                    "selectedExitOwnership.collect", "hopType()).fold("):
+            self.assertIn(api, location)
+        for api in ("wireguard.wireguardConstraints.collect", "settings.settingsUpdates.collect",
+                    "hops().collect", "migration.multihopMigrationState.collect",
+                    "wireguard.setMultihop(mode)", "settings.setDaitaEnabled(!current)",
+                    "migration.clearMultihopMigrationState()", "preferences.setHasSeenMultihopMigrationGuide()",
+                    "QuantumResistantState.On", "QuantumResistantState.Off",
+                    "TunnelState.Connected", "entryHostname", "openQuantum()"):
+            self.assertIn(api, advanced)
+        self.assertIn("fun focusQuantum()", settings)
+        self.assertIn('with_name("VpnAdvancedUi.kt")',
+                      (prepare.ROOT / "tools/mullvad/prepare.py").read_text())
+        self.assertNotIn("SharedPreferences", advanced)
+        self.assertNotIn("setWireguardQuantumResistant(", advanced)  # M07 owns the original control
+        self.assertNotIn("connection.reconnect(", location)  # matching upstream selector behavior
+
     def test_prepare_isolation_and_single_application(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -210,6 +241,7 @@ class PreparationTests(unittest.TestCase):
                 self.assertTrue((generated / "app/src/ossProd/kotlin/net/mullvad/mullvadvpn/app/VpnLocationUi.kt").exists())
                 self.assertTrue((generated / "app/src/ossProd/kotlin/net/mullvad/mullvadvpn/app/VpnSettingsUi.kt").exists())
                 self.assertTrue((generated / "app/src/ossProd/kotlin/net/mullvad/mullvadvpn/app/VpnSplitTunnelingUi.kt").exists())
+                self.assertTrue((generated / "app/src/ossProd/kotlin/net/mullvad/mullvadvpn/app/VpnAdvancedUi.kt").exists())
                 self.assertFalse((generated / "app/src/ossProdDebug/kotlin/net/mullvad/mullvadvpn/app/PlumeVpnDebugActivity.kt").exists())
                 self.assertIn("VpnActivity", (generated / "app/src/ossProd/AndroidManifest.xml").read_text())
                 staged_manifest = (generated / "plume-ui/src/main/AndroidManifest.xml").read_text()
