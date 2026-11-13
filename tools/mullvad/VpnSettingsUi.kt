@@ -131,7 +131,6 @@ internal class VpnSettingsUi(
 
         dns = column()
         dns.visibility = View.GONE
-        dns.apply {
         dnsFirst = action("Zurück zu VPN-Einstellungen") { handleBack() }
         dns.addView(dnsFirst, rowParams())
         dns.addView(label("DNS und Inhaltsfilter", 23f, true))
