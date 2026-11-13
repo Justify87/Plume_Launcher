@@ -1,3 +1,27 @@
+# M04 → M05: operativer Handoff
+
+**Kanonischer Status:** [STATE.md](STATE.md). **Feature-Branch:** `feature/vdesign-m04-card-styling`, [Draft #37](https://github.com/Justify87/Plume_Launcher/pull/37). **Baseline:** Plume `main@763869b8bf672f5955b1d0682a643f0565bca5fb` (M03 #36 merged); Nuvio `dev@be4b84a84e004a2d36405601683df000d8dc446a` nur lesen.
+
+## M04-Änderungen / konkrete Einstiegspunkte
+
+1. `VDesignHomeView.kt` erstellt exakt 14 echte `VDesignCardView`-Slots an den M03-Referenzankern. `bindMedia` verbindet Artwork, Quellensymbol, Klicks; `bindFeed` übernimmt echte IN_PROGRESS/AVAILABLE/UPCOMING-Listen und vollständige Counts. Acht UPCOMING-Zellen zeigen jeweils einen Viererschritt-Ausschnitt; up/down kann weiterblättern. Keine synthetischen Titel.
+2. `VDesignCardView.kt` rendert Varianten HERO, STANDARD, AVAILABLE und COMPACT: echter visueller Fokus-Rand ohne Transform, statischer Gradient, Bild, Quelle, Titel/Staffel/Folge, Fortschritt/Restzeit bei echten Werten, ISO-LocalDate als lokaler Text/Countdown. `VDesignCardText.kt` ist reine JVM-Formatlogik, `VDesignCardTextTest.kt` ihr Regressionstest.
+3. `MainActivity.setupVDesign()` verdrahtet den bestehenden `loadPoster` und `sourceIcon`. `loadPoster` verteilt das Ergebnis auch an die anderen zeitgleich wartenden Karten mit identischer URL. `openVDesignMedia` lässt nur explizit an die echte Nuvio-MainActivity adressierte Intents durch und erzwingt Upcoming-Details statt Playback.
+4. Alte Android-Views bleiben bis M06 nur unsichtbar als Migrationsbasis; `GlassLayer`/Wallpaper/Video, Mullvad-Rust/JNI/VpnService/gitlink wurden nicht umgebaut. Bestehende Nuvio-App-Channel-Quelle und klassischer Mischkanal unangetastet.
+5. Original `REFERENCE.png`: 1536×864 JPEG/JFIF unter PNG-Suffix, **SHA-256 geprüft** `95af66ad04f462867b5d52825c7e1946ac68b5e40bed52c07f4e74c085218f25`. Bild real angesehen, **kein realer Launcher-Screenshot** gemessen.
+
+## M05 Pflicht / offene Risiken
+
+- D-Pad: eindeutige Navigation zwischen Sidebar, Hero, Standard, verfügbaren und 4×2 Upcoming-Karten; bei >8 Einträgen Pages, diagonale Geometrie, Fokusrestauration bei Bind/Resume, Intent-Return/Back/HOME. M04 besitzt nur die schlanke vertikale UPCOMING-Paginierung.
+- System-Pfade: Long-OK Übersicht=Alle Apps, Settings/Sources/HDMI, VPN, Direct Boot, Overlay-Fokus, Wallpaper und app-row Legacy-Migration. Keine feste sechste Sidebar-Aktion.
+- Laufzeit: reale Nuvio-Categorized-Provider-Opt-in, mehrere Episoden, opt-out/Permission-denied, Bilder/Cache, Offline, langsame Downloads, fehlende Logos und Metadaten, korrektes Details-Opening für UPCOMING, ausbleibende Serien/Folgen-IDs. Verhindern, dass D-Pad oder Overlay hinter die Settings rutscht.
+- Hardware/Pixel: mit Android-TV-Emulator und NVIDIA Shield Pro 2019 16:9 Screenshots inklusive Focus; Referenz-Overlay und GPU/Bitmap-Profilergebnisse wirklich messen oder `not_run` lassen.
+- CI: PR [#37](https://github.com/Justify87/Plume_Launcher/pull/37), ersten Run [43523928137](https://github.com/Justify87/Plume_Launcher/actions/runs/43523928137) zum Beginn der Dokumentation `in_progress`. **Nach finalem Docs-Commit auf finalem SHA neu prüfen**, Ergebnisse nur auf zugehörigem SHA dokumentieren. Native Mullvad-APK-Job `skipped`; keine Runtime-Aussage.
+
+**Kein Merge ohne Nutzerfreigabe. Nächster Meilenstein ausschließlich M05.**
+
+## Historischer M03 → M04 Handoff (nur als Rückblick)
+
 # M03 → M04: operativer V-Design-Handoff
 
 **Stand:** 2026-11-13 · **Quelle des aktuellen Zustands:** [STATE.md](STATE.md). Frühere M02-Handoff-Absätze sind historisch und werden nicht als aktuelle Abhängigkeit verwendet.

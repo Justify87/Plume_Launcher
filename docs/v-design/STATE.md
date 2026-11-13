@@ -1,3 +1,60 @@
+# V-Design — kanonischer State (M04)
+
+> Ausschließlich dieser erste Block beschreibt den aktuellen Stand. M00–M03 unten sind **historische** Reviewstände, keine aktuellen offenen PRs.
+
+```yaml
+schema: plume-v-design-handoff/v1
+checked_on: "2026-11-14 (Europe/Berlin)"
+repository: Justify87/Plume_Launcher
+target_application_id: dev.plume.advanced
+baseline_branch: main
+baseline_sha_observed: 763869b8bf672f5955b1d0682a643f0565bca5fb
+predecessor_milestone: M03
+predecessor_pr: 36
+predecessor_merged: true
+predecessor_merge_sha: 763869b8bf672f5955b1d0682a643f0565bca5fb
+nuvio_branch: dev
+nuvio_sha_observed: be4b84a84e004a2d36405601683df000d8dc446a
+milestone: M04
+status: implementation_committed_ci_in_progress_hardware_pending
+work_branch: feature/vdesign-m04-card-styling
+work_code_head_pre_docs: 66cf0da2843c334a9686f2d61499a13f09a9d762
+draft_pr: 37
+draft_pr_merged: false
+reference_path: docs/v-design/REFERENCE.png
+reference_blob: d1b14c00a6478cb3b49fcbbd637e0aa71db5df18
+reference_sha256: 95af66ad04f462867b5d52825c7e1946ac68b5e40bed52c07f4e74c085218f25
+reference_bytes: 249663
+reference_dimensions: "1536x864"
+reference_format: jpeg_jfif_misnamed_png
+reference_verified_in_m04: true
+m04_initial_ci_run: 43523928137
+m04_initial_ci_check_job: 132224852062
+m04_initial_ci_status_at_docs: in_progress
+m04_mullvad_native_job_at_docs: skipped
+m04_local_gradle: not_run_no_android_sdk_checkout
+m04_emulator_screenshot: not_run
+m04_shield_pro_2019: hardware_pending
+m04_pixel_comparison: not_run
+next_milestone: M05_dpad_and_navigation
+blockers:
+  - Latest PR-head CI must be inspected after this docs commit and any fix
+  - Real provider permissions, source images, D-pad and Nuvio intents need Shield/TV testing
+  - True pixel/screenshot comparison requires actual launcher rendering
+```
+
+## Tatsächlich implementiertes M04
+
+- Start: [M03 #36](https://github.com/Justify87/Plume_Launcher/pull/36) **merged** auf `763869b8bf672f5955b1d0682a643f0565bca5fb`; Nuvio `dev@be4b84a84e004a2d36405601683df000d8dc446a` nur gelesen. [Draft-PR #37](https://github.com/Justify87/Plume_Launcher/pull/37) auf Branch `feature/vdesign-m04-card-styling`; **kein Merge autorisiert**.
+- Referenz: GitHub-Datei `REFERENCE.png` tatsächlich visuell betrachtet, Base64-JPEG/JFIF neu dekodiert, **SHA-256 = 95af66ad04f462867b5d52825c7e1946ac68b5e40bed52c07f4e74c085218f25** nachgerechnet, **249663 Bytes**, Git-Blob `d1b14c00...`. Kein Screenshot der laufenden App.
+- Code: `VDesignCardView.kt` rendert 1 Hero, 2 Standard, 3 verfügbare Karten und 8 kompakte Upcoming-Slots mit Full-Bleed-Artwork, statischem dunklem Gradient, Nuvio-Quellenmarke, abgestufter Typografie und Lavender-Fokusring ohne Scale-/Layoutverschiebung. Nuvio `showNewBadge=false` wird respektiert; keine Hardcodes oder SmartTube-Karten. `VDesignCardText.kt` formatiert echtes S/F, reale Restzeit, lokale Tagesdaten; bei fehlender Evidenz keine Aussage.
+- `VDesignHomeView.kt`: 14 wiederverwendbare View-Slots statt leeren M03-Platzhaltern; Bindung an die drei kompletten M02-Listen und Counts. UPCOMING >8 wird auf D-Pad-Abwärts-/Aufwärtsnavigation in Viererschritten umgebunden; M05 übernimmt vollständige Navigation und Focus-Cross-Row-Regression.
+- `MainActivity.kt`: Weiterleitung auf existierenden asynchronen Poster-LruCache-Loader, in-flight Artwork an alle gebundenen passenden V-Karten verteilen; Quelle/Komponente/Action für Nuvio-Intents prüfen. UPCOMING setzt `launchMode=detail`, entfernt `videoId`, bekommt keinen generischen App-Fallback. Mischkanal/SmartTube/Mullvad-Gitlink bleiben unverändert.
+- Tests: `VDesignCardTextTest.kt` mit fehlenden S/F, realer Dauer, lokaler Mitternacht, unsicheren URI-Schemen, Fallback-Art. **Eingecheckt, im lokalen Container nicht ausgeführt** (keine Android-SDK-/GitHub-Checkout-Umgebung). CI [43523928137](https://github.com/Justify87/Plume_Launcher/actions/runs/43523928137), [Job 132224852062](https://github.com/Justify87/Plume_Launcher/actions/runs/43523928137/job/132224852062) war zum Dokumentationszeitpunkt `in_progress`, kein Success-Claim. Mullvad native `skipped`, keine physische Abnahme.
+- Review: [REVIEWS.md](REVIEWS.md) M04; Matrix [TEST_MATRIX.md](TEST_MATRIX.md). **Exakt nächster Meilenstein: M05**.
+
+## Historischer Stand M03 (nicht aktuell)
+
 # V-Design — kanonischer State (M03)
 
 > Dieser Abschnitt ist die **aktuelle Wahrheit**. Ältere M00–M02-Zwischenstände stehen als zeitgebundene Historie in `REVIEWS.md` / `TEST_MATRIX.md`. Sie sind weder aktuelle PR- noch CI-Statusmeldungen.

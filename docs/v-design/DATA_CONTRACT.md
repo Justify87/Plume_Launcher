@@ -65,3 +65,13 @@ Die Nuvio-Channelmanager-Implementierung kodiert einen expliziten `Intent(contex
 
  
 **M02 Datenvalidierungsnachtrag:** Nicht nur synthetische 100000-ms-Dauer, sondern auch `position > duration` ist unsichere Evidenz: selbst ein aus dem Classic-Parser übernommener geklemmter `progressPercent=100` wird im V-Feed zu `null` normalisiert (Commit `6b740628`, Test `1a057219`). Keine Änderung am alten Classic-UI vor M03–M06.
+
+
+## M04 – Rendering-Vertrag auf M02-Typen (2026-11-14)
+
+- `VDesignCardView` akzeptiert ausschließlich `NuvioMediaItem` aus `NuvioDashboardFeed`, getrennt nach `IN_PROGRESS/AVAILABLE/UPCOMING`. `VDesignHomeView` bindet 3+3+8 Slots, Counts sind komplette M02-Listen; fehlender Content = neutrale leere Zelle ohne SmartTube/Mockup-Dummy.
+- Artistische Bildauswahl: `artworkUri` → `posterUri` → `logoUri` wenn URI `http/https/content` ist; Bitmap-Ladung über existierenden asynchronen `loadPoster` und LruCache. Caching und URL/Intent-Security über Android/Shield später integrieren und testen.
+- Echte Restzeit = `remainingMillis` bei `durationMillis`; Fortschrittsprozent zeigt sich unabhängig von unbekannter Dauer; synthetische 100000ms werden im M02-Projektor vor M04 verworfen.
+- `episodeTitle` nur bei Verfügbarkeit, `seasonNumber`/`episodeNumber` separat optional. Bei UPCOMING nur bestehendes `LocalDate` + dynamischer `daysUntilRelease`-Countdown.
+- `showNewBadge` false, solange die Quell-App den erforderlichen strukturierten Indikator nicht veröffentlicht. Die vorhandene `shortDescription` ist kein maschinenlesbares Flag.
+- Streng validierte TV-Intents zu expliziter Nuvio-MainActivity; UPCOMING nur `detail`. Nuvio-Classic/Legacy-Continue bleibt in Nuvio unverändert; Plume mischt ihn nicht unter neue Kategorien.

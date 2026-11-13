@@ -53,3 +53,11 @@ Der existierende `activity_main.xml`-Host ist stark mit Classic-/Overview-/Topba
 ## D-014 — Referenzanker, Sidebar-Aktionsschutz und neutrale M03-Karten, 2026-11-13
 
 Das tatsächliche 1536×864-JPEG-Mockup wurde angesehen und SHA-geprüft: Sidebarbreite 218 (~14,2 %), sichtbare Menüanker y94/161/223/285/347, drei Medienreihen 1+2/3/4×2, gerundete Matte-Gradienten, dezente Labels, keine globale Topbar. `VDesignCanvas` passt proportional an die gegebene Host-Fläche; Android-dp ist nicht identisch mit Bildpixeln. Die 14 M03-Karten sind **inert und ohne Serien-/Poster-Fallback**; erst M04 verbindet echte `NuvioDashboardFeed`-Medien und sichere Aktionen. SmartTube ist ausschließlich Sidebar-App. Fehlende App-/VPN-Aktivitäten erscheinen nicht als fokussierbare Ziele. `Alle Apps` über langes OK auf Übersicht, HDMI/Sources vorläufig über langes OK auf Einstellungen, ohne erfundenen sechsten Menüpunkt. Real-App-Screenshot und vollständiger D-Pad-/Shield-Test bleiben offen.
+
+
+## M04 – D-014: echte Karte statt datenfalschem Referenzfoto (2026-11-14)
+- Bewahrt die 1536×864 Geometrie aus `REFERENCE.png`, rendert nur `NuvioDashboardFeed`; Hero = erstes sortiertes IN_PROGRESS-Element, kein zweiter Home-Modus.
+- `Neu` bleibt bis zur echten typisierten Publisher-Information deaktiviert. Bei fehlendem Datum/Progress/Bitmap nicht raten; S/F auch bei Film nicht erfinden.
+- Verwendet bestehenden RGB_565 Poster-LruCache und UI-Handler statt einer zweiten Fetch-Engine; URI in `VDesignCardText.supportedArtwork` begrenzen.
+- UPCOMING `launchMode=detail` und kein Playback-Fallback, auch bei malformed intent. Visueller Fokus ohne teure Blur-/Scale-Effekte.
+- Acht UPCOMING-Slots werden für mehr Einträge versetzt gebunden; vollständige D-Pad-Navigation sowie Emulator-/Hardware-Abnahme sind explizit M05/M07/M08 vorbehalten.
