@@ -366,6 +366,14 @@ class MainActivity : Activity() {
     private var homeLayoutMode = HomeLayoutMode.CLASSIC
     private lateinit var homeSidebar: HomeSidebarView
     private lateinit var homeOverview: OverviewHomeView
+    private lateinit var vDesign: VDesignHomeView // M03 visible shell; legacy hosts survive until M06
+    private val vDesignDayTick = object : Runnable {
+        override fun run() {
+            if (!ready || !resumed || isDestroyed) return
+            vDesign.bindFeed(nuvioDashboardFeed)
+            scheduleVDesignMidnight()
+        }
+    }
     private var sidebarSelection = HomeSidebarView.OVERVIEW
     private var homePage: HomePageState = HomePageState.Overview
     private var previewPageKey: String? = null
@@ -461,6 +469,7 @@ class MainActivity : Activity() {
         applyTheme()
         setupHomeSidebar()
         applyHomeLayoutMode()
+        setupVDesign()
         glassShown = glassLook() to null // the tiles are built for this look; only the blur is still to come
         loadWallpaper()
         // "Show row: On Down": the row slides in while one of its cards has focus, however focus got there.
@@ -544,7 +553,8 @@ class MainActivity : Activity() {
         resumed = true
         if (returnFocusFromVpn) {
             ui.post {
-                vpnEntry?.takeIf { it.isShown && it.isAttachedToWindow }?.requestFocus()
+                if (::vDesign.isInitialized) vDesign.focusVpn()
+                else vpnEntry?.takeIf { it.isShown && it.isAttachedToWindow }?.requestFocus()
                 returnFocusFromVpn = false
             }
         }
@@ -568,6 +578,9 @@ class MainActivity : Activity() {
         }
         // Only rebuild what changed, so focus stays where it was when returning from an app.
         if (appsDirty) refreshApps() else if (appRow.childCount == 0) renderApps()
+        refreshVDesignNavigation()
+        vDesign.bindFeed(nuvioDashboardFeed)
+        scheduleVDesignMidnight()
         refreshWatchNext()
         refreshYouTubeSubscriptions()
         showWeather()
@@ -623,6 +636,7 @@ class MainActivity : Activity() {
             findViewById<ImageView>(R.id.wallpaper).alpha = 1f
             ui.removeCallbacks(refreshIfDirty)
             ui.removeCallbacks(weatherTick)
+            ui.removeCallbacks(vDesignDayTick)
             ui.removeCallbacks(themeTick)
             ui.removeCallbacks(wallpaperTick)
             if (editing) endEdit()
@@ -1051,6 +1065,10 @@ class MainActivity : Activity() {
         if (allApps.visibility == View.VISIBLE) closeAllApps()
         // Home from an app goes back to the tile or card it was started from, wherever focus is now. If Plume did not start the app,
         // or the tile or card is gone, Home starts again at the first tile.
+        if (::vDesign.isInitialized) {
+            vDesign.focusOverview()
+            return
+        }
         if (homeLayoutMode == HomeLayoutMode.OVERVIEW) {
             (back?.let { homeSidebar.viewFor(it) } ?: homeSidebar.viewFor(HomeSidebarView.OVERVIEW))
                 ?.requestFocus()
@@ -1068,7 +1086,7 @@ class MainActivity : Activity() {
         when {
             settingsScrim.visibility == View.VISIBLE -> pageBack?.invoke() ?: closeLauncherSettings()
             allApps.visibility == View.VISIBLE -> closeAllApps()
-            homeLayoutMode == HomeLayoutMode.OVERVIEW && backPage != null -> {
+            !::vDesign.isInitialized && homeLayoutMode == HomeLayoutMode.OVERVIEW && backPage != null -> {
                 homePage = backPage
                 sidebarSelection = HomeSidebarView.OVERVIEW
                 updateOverviewPreview(sortedApps().filter { inRow(it.pkg, rowHiddenSet()) })
@@ -3519,6 +3537,7 @@ class MainActivity : Activity() {
                 SOURCES = inputs
                 if (movingTop == null) applyTopBar() // Sources shows only while the TV has an input
                 renderApps()
+                refreshVDesignNavigation()
                 if (allApps.visibility == View.VISIBLE) openAllApps() // a fresh remote request can precede the app list
             }
         }
@@ -4111,6 +4130,70 @@ class MainActivity : Activity() {
         }
     }
 
+    /** Place the new host above the frozen legacy home, below All Apps and the settings scrim.
+     * Glass remains at root child 2 (behind content), untouched by the shell.
+     * The Direct Boot branch returns before this method and never accesses prefs or providers.
+     */
+    private fun setupVDesign() {
+        val root = findViewById<FrameLayout>(R.id.root)
+        vDesign = VDesignHomeView(this)
+        root.addView(vDesign, root.indexOfChild(allApps),
+            FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT))
+        findViewById<View>(R.id.content).visibility = View.INVISIBLE
+        refreshVDesignNavigation()
+        vDesign.bindFeed(nuvioDashboardFeed)
+        vDesign.post {
+            if (ready && settingsScrim.visibility != View.VISIBLE && allApps.visibility != View.VISIBLE)
+                vDesign.focusOverview()
+        }
+    }
+
+    /** Every entry must resolve to an installed app or a real local Activity. */
+    private fun refreshVDesignNavigation() {
+        if (!::vDesign.isInitialized) return
+        val installed = sortedApps()
+        val nuvio = installed.firstOrNull { AndroidTvMediaSource.isNuvioPackage(it.pkg) }
+        val smartTube = installed.firstOrNull { YouTubeSubscriptions.isSmartTube(it.pkg) }
+        val vpn = ComponentName(packageName, "net.mullvad.mullvadvpn.app.VpnActivity")
+        val vpnAvailable = try {
+            packageManager.getActivityInfo(vpn, 0)
+            true
+        } catch (_: PackageManager.NameNotFoundException) { false }
+        val items = buildList {
+            add(VDesignHomeView.Navigation(VDesignHomeView.OVERVIEW, "Übersicht", getDrawable(R.drawable.ic_home)))
+            nuvio?.let { add(VDesignHomeView.Navigation(VDesignHomeView.NUVIO, "Nuvio TV", it.icon)) }
+            smartTube?.let { add(VDesignHomeView.Navigation(VDesignHomeView.SMARTTUBE, "SmartTube", it.icon)) }
+            add(VDesignHomeView.Navigation(VDesignHomeView.SETTINGS, "Einstellungen", getDrawable(R.drawable.ic_settings)))
+            if (vpnAvailable) add(VDesignHomeView.Navigation(VDesignHomeView.VPN, "VPN", getDrawable(R.drawable.ic_vpn)))
+        }
+        vDesign.bindNavigation(items, onOpen = { key ->
+            when (key) {
+                VDesignHomeView.OVERVIEW -> vDesign.focusOverview()
+                VDesignHomeView.NUVIO -> nuvio?.let { launch(it) }
+                VDesignHomeView.SMARTTUBE -> smartTube?.let { launch(it) }
+                VDesignHomeView.SETTINGS -> openLauncherSettings()
+                VDesignHomeView.VPN -> {
+                    returnFocusFromVpn = true
+                    try { startActivity(Intent().setComponent(vpn)) }
+                    catch (_: ActivityNotFoundException) {
+                        returnFocusFromVpn = false
+                        toast("VPN nicht verfügbar")
+                    }
+                }
+            }
+        }, onAllApps = { openAllApps() })
+    }
+
+    /** One local civil-day timer only while foreground; M04 can rebind dates without polling. */
+    private fun scheduleVDesignMidnight() {
+        ui.removeCallbacks(vDesignDayTick)
+        if (!resumed || !::vDesign.isInitialized) return
+        val now = java.time.Instant.now()
+        val next = NuvioMediaProjector.nextLocalDayBoundary(now, java.time.ZoneId.systemDefault())
+        val delay = java.time.Duration.between(now, next).toMillis().coerceAtLeast(1L)
+        ui.postDelayed(vDesignDayTick, delay)
+    }
+
     /** The shared top bar and the unchanged Classic rows are independent of the new body. */
     private fun applyHomeLayoutMode() {
         val old = homeLayoutMode
@@ -4433,6 +4516,8 @@ class MainActivity : Activity() {
     private fun homeFocusable(on: Boolean) {
         findViewById<ViewGroup>(R.id.content).descendantFocusability =
             if (on) ViewGroup.FOCUS_AFTER_DESCENDANTS else ViewGroup.FOCUS_BLOCK_DESCENDANTS
+        if (::vDesign.isInitialized) vDesign.descendantFocusability =
+            if (on) ViewGroup.FOCUS_AFTER_DESCENDANTS else ViewGroup.FOCUS_BLOCK_DESCENDANTS
     }
 
     private fun fireHold(v: View) {
@@ -4446,6 +4531,10 @@ class MainActivity : Activity() {
     private fun onHold(v: View) {
         val tag = v.tag as? String
         when {
+            tag == VDesignHomeView.OVERVIEW && allApps.visibility != View.VISIBLE &&
+                settingsScrim.visibility != View.VISIBLE -> openAllApps()
+            tag == VDesignHomeView.SETTINGS && allApps.visibility != View.VISIBLE &&
+                settingsScrim.visibility != View.VISIBLE -> showSources(v)
             allApps.visibility == View.VISIBLE && tag != null -> unlock { // grid: pin to the front of the row (unhiding it)
                 prefs.edit().putStringSet("row_hidden", rowHiddenSet() - tag).apply()
                 saveOrder(listOf(tag) + sortedApps().map { it.pkg }.filter { it != tag })
@@ -5033,19 +5122,22 @@ class MainActivity : Activity() {
             })
         }
         allApps.visibility = View.VISIBLE
+        if (::vDesign.isInitialized) vDesign.visibility = View.INVISIBLE
         // Glass shows the wallpaper here, so the home screen under the grid has to go; without glass the opaque
         // background covers it anyway.
-        findViewById<View>(R.id.content).visibility = if (glassActive()) View.INVISIBLE else View.VISIBLE
+        findViewById<View>(R.id.content).visibility = if (::vDesign.isInitialized || glassActive()) View.INVISIBLE else View.VISIBLE
         homeFocusable(false)
         allAppsGrid.getChildAt(0)?.requestFocus()
     }
 
     private fun closeAllApps() {
         allApps.visibility = View.GONE
-        findViewById<View>(R.id.content).visibility = View.VISIBLE
+        findViewById<View>(R.id.content).visibility = if (::vDesign.isInitialized) View.INVISIBLE else View.VISIBLE
+        if (::vDesign.isInitialized) vDesign.visibility = View.VISIBLE
         homeFocusable(true)
         renderApps()
-        findViewById<View>(R.id.allAppsButton).requestFocus() // back where it was opened from
+        if (::vDesign.isInitialized) vDesign.focusOverview()
+        else findViewById<View>(R.id.allAppsButton).requestFocus() // back where it was opened from
     }
 
     // ---------- screensaver ----------
@@ -5757,6 +5849,7 @@ class MainActivity : Activity() {
             mediaFeed.replaceSource("tv", emptyList())
             nuvioProviderFeeds = NuvioProviderFeeds.EMPTY
             nuvioDashboardFeed = NuvioDashboardFeed.EMPTY
+            if (::vDesign.isInitialized) vDesign.bindFeed(nuvioDashboardFeed)
             showWatchNext(emptyList())
             if (homeLayoutMode == HomeLayoutMode.OVERVIEW) updateOverviewPreview(sortedApps().filter { inRow(it.pkg, rowHiddenSet()) })
             return
@@ -5775,6 +5868,7 @@ class MainActivity : Activity() {
             ui.post {
                 if (!isDestroyed) {
                     showWatchNext(list)
+                    if (::vDesign.isInitialized) vDesign.bindFeed(nuvioDashboardFeed)
                     if (homeLayoutMode == HomeLayoutMode.OVERVIEW)
                         updateOverviewPreview(sortedApps().filter { inRow(it.pkg, rowHiddenSet()) })
                 }
