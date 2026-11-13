@@ -31,6 +31,7 @@ import net.mullvad.mullvadvpn.lib.model.AccountData
 import net.mullvad.mullvadvpn.lib.model.DeviceState
 import net.mullvad.mullvadvpn.lib.model.InAppNotification
 import net.mullvad.mullvadvpn.lib.model.UserReport
+import net.mullvad.mullvadvpn.lib.model.VersionInfo
 import net.mullvad.mullvadvpn.lib.repository.AppVersionInfoRepository
 import net.mullvad.mullvadvpn.lib.repository.ChangelogRepository
 import net.mullvad.mullvadvpn.lib.repository.ProblemReportRepository
@@ -73,6 +74,7 @@ internal class VpnDiagnosticsUi(
     private var latestDevice: DeviceState? = null
     private var latestAccount: AccountData? = null
     private var daemonReady = false
+    private var latestVersionInfo: VersionInfo? = null
     private var logBusy = false
     private var sendBusy = false
 
@@ -186,9 +188,8 @@ internal class VpnDiagnosticsUi(
         }
         activity.lifecycleScope.launch {
             version.versionInfo.collect { info ->
-                versionLine.text = "Mullvad " + info.currentVersion +
-                    if (info.isSupported) " · vom Dienst unterstützt"
-                    else " · Version laut Mullvad nicht mehr unterstützt"
+                latestVersionInfo = info
+                renderVersion()
             }
         }
         refreshSystemNotifications()
@@ -198,6 +199,20 @@ internal class VpnDiagnosticsUi(
         daemonReady = ready
         backendLine.text = if (ready) "Mullvad-Daemon: bereit"
             else "Mullvad-Daemon: nicht erreichbar – keine bestätigten Live-Werte"
+        renderVersion()
+    }
+
+    private fun renderVersion() {
+        if (!::versionLine.isInitialized) return
+        val info = latestVersionInfo
+        versionLine.text = when {
+            info == null -> "Mullvad-Version: wird geladen"
+            !daemonReady -> "Mullvad " + info.currentVersion +
+                " · Supportstatus unbekannt (Dienst nicht erreichbar)"
+            info.isSupported -> "Mullvad " + info.currentVersion + " · vom Dienst unterstützt"
+            else -> "Mullvad " + info.currentVersion +
+                " · Version laut Mullvad nicht mehr unterstützt"
+        }
     }
 
     fun onDeviceState(state: DeviceState) {

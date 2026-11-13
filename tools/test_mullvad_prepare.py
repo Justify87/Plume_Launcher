@@ -264,7 +264,9 @@ class PreparationTests(unittest.TestCase):
                          "version.versionInfo.collect", "changelog.getLastVersionChanges()",
                          "changelog.setDismissNewChangelogNotification()",
                          'ActivityResultContracts.CreateDocument("text/plain")',
-                         "NotificationManagerCompat.from(activity).areNotificationsEnabled()"):
+                         "NotificationManagerCompat.from(activity).areNotificationsEnabled()",
+                         "Supportstatus unbekannt (Dienst nicht erreichbar)",
+                         "renderVersion()"):
             self.assertIn(contract, ui)
         self.assertNotIn("HttpURLConnection", ui)
         self.assertNotIn("VpnService.Builder", ui)
