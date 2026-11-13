@@ -305,12 +305,16 @@ class MainActivity : Activity() {
                        val watchNextType: Long? = null, val channelName: String? = null,
                        val internalProviderId: String? = null, val seriesId: String? = null,
                        val seriesTitle: String? = null, val episodeTitle: String? = null,
-                       val seasonNumber: String? = null, val episodeNumber: String? = null)
+                       val seasonNumber: String? = null, val episodeNumber: String? = null,
+                       val channelId: Long? = null, val channelProviderId: String? = null,
+                       val releaseDate: String? = null)
 
     private val prefs by lazy { getSharedPreferences("home", MODE_PRIVATE) }
     private val io = Executors.newSingleThreadExecutor()
     // One TV query populates both Classic's Prog list and the shared model. Demo remains separate.
     private val mediaFeed = MediaFeedRepository().apply { replaceSource("demo", DemoMedia.asMediaItems()) }
+    // Read and atomically replace on the existing TV query executor; not rendered before M02.
+    @Volatile private var nuvioProviderFeeds = NuvioProviderFeeds.EMPTY
     @Volatile private var tvFeedQueryFailed = false // Only a real provider exception, never a missing episode.
     private val youtubeSource by lazy { YouTubeRssSource(prefs) }
     /** Small wallpaper pictures for the settings grids, by choice and size; 8 MB holds every built-in twice over. */
@@ -5747,6 +5751,7 @@ class MainActivity : Activity() {
             tvFeedQueryFailed = false
             android.util.Log.w("Plume", "continue watching: no $TV_LISTINGS")
             mediaFeed.replaceSource("tv", emptyList())
+            nuvioProviderFeeds = NuvioProviderFeeds.EMPTY
             showWatchNext(emptyList())
             if (homeLayoutMode == HomeLayoutMode.OVERVIEW) updateOverviewPreview(sortedApps().filter { inRow(it.pkg, rowHiddenSet()) })
             return
@@ -5758,6 +5763,7 @@ class MainActivity : Activity() {
                 tvFeedQueryFailed = true
                 android.util.Log.w("Plume", "continue watching failed ($e)")
                 mediaFeed.replaceSource("tv", emptyList())
+                nuvioProviderFeeds = NuvioProviderFeeds.EMPTY
                 emptyList()
             }
             ui.post {
@@ -5792,12 +5798,19 @@ class MainActivity : Activity() {
         } else emptyList()
         val discovered = appChannels(reportFailure = true)
         val flippedChannels = prefs.getStringSet("ch_flip", emptySet())!!
-        val on = discovered.filter { (_, pkg, name) -> channelOn(name, channelKey(pkg, name), flippedChannels) }
+        // Keep the existing Classic selection/preferences, never route upcoming into Classic.
+        val on = discovered.filter { channel ->
+            AndroidTvMediaSource.nuvioKind(channel) !in AndroidTvMediaSource.categorizedNuvioKinds &&
+                channelOn(channel.displayName,
+                    channelKey(channel.packageName, channel.displayName), flippedChannels)
+        }
         autoRowName = if (watchNextOn) null
             else on.map { it.third }.distinct().singleOrNull()?.takeUnless { it.equals("Continue Watching", ignoreCase = true) }
-        val channels = on.flatMap { (id, _, name) ->
+        val channels = on.flatMap { channel ->
+            val id = channel.id
             try {
-                readPrograms(TvContract.buildPreviewProgramsUriForChannel(id), hidden, "ch$id", name)
+                readPrograms(TvContract.buildPreviewProgramsUriForChannel(id), hidden,
+                    "ch$id", channel.displayName, id, channel.channelProviderId)
             } catch (e: Exception) {
                 tvFeedQueryFailed = true
                 android.util.Log.w("Plume", "Preview channel $id unavailable", e)
@@ -5820,7 +5833,7 @@ class MainActivity : Activity() {
             }
         } else emptyList()
         val nuvioNextUp = discovered.filter { (id, pkg, name) ->
-            AndroidTvMediaSource.isNuvioPackage(pkg) &&
+            AndroidTvMediaSource.isLegacyNuvioPackage(pkg) &&
                 name.equals("Next Up", ignoreCase = true) && on.none { it.first == id }
         }.flatMap { (id, _, name) ->
             try {
@@ -5831,9 +5844,25 @@ class MainActivity : Activity() {
                 emptyList()
             }
         }
+        // The same asynchronous TV query path reads each approved new Nuvio channel.
+        // Never force the TV launcher to approve a channel or read a private Nuvio DB.
+        val categorizedChannels = discovered.filter { channel ->
+            channel.browsable == true &&
+                AndroidTvMediaSource.nuvioKind(channel) in AndroidTvMediaSource.categorizedNuvioKinds
+        }
+        val nuvioCategorized = categorizedChannels.flatMap { channel ->
+            try {
+                readPrograms(TvContract.buildPreviewProgramsUriForChannel(channel.id), hidden,
+                    "ch${channel.id}", channel.displayName, channel.id, channel.channelProviderId)
+            } catch (e: Exception) {
+                tvFeedQueryFailed = true
+                android.util.Log.w("Plume", "Nuvio categorized channel ${channel.id} unavailable", e)
+                emptyList()
+            }
+        }
         val all = watchNext + channels
         android.util.Log.i("Plume", "continue watching: ${watchNext.size} from Watch Next, ${channels.size} from ${on.size} channels")
-        publishingPkgs = (all + nuvioNextUp + smartTubeSubs).mapNotNull { it.second.pkg }.toSet()
+        publishingPkgs = (all + nuvioNextUp + smartTubeSubs + nuvioCategorized).mapNotNull { it.second.pkg }.toSet()
         val off = prefs.getStringSet("cw_off", emptySet())!!
         val visible = all.filter { it.second.pkg !in off }
         // Preserve the legacy title/intent filtering and ordering for Classic.
@@ -5843,8 +5872,7 @@ class MainActivity : Activity() {
         // Only entries with trustworthy Continue evidence appear in the shared Overview.
         val feedEntries = newestPerApp(visible + nuvioNextUp.filter { it.second.pkg !in off } +
             smartTubeSubs.filter { it.second.pkg !in off }, PER_APP) { it.group }
-        val candidates = feedEntries.mapIndexed { index, p ->
-            AndroidTvProgram(
+        fun tvProgram(index: Int, p: Prog): AndroidTvProgram = AndroidTvProgram(
                 item = MediaItem(
                     stableId = MediaFeedRules.stableId(p.origin, p.pkg, p.contentId, p.intent, index),
                     sourceId = "tv", sourcePackage = p.pkg, title = p.title,
@@ -5861,9 +5889,17 @@ class MainActivity : Activity() {
                 channelName = p.channelName, internalProviderId = p.internalProviderId,
                 seriesId = p.seriesId, seriesTitle = p.seriesTitle,
                 episodeTitle = p.episodeTitle, seasonNumber = p.seasonNumber,
-                episodeNumber = p.episodeNumber,
+                episodeNumber = p.episodeNumber, channelId = p.channelId,
+                channelProviderId = p.channelProviderId, releaseDate = p.releaseDate,
             )
-        }
+        val candidates = feedEntries.mapIndexed(::tvProgram)
+        nuvioProviderFeeds = AndroidTvMediaSource.selectNuvio(
+            channels = discovered,
+            programs = nuvioCategorized.filter { it.second.pkg !in off }
+                .map { it.second }.mapIndexed(::tvProgram),
+            legacyPrograms = candidates,
+            permissionGranted = true,
+        )
         val classified = AndroidTvMediaSource.select(candidates, permissionGranted = true)
             .filter { prefs.getBoolean("yt_new_on", false) ||
                 !(YouTubeSubscriptions.isSmartTube(it.sourcePackage) && it.category == MediaCategory.NEW) }
@@ -5904,30 +5940,45 @@ class MainActivity : Activity() {
         }
     }
 
-    /** Every other app's home-screen channel as (id, package, name); empty where Android won't let us read them. */
-    private fun appChannels(reportFailure: Boolean = false): List<Triple<Long, String, String>> = try {
-        val out = ArrayList<Triple<Long, String, String>>()
-        contentResolver.query(TvContract.Channels.CONTENT_URI, null, null, null, null)?.use { c ->
-            val name = c.getColumnIndex("display_name")
-            val pkg = c.getColumnIndex("package_name")
-            val id = c.getColumnIndex("_id")
-            while (c.moveToNext()) {
-                val p = c.getString(pkg) ?: continue
-                val n = c.getString(name) ?: continue
-                if (p != packageName) out += Triple(c.getLong(id), p, n)
-            }
+    /** TV channel discovery retains real channel ID, owner, provider ID and opt-in state. */
+    private fun appChannels(reportFailure: Boolean = false): List<TvPreviewChannel> = try {
+        val out = ArrayList<TvPreviewChannel>()
+        val cursor = contentResolver.query(TvContract.Channels.CONTENT_URI, null, null, null, null)
+        if (cursor == null && reportFailure) android.util.Log.w("Plume", "TV channels provider returned null")
+        cursor?.use { c ->
+            val name = c.getColumnIndex(TvContract.Channels.COLUMN_DISPLAY_NAME)
+            val pkg = c.getColumnIndex(TvContract.Channels.COLUMN_PACKAGE_NAME)
+            val id = c.getColumnIndex(TvContract.Channels._ID)
+            val provider = c.getColumnIndex(TvContract.Channels.COLUMN_INTERNAL_PROVIDER_ID)
+            val browsable = c.getColumnIndex(TvContract.Channels.COLUMN_BROWSABLE)
+            if (name >= 0 && pkg >= 0 && id >= 0) {
+                while (c.moveToNext()) {
+                    val p = if (c.isNull(pkg)) null else c.getString(pkg)
+                    val n = if (c.isNull(name)) null else c.getString(name)
+                    if (p.isNullOrBlank() || n == null || p == packageName || c.isNull(id)) continue
+                    out += TvPreviewChannel(c.getLong(id), p, n,
+                        if (provider < 0 || c.isNull(provider)) null else c.getString(provider),
+                        if (browsable < 0 || c.isNull(browsable)) null else c.getInt(browsable) == 1)
+                }
+            } else if (reportFailure) android.util.Log.w("Plume", "TV channels provider missing required columns")
         }
         out
     } catch (e: Exception) {
-        if (reportFailure) tvFeedQueryFailed = true
+        if (reportFailure) {
+            tvFeedQueryFailed = true
+            android.util.Log.w("Plume", "TV channel discovery unavailable", e)
+        }
         emptyList()
     }
 
     private fun channelKey(pkg: String, name: String) = "$pkg/$name"
 
-    private fun continueChannels(): List<Triple<Long, String, String>> {
+    private fun continueChannels(): List<TvPreviewChannel> {
         val flipped = prefs.getStringSet("ch_flip", emptySet())!!
-        return appChannels().filter { (_, p, n) -> channelOn(n, channelKey(p, n), flipped) }
+        return appChannels().filter { channel ->
+            AndroidTvMediaSource.nuvioKind(channel) !in AndroidTvMediaSource.categorizedNuvioKinds &&
+                channelOn(channel.displayName, channelKey(channel.packageName, channel.displayName), flipped)
+        }
     }
 
     /** The one channel on, unless it's a "Continue Watching" one: the bottom row is named after it. */
@@ -5955,7 +6006,9 @@ class MainActivity : Activity() {
 
     /** Pick what fills the bottom row: Android TV Watch Next and any app channel on this TV now ("Plex · On Deck"). */
     private fun pickChannels() {
-        val channels = appChannels().distinctBy { (_, p, n) -> channelKey(p, n) }
+        val channels = appChannels()
+            .filter { AndroidTvMediaSource.nuvioKind(it) !in AndroidTvMediaSource.categorizedNuvioKinds }
+            .distinctBy { (_, p, n) -> channelKey(p, n) }
         val label = apps.associate { it.pkg to it.label }
         fun app(p: String) = label[p] ?: try { packageManager.getApplicationLabel(packageManager.getApplicationInfo(p, 0)).toString() } catch (e: PackageManager.NameNotFoundException) { p }
         val items = listOf(getString(R.string.watch_next) to WATCH_NEXT) +
@@ -5969,7 +6022,9 @@ class MainActivity : Activity() {
     }
 
     /** Pairs of (sort key, item), see [watchSortKey]; a [group] is a channel, its rows sorted by [channelSortKey] and [byWeight]. */
-    private fun readPrograms(uri: Uri, hidden: Set<String>, group: String? = null, channelName: String? = null): List<Pair<Long, Prog>> {
+    private fun readPrograms(uri: Uri, hidden: Set<String>, group: String? = null,
+                             channelName: String? = null, channelId: Long? = null,
+                             channelProviderId: String? = null): List<Pair<Long, Prog>> {
         val out = ArrayList<Triple<Long, Long, Prog>>()
         val cursor = contentResolver.query(uri, null, null, null, null)
         if (cursor == null) android.util.Log.w("Plume", "no TV provider answer for $uri") // provider hidden from us or missing
@@ -6011,6 +6066,8 @@ class MainActivity : Activity() {
                     seriesId = str("series_id"), seriesTitle = str("series_title"),
                     episodeTitle = str("episode_title"),
                     seasonNumber = season, episodeNumber = episode,
+                    channelId = channelId, channelProviderId = channelProviderId,
+                    releaseDate = str("release_date"),
                 )
                 out += Triple(num("weight"),
                     if (group == null) watchSortKey(num("watch_next_type"), engaged) else channelSortKey(engaged, prefs.getLong("t_$pkg", 0)), prog)
