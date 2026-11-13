@@ -186,3 +186,9 @@ Keine Änderungen an `third_party/mullvadvpn-app`, originalen `SplitTunnelingRep
 - Original-`android/app/build.gradle.kts` setzt `release.signingConfig = null`. Release **unsigned**; mit vorhandener Plume-Signatur extern signieren, sonst kein Installations-/Updateversprechen.
 - M11-CI Baseline [43433569189](https://github.com/Justify87/Plume_Launcher/actions/runs/43433569189) `success`; Roh-APK-Größe nicht allein aus dem Artifact-ZIP ableiten.
 
+## M12 — Korrektur falscher ABI-Kompatibilität (Binärfund aus M11)
+
+- Echte M11-APK aus CI 43433569189 / Artifact 14043766791 gemessen: 121321933 Byte, SHA256 `8bedd39977a829a255eec333ef08aea9faae8d3bcc2ee497dcc3596977c8f2f5`, 839 ZIP-Einträge. Die JNI ist ELF64/AArch64, `libmullvad_jni.so` existiert **nur für arm64-v8a**.
+- Gleichzeitig enthält das Paket originale transitive AndroidX-Shared-Libraries für `armeabi-v7a`, `x86` und `x86_64`. `aapt dump badging` bewirbt diese ABIs fälschlich, obwohl sie keinen Mullvad-JNI-Kern enthalten. Die Verpackung auf solchen Geräten würde einen nicht funktionsfähigen VPN-Client ergeben.
+- **Einziger neuer generierter Host-Gradle-Diff:** `tools/mullvad/prepare.py` ergänzt zu `applicationId = "dev.plume.advanced"` im disposable `android/app/build.gradle.kts` ein `defaultConfig.ndk.abiFilters += "arm64-v8a"`. Mullvad-Originaldateien, Kotlin, Rust/JNI/Daemon/Gitlink **0 Änderungen**. Nicht alle Rust-ABIs neu bauen, da Zielgeräte ARM64 sind.
+- `check_apk.py` und `aapt`-CI-Gates müssen jede weitere ABI in **Debug und Release** zurückweisen. Testevidenz erst nach erfolgreich abgeschlossenem CI. Dokumentation und Updateverfahren bleiben auf ARM64 beschränkt.
