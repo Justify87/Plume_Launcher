@@ -18,12 +18,13 @@ single_apk_application_id: dev.plume.advanced
 m06_ci: observed_ci_pass
 m06_ci_run: 43339177759
 m06_shield_test: not_run
-m07_code: implemented_pending_ci
-m07_pr: pending
-m07_commit: pending
-m07_ci: not_run
+m07_code: implemented_build_verified
+m07_pr: 22
+m07_commit: f0409b2d34bee5267afe19d25b121543f98658d4
+m07_ci: observed_ci_pass
+m07_ci_run: 43343996225
 m07_shield_test: not_run
-m07_status_reason: pending_integrated_build_and_runtime_hardware_evidence
+m07_status_reason: source_build_and_apk_verified_hardware_tests_pending
 ```
 
 ## M05 — tatsächliche Basis
@@ -85,3 +86,10 @@ Der Originalcode registriert `VoucherRepository` und `NewDeviceRepository` in `u
 - **Android-Grenze:** `android.net.vpn.SETTINGS` öffnet bei Verfügbarkeit den OS-Bildschirm; Always-on/Lockdown werden **nicht** als von Plume ausles- oder setzbare Toggles vorgetäuscht. Mullvads Boot-Receiver benötigt vorhandene System-VPN-Erlaubnis und Android-Startbedingungen. `setCustomWireguardPort` steuert den **Obfuskationsport** und bleibt M10, nicht falsch als allgemeiner WireGuard-Port beschriften.
 - **Tests:** Quell-/Staging-Assertions geschrieben; bei Erstellung weder lokaler Android-/Rust-Build noch Shield/ADB möglich. CI erst nach PR prüfen. Kein `pass` für reale DNS-/LAN-/Boot-/Tunnel-/TV-Funktion ohne Geräteevidenz.
 - **M08:** baut ab exakt diesem Feature-Branch nach Merge auf `main`, andernfalls als Stack. Original-Split-Tunneling-Repository und reale App-Liste verwenden; die M07-Settings-Seite erhalten, bestehende `SystemVpnSettingsAvailableUseCase`-Grenze respektieren.
+
+### M07 Build-/Review-Nachtrag — PR #22
+
+- **Code-HEAD vor Dokumentationsnachtrag:** `f0409b2d34bee5267afe19d25b121543f98658d4`. [PR #22](https://github.com/Justify87/Plume_Launcher/pull/22) basiert auf gemergtem M06-`main` `73f50f59751f27021737bdf8a4c1b325eba9e146`; kein Submodul-/Upstream-Diff.
+- **CI:** [Run 43343996225](https://github.com/Justify87/Plume_Launcher/actions/runs/43343996225), vollständiger Status `success`. `check` hat Staging-Python-Tests, Plume-Unit-Tests/Lint, Launcher-Installer-Regressionen und Projektregeln bestanden. `mullvad-apk` hat den originalen Container-/Kotlin-/Rust-/JNI-Integrationsbuild bestanden (`BUILD SUCCESSFUL in 10m 10s`), die APK geprüft (`APK structure OK (839 entries; Rust/JNI and relay assets present)`) und das ARM64-Debug-Artifact hochgeladen. Dies ist **kein** echter VPN-/Hardware-Nachweis.
+- **Review-Korrekturen im selben PR:** `d2855c8` trennt DNS-Feldverfügbarkeit von Offline-/Default-DNS-State und initialisiert die Filterknöpfe; `f0409b2` entfernt eine irrtümliche zusätzliche `dns.apply`-Layout-Verschachtelung vor erfolgreichem Kotlin-CI. Alt-Läufe `43343229823`/`43343427456` wurden wegen neuer PR-Commits automatisch abgebrochen; **nicht** als Buildfehler zählen.
+- **Grenzen:** Tunnel-DNS-Effekt, D-Pad auf Shield, Persistenz nach Neustart, LAN-Effekt, Auto-Boot und Android-System-Always-on weiterhin `not_run` (keine Shield vorhanden). M07 bleibt **`partial`** und wird **nicht** zum Hardware-`pass` erklärt. M08 folgt erst diesem Branch/PR nach Merge oder korrekt gestapelt auf seinem HEAD.

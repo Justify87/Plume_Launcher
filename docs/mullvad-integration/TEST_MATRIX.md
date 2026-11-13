@@ -315,11 +315,11 @@ adb logcat -d -s AndroidRuntime MullvadVpnService MullvadDaemon
 
 Ausgang: `main` `73f50f59751f27021737bdf8a4c1b325eba9e146`, M06 PR #21 gemergt. [M06-CI 43339177759](https://github.com/Justify87/Plume_Launcher/actions/runs/43339177759) **success** für M06-Code; **keine** M07-/Shield-Testergebnisse daraus ableiten.
 
-| Testfall | Konkreter Nachweis | Status bei PR-Erstellung |
+| Testfall | Konkreter Nachweis | Aktueller Status |
 | --- | --- | --- |
-| M07-01 Staging/Quellassertions | `python3 -m unittest discover -s tools -p test_mullvad_prepare.py -v` (M07-Original-API und generierte View) | `not_run` |
-| M07-02 Plume-Regression | `./gradlew testDebugUnitTest lintDebug assembleDebug`; `sh tools/plume-install-test/run.sh` | `not_run` |
-| M07-03 Kombinierte APK | `bash tools/mullvad/build-integrated.sh`, anschließend `python3 tools/mullvad/check_apk.py <APK>` | `not_run` |
+| M07-01 Staging/Quellassertions | `python3 -m unittest discover -s tools -p test_mullvad_prepare.py -v` (M07-Original-API und generierte View) | `observed_ci_pass` in Run 43343996225 |
+| M07-02 Plume-Regression | `./gradlew testDebugUnitTest lintDebug`; `sh tools/plume-install-test/run.sh`. Separates `assembleDebug` lokal nicht ausgeführt | `observed_ci_pass` (Unit/Lint/Installer) in Run 43343996225 |
+| M07-03 Kombinierte APK | `bash tools/mullvad/build-integrated.sh`, anschließend `python3 tools/mullvad/check_apk.py <APK>` | `observed_ci_pass` (839 APK-Einträge, JNI/Relays, Artifact) in Run 43343996225 |
 | M07-04 TV-Fokus | Classic/Overview: sichtbares VPN → VPN-Einstellungen → DNS-Unteransicht, links/rechts/OK/Back, EditText mit Bildschirmtastatur, lange DNS-Liste scrollen | `not_run` |
 | M07-05 DNS-Filter | sechs Filter einzeln + alle setzen und zurücksetzen; VPN-DNS-Abfragen/Blockverhalten; Wechsel zu Custom DNS und zurück | `not_run` |
 | M07-06 DNS-Adressen | IPv4/IPv6 neu/ändern/löschen; fehlerhafte Eingabe und Duplikat; letzte Adresse entfernen; App/Service neustarten und persistierten Zustand abgleichen | `not_run` |
@@ -347,4 +347,6 @@ adb logcat -d -s AndroidRuntime MullvadVpnService MullvadDaemon
 adb shell dumpsys connectivity
 ```
 
-Ohne angeschlossene NVIDIA Shield und gültige Kontoevidenz bleiben M07-04–10 `not_run`, selbst wenn CI grün wird. GitHub-CI muss separat im PR beobachtet und hier nachgetragen werden.
+**CI-Nachweis:** [GitHub Run 43343996225](https://github.com/Justify87/Plume_Launcher/actions/runs/43343996225), Commit `f0409b2d34bee5267afe19d25b121543f98658d4`, `check=success`, `mullvad-apk=success`, `BUILD SUCCESSFUL in 10m 10s`, `APK structure OK (839 entries; Rust/JNI and relay assets present)`. Die CI prüft Quellgenerator/Regression und Single-APK-Artefakt, **keine** realen DNS-Anfragen, Tunnel-Exit-IP, System-Permission, Boot/Always-on oder D-Pad. M07-04–10 bleiben ohne angeschlossenes Shield `not_run`, vollständige Geräteabnahme `partial`.
+
+**Review:** Erstes Layoutreview erkannte DNS-Button-Initialisierung/Offline-Einschränkung und beseitigte sie (`d2855c8`); zweites Review korrigierte versehentlich eingefügte zusätzliche `dns.apply`-Verschachtelung (`f0409b2`), deren CI vollständig erfolgreich war. Keine Original-Mullvad-Quelldatei verändert. Für den Handoff an M08 verbleibt der Original-Split-Tunneling-/App-Listen-Bereich; Boot-/DNS-Settings weiterverwenden.
