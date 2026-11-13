@@ -2,15 +2,15 @@
 
 ```yaml
 schema: plume-mullvad-handoff/v1
-milestone: M08
+milestone: M09
 status: partial
 checked_on: "2026-11-13"
-main_head_at_start: 03d0ef3462743c50d3f0e00bde229917141da8dd
-predecessor_milestone: M07
-predecessor_pr: 22
+main_head_at_start: 560ee47cffb1640af7ac9dd889b6441f78efc824
+predecessor_milestone: M08
+predecessor_pr: 23
 predecessor_merged_into_main: true
 base_branch: main
-feature_branch: feature/m08-mullvad-split-tunneling-tv
+feature_branch: feature/m09-mullvad-multihop-daita-tv
 upstream_tag: android/2026.12
 upstream_sha: aa47f606b1a159214c7279344128119fa91be5fd
 upstream_gitlink_unchanged: true
@@ -19,7 +19,9 @@ m08_pr: 23
 m08_initial_commit: 0e64a56f35fdfa860e1a5e25f7fcb01af633562b
 m08_initial_ci: observed_ci_pass
 m08_initial_ci_run: 43402989685
-m08_final_ci: pending
+m08_final_ci: not_verified_after_final_review_commits
+m09_ci: not_run
+m09_shield_test: hardware_pending
 m08_shield_test: hardware_pending
 m06_ci: observed_ci_pass
 m06_ci_run: 43339177759
@@ -115,3 +117,13 @@ Der Originalcode registriert `VoucherRepository` und `NewDeviceRepository` in `u
 - Erstes integriertes CI auf `0e64a56f35fdfa860e1a5e25f7fcb01af633562b`: [Run 43402989685](https://github.com/Justify87/Plume_Launcher/actions/runs/43402989685) **success**. `check`: Original-Plume-Regeln, Staging-Assertions, Installer-Regressionen, Unit/Lint erfolgreich. `mullvad-apk`: gepinnter Original-Container, Kotlin/Rust/JNI-Build `BUILD SUCCESSFUL in 12m 34s`, APK-Struktur `839` Einträge mit Native-/Relay-Assets, ein Paket `dev.plume.advanced`; ARM64-Debug-Artifact `Plume-Mullvad-ARM64-Debug-74`. Keine reale Shield-Verbindung geprüft.
 - Review-Nachtrag: `STATE.md`-YAML-Metadaten auf M08 aktualisiert; Markdown-Backtick-Escapes in den fünf Handoff-Dateien korrigiert. Suchfeld-Fokus erhält expliziten Rahmen (native TV-Ansicht). Diese Nachkorrekturen benötigen eigenen finalen PR-CI-Lauf; bis dahin bleibt der *neue* HEAD nicht als erneut gebaut behauptet.
 - M09 übernimmt M08 erst ab tatsächlichem gemergtem PR-/CI-Stand; keine externen Testgeräte oder Tunnelprüfungen vortäuschen.
+
+## M09 — Multihop, DAITA, Post-Quantum (13.11.2026)
+
+- **Basis:** tatsächlicher `main`-HEAD `560ee47cffb1640af7ac9dd889b6441f78efc824`, M08 PR #23 bereits gemergt, beim Start keine offenen PRs; direkter Branch `feature/m09-mullvad-multihop-daita-tv` von `main`. Kein alter Referenz-Reset.
+- **Original:** unveränderter Gitlink `third_party/mullvadvpn-app` auf `android/2026.12`/`aa47f606b1a159214c7279344128119fa91be5fd`; **keine** originalen Kotlin-, Rust-, JNI-, gRPC-, VpnService- oder Daemon-Dateien modifiziert.
+- **Host-Overlays:** neue `tools/mullvad/VpnAdvancedUi.kt`, M06-Browser `VpnLocationUi.kt` parametrisiert auf `RelayListType.Single`, `Multihop(ENTRY)` und `Multihop(EXIT)`; `VpnActivity.kt` erhält Rail „Erweitert“, Live-Tunnelpfad, D-Pad-/Back-Rückkehr. `VpnSettingsUi.focusQuantum()` führt zur bereits bestehenden echten M07-PQ-Einstellung. `prepare.py` kopiert neue View in temporären `ossProd`-Host.
+- **Original APIs:** `WireguardConstraintsRepository.setMultihop` für `MultihopMode.NEVER/WHEN_NEEDED/ALWAYS`; `ModifyMultihopUseCase(MultihopChange.Entry/Exit)` und `HopSelectionUseCase` für Eingang/Ausgang, `Constraint.Any` für automatische Entry-Wahl. `FilteredRelayListUseCase` filtert Entry/Exit inkl. DAITA-/Provider-/Ownership-Konflikten; `SettingsRepository.setDaitaEnabled`; PQ weiterhin `SettingsRepository.setWireguardQuantumResistant(QuantumResistantState.On/Off)` aus M07. `MultihopMigrationRepository` liefert Original-Migrationsmeldung; `TunnelState.Connected.location` ist die einzig bestätigte Anzeige des tatsächlich benutzten Entry-/Exit-Hostnamens.
+- **Review:** Kein neuer VPN-Stack, keine eigene Relay-Paarungsregel, kein zusätzlicher Speicher, keine Neuverbindung nur wegen Standortwahl; explizite Neuverbindung über vorhandenen `ConnectionProxy`-Pfad. Ein Modus ist erst als aktiv markiert, wenn Original-Flow ihn bestätigt. `WHEN_NEEDED` lässt keinen manuell gewählten Entry zu; `ALWAYS` erlaubt ihn.
+- **Abnahmestand:** `partial` bis CI-Kotlin/Rust/JNI-/APK-Gate und echte TV-/Tunnelprüfung. Staging-Assertions erweitert; lokale Android-Toolchain/Shield nicht vorhanden. Den aktuellen CI-Lauf erst nach PR-Anlage als nachgewiesen eintragen. `hardware_pending`: D-Pad, Single/Multi/Auto, reale Entry-/Exit-Relays, DAITA-Filter, PQ-/Tunnelwirkung, Standardwerte, Neustart/Background.
+- **M10-Handoff:** auf gemergtem M09-`main` oder gestapeltem Feature-Branch aufbauen; originale Anti-Zensur-/Obfuskations- und Netzwerkoptionen integrieren, `setCustomWireguardPort` als Obfuskationsport bezeichnen, nicht als generischen WireGuard-Port. Bestehende M06–M09-Repositories/Views erhalten; alle Hardwareprüfungen nachholen, bevor `pass` gesetzt wird.

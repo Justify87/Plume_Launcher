@@ -17,7 +17,9 @@ import android.widget.ScrollView
 import android.widget.TextView
 import androidx.activity.ComponentActivity
 import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import net.mullvad.mullvadvpn.lib.common.util.relaylist.newFilterOnSearch
 import net.mullvad.mullvadvpn.lib.model.Constraint
@@ -43,12 +45,14 @@ import net.mullvad.mullvadvpn.lib.usecase.FilteredRelayListUseCase
 import net.mullvad.mullvadvpn.lib.usecase.ProviderToOwnershipsUseCase
 import net.mullvad.mullvadvpn.lib.usecase.RecentsUseCase
 import net.mullvad.mullvadvpn.lib.usecase.SelectSinglehopUseCase
+import net.mullvad.mullvadvpn.lib.usecase.ModifyMultihopUseCase
+import net.mullvad.mullvadvpn.lib.usecase.MultihopChange
 import net.mullvad.mullvadvpn.lib.usecase.customlists.CustomListsRelayItemUseCase
 
 /**
  * Original Mullvad relay repositories and use-cases presented as native ten-foot Views.
  * No relay downloads, local relay parser, parallel settings or tunnel implementation.
- * This screen chooses a SINGLE-HOP exit; M09 will reuse its row/navigation conventions.
+ * The same browser selects singlehop exits and multihop entries/exits with upstream constraints.
  */
 internal class VpnLocationUi(
     private val activity: ComponentActivity,
@@ -60,6 +64,7 @@ internal class VpnLocationUi(
     private val recents: RecentsUseCase,
     private val settings: SettingsRepository,
     private val chooseSinglehop: SelectSinglehopUseCase,
+    private val modifyMultihop: ModifyMultihopUseCase,
     private val providerOwnership: ProviderToOwnershipsUseCase,
     private val withDaemon: (String, suspend () -> Unit) -> Unit,
     private val focusRail: () -> Unit,
@@ -70,6 +75,13 @@ internal class VpnLocationUi(
     private val accent: Int,
 ) {
     private var daemonReady = false
+    private val mode = MutableStateFlow<RelayListType>(RelayListType.Single)
+    private var entrySelected: Constraint<RelayItemId> = Constraint.Any
+    private var exitSelected: Constraint<RelayItemId> = Constraint.Any
+    private var entryOwnership: Constraint<Ownership> = Constraint.Any
+    private var exitOwnership: Constraint<Ownership> = Constraint.Any
+    private var entryProviders: Constraint<Providers> = Constraint.Any
+    private var exitProviders: Constraint<Providers> = Constraint.Any
     private var originalCountries: List<RelayItem.Location.Country> = emptyList()
     private var filteredCountries = FilteredCountries()
     private var customLists: List<CustomList>? = null
@@ -90,6 +102,8 @@ internal class VpnLocationUi(
     private var firstRight: View? = null
     private var lastLeft: View? = null
 
+    private lateinit var title: TextView
+    private lateinit var autoEntry: Button
     private lateinit var status: TextView
     private lateinit var selectedLine: TextView
     private lateinit var feedback: TextView
@@ -102,9 +116,29 @@ internal class VpnLocationUi(
     val primaryFocus: View get() = search
     fun requestPrimaryFocus() { search.requestFocus() }
 
+    fun showFor(type: RelayListType) {
+        mode.value = type
+        selected = if (isEntry()) entrySelected else exitSelected
+        ownership = if (isEntry()) entryOwnership else exitOwnership
+        providers = if (isEntry()) entryProviders else exitProviders
+        chosenCity = null
+        chosenCountry = null
+        chosenList = null
+        filteredCountries = FilteredCountries()
+        recentItems = null
+        previousModel = null
+        if (::search.isInitialized) search.setText("")
+        repaint(true)
+    }
+
+    private fun isEntry() =
+        (mode.value as? RelayListType.Multihop)?.hopType == RelayHopType.ENTRY
+    private fun hopType() = if (isEntry()) RelayHopType.ENTRY else RelayHopType.EXIT
+
     fun build(): LinearLayout = column().apply {
         setPadding(dp(22), dp(13), dp(22), dp(14))
-        addView(label("Serverstandorte · Singlehop-Ausgang", 24f, true))
+        title = label("Serverstandorte · Singlehop-Ausgang", 24f, true)
+        addView(title)
         status = label("Mullvad-Relayliste wird geladen …", 14f)
         selectedLine = label("Aktuelle Auswahl: wird geladen", 15f, true)
         feedback = label("Relay-Auswahl und Filter werden direkt an Mullvad übermittelt.", 13f)
@@ -149,6 +183,8 @@ internal class VpnLocationUi(
             addView(action("+ Liste", "newList") { nameDialog(null) }, flexible())
         }
         addView(actions)
+        autoEntry = action("Automatischen Eingang verwenden", "auto-entry") { selectAutomaticEntry() }
+        addView(autoEntry)
         addView(label("Links: Länder, zuletzt verwendet, Listen   ·   Rechts: Städte, Server, Listeninhalt", 12f))
 
         val twoColumns = LinearLayout(activity).apply { orientation = LinearLayout.HORIZONTAL }
@@ -178,10 +214,16 @@ internal class VpnLocationUi(
             relays.relayList.collect { originalCountries = it; repaint() }
         }
         activity.lifecycleScope.launch {
-            filteredRelays(RelayListType.Single).collect { filteredCountries = it; repaint() }
+            mode.collectLatest { type ->
+                filteredCountries = FilteredCountries()
+                filteredRelays(type).collect { filteredCountries = it; repaint() }
+            }
         }
         activity.lifecycleScope.launch {
-            relays.selectedLocation.collect { selected = it; repaint() }
+            relays.selectedLocation.collect {
+                exitSelected = it
+                if (!isEntry()) { selected = it; repaint() }
+            }
         }
         activity.lifecycleScope.launch {
             lists.customLists.collect { customLists = it; repaint() }
@@ -190,19 +232,43 @@ internal class VpnLocationUi(
             listItems().collect { customItems = it; repaint() }
         }
         activity.lifecycleScope.launch {
-            recents(RelayListType.Single).collect { recentItems = it; repaint() }
+            mode.collectLatest { type ->
+                recentItems = null
+                recents(type).collect { recentItems = it; repaint() }
+            }
         }
         activity.lifecycleScope.launch {
             settings.settingsUpdates.collect {
                 recentsEnabled = it?.recents is Recents.Enabled
+                entrySelected = it?.relaySettings?.relayConstraints?.wireguardConstraints?.entryLocation
+                    ?: Constraint.Any
+                if (isEntry()) selected = entrySelected
                 repaint()
             }
         }
         activity.lifecycleScope.launch {
-            filters.selectedExitOwnership.collect { ownership = it; repaint() }
+            filters.selectedExitOwnership.collect {
+                exitOwnership = it
+                if (!isEntry()) { ownership = it; repaint() }
+            }
         }
         activity.lifecycleScope.launch {
-            filters.selectedExitProviders.collect { providers = it; repaint() }
+            filters.selectedExitProviders.collect {
+                exitProviders = it
+                if (!isEntry()) { providers = it; repaint() }
+            }
+        }
+        activity.lifecycleScope.launch {
+            filters.selectedEntryOwnership.collect {
+                entryOwnership = it
+                if (isEntry()) { ownership = it; repaint() }
+            }
+        }
+        activity.lifecycleScope.launch {
+            filters.selectedEntryProviders.collect {
+                entryProviders = it
+                if (isEntry()) { providers = it; repaint() }
+            }
         }
         activity.lifecycleScope.launch {
             providerOwnership().collect {
@@ -224,6 +290,14 @@ internal class VpnLocationUi(
 
     private fun repaint(force: Boolean = false) {
         if (!::status.isInitialized) return
+        title.text = when (val type = mode.value) {
+            RelayListType.Single -> "Serverstandorte · Singlehop-Ausgang"
+            is RelayListType.Multihop ->
+                if (type.hopType == RelayHopType.ENTRY) "Serverstandorte · Multihop-Eingang"
+                else "Serverstandorte · Multihop-Ausgang"
+        }
+        autoEntry.visibility = if (isEntry()) View.VISIBLE else View.GONE
+        autoEntry.isEnabled = daemonReady
         status.text = when {
             !daemonReady -> "Mullvad-Dienst nicht bereit / offline. Keine Live-Standortauswahl."
             originalCountries.isEmpty() -> "Relayliste noch nicht verfügbar. Aktualisieren zum erneuten Laden."
@@ -234,7 +308,7 @@ internal class VpnLocationUi(
                 (if (ownership == Constraint.Any) "alle Eigentümer" else "Eigentümerfilter aktiv") +
                 " · " + (if (providers == Constraint.Any) "alle Anbieter" else "Anbieterfilter aktiv")
         }
-        selectedLine.text = "Gewählter Ausgang: " + when (val value = selected) {
+        selectedLine.text = (if (isEntry()) "Gewählter Eingang: " else "Gewählter Ausgang: ") + when (val value = selected) {
             Constraint.Any -> "Automatisch (originale Einstellung)"
             is Constraint.Only -> displayName(value.value)
         }
@@ -386,12 +460,30 @@ internal class VpnLocationUi(
     private fun select(item: RelayItem) {
         if (!item.active) return notice("Dieser Mullvad-Standort ist inaktiv.")
         withDaemon("Standort wählen") {
-            chooseSinglehop(item).fold(
-                { notice("Standort nicht übernommen: " + it) },
-                { notice("Auswahl an Mullvad übergeben. Tunnelstatus folgt vom Originaldienst.") }
-            )
-            // Like the upstream SelectLocationViewModel, do NOT force a reconnect here.
+            when (val type = mode.value) {
+                RelayListType.Single -> chooseSinglehop(item).fold(
+                    { notice("Standort nicht übernommen: " + it) },
+                    { notice("Auswahl an Mullvad übergeben; Tunnelstatus folgt vom Originaldienst.") },
+                )
+                is RelayListType.Multihop -> {
+                    val change = if (type.hopType == RelayHopType.ENTRY)
+                        MultihopChange.Entry(Constraint.Only(item))
+                    else MultihopChange.Exit(item)
+                    modifyMultihop(change).fold(
+                        { notice("Multihop-Standort nicht übernommen: " + it) },
+                        { notice("Multihop-Auswahl an Mullvad übergeben; Status folgt vom Originaldienst.") },
+                    )
+                }
+            }
+            // Original SelectLocationViewModel does not force a reconnect on selection.
         }
+    }
+
+    private fun selectAutomaticEntry() = withDaemon("Automatischer Eingang") {
+        modifyMultihop(MultihopChange.Entry(Constraint.Any)).fold(
+            { notice("Automatischer Eingang konnte nicht gesetzt werden: " + it) },
+            { notice("Automatischer Eingang angefordert; Mullvad bestätigt den Wert.") },
+        )
     }
 
     private fun refresh() = withDaemon("Relayliste aktualisieren") {
@@ -415,7 +507,7 @@ internal class VpnLocationUi(
             Constraint.Only(Ownership.MullvadOwned) -> 1
             else -> 2
         }
-        AlertDialog.Builder(activity).setTitle("Eigentümerfilter (Ausgang)")
+        AlertDialog.Builder(activity).setTitle("Eigentümerfilter (" + (if (isEntry()) "Eingang" else "Ausgang") + ")")
             .setSingleChoiceItems(choices, current) { dialog, index ->
                 val value: Constraint<Ownership> = when (index) {
                     1 -> Constraint.Only(Ownership.MullvadOwned)
@@ -424,7 +516,7 @@ internal class VpnLocationUi(
                 }
                 dialog.dismiss()
                 withDaemon("Eigentümerfilter") {
-                    filters.updateSelectedOwnership(value, RelayHopType.EXIT).fold(
+                    filters.updateSelectedOwnership(value, hopType()).fold(
                         { notice("Eigentümerfilter fehlgeschlagen: " + it) },
                         { notice("Eigentümerfilter an Mullvad übergeben.") }
                     )
@@ -442,13 +534,13 @@ internal class VpnLocationUi(
         val chosen = BooleanArray(names.size) {
             selectedSet == null || availableProviders[it] in selectedSet
         }
-        AlertDialog.Builder(activity).setTitle("Anbieterfilter (Ausgang)")
+        AlertDialog.Builder(activity).setTitle("Anbieterfilter (" + (if (isEntry()) "Eingang" else "Ausgang") + ")")
             .setMultiChoiceItems(names, chosen) { _, index, checked ->
                 chosen[index] = checked
             }
             .setNeutralButton("Alle") { _, _ ->
                 withDaemon("Anbieterfilter") {
-                    filters.updateSelectedProviders(Constraint.Any, RelayHopType.EXIT).fold(
+                    filters.updateSelectedProviders(Constraint.Any, hopType()).fold(
                         { notice("Filter fehlgeschlagen: " + it) },
                         { notice("Alle Mullvad-Anbieter zugelassen.") }
                     )
@@ -461,7 +553,7 @@ internal class VpnLocationUi(
                     Constraint.Any
                 } else Constraint.Only(chosenSet)
                 withDaemon("Anbieterfilter") {
-                    filters.updateSelectedProviders(value, RelayHopType.EXIT).fold(
+                    filters.updateSelectedProviders(value, hopType()).fold(
                         { notice("Filter fehlgeschlagen: " + it) },
                         { notice("Anbieterfilter an Mullvad übergeben.") }
                     )
