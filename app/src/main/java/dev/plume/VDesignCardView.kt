@@ -149,6 +149,7 @@ internal class VDesignCardView(
     var media: NuvioMediaItem? = null
         private set
     var onSelect: ((NuvioMediaItem) -> Unit)? = null
+    var onFocused: ((VDesignCardView) -> Unit)? = null
     private var artworkUri: String? = null
 
     init {
@@ -182,6 +183,7 @@ internal class VDesignCardView(
         isFocusable = false
         isClickable = false
         setOnFocusChangeListener { _, focused ->
+            if (focused) onFocused?.invoke(this)
             foreground = if (focused) GradientDrawable().apply {
                 cornerRadius = radius
                 setColor(Color.TRANSPARENT)
