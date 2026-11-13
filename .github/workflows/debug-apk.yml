@@ -134,6 +134,8 @@ jobs:
             echo 'Release is UNSIGNED by original Mullvad build configuration: sign with the existing Plume update key before installation.'
             echo 'APK sizes, manifests, checksums and both variant outputs are under **Artifacts**.'
           } >> "$GITHUB_STEP_SUMMARY"
+          # Keep numeric bytes visible in the downloadable job log, not just the UI summary.
+          echo "M12 APK BYTES debug=$(stat -c %s "$apk") release_unsigned=$(stat -c %s "$release_apk")"
 
       - name: Upload integrated debug APK and evidence
         uses: actions/upload-artifact@v5
