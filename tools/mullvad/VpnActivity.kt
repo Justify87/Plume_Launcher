@@ -26,6 +26,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import net.mullvad.mullvadvpn.di.paymentModule
 import net.mullvad.mullvadvpn.di.uiModule
+import net.mullvad.mullvadvpn.lib.common.constant.KEY_REQUEST_VPN_PROFILE
+import net.mullvad.mullvadvpn.feature.home.impl.connect.notificationbanner.InAppNotificationController
 import net.mullvad.mullvadvpn.lib.grpc.GrpcConnectivityState
 import net.mullvad.mullvadvpn.lib.grpc.ManagementService
 import net.mullvad.mullvadvpn.lib.model.ActionAfterDisconnect
@@ -46,6 +48,9 @@ import net.mullvad.mullvadvpn.lib.repository.AccountRepository
 import net.mullvad.mullvadvpn.lib.repository.DeviceRepository
 import net.mullvad.mullvadvpn.lib.repository.NewDeviceRepository
 import net.mullvad.mullvadvpn.lib.repository.VoucherRepository
+import net.mullvad.mullvadvpn.lib.repository.ProblemReportRepository
+import net.mullvad.mullvadvpn.lib.repository.AppVersionInfoRepository
+import net.mullvad.mullvadvpn.lib.repository.ChangelogRepository
 import net.mullvad.mullvadvpn.lib.repository.ConnectionProxy
 import net.mullvad.mullvadvpn.lib.repository.CustomListsRepository
 import net.mullvad.mullvadvpn.lib.repository.RelayListFilterRepository
@@ -168,6 +173,18 @@ class VpnActivity : ComponentActivity() {
             ink, secondary, surface, accent,
         )
     }
+    private val diagnosticsUi by lazy {
+        VpnDiagnosticsUi(
+            this,
+            getKoin().get<ProblemReportRepository>(),
+            getKoin().get<UserPreferencesRepository>(),
+            getKoin().get<InAppNotificationController>(),
+            getKoin().get<AppVersionInfoRepository>(),
+            getKoin().get<ChangelogRepository>(),
+            { tabs.getOrNull(7)?.requestFocus() },
+            ink, secondary, surface, accent,
+        )
+    }
     private val preferences by lazy { getKoin().get<UserPreferencesRepository>() }
     private val serviceBinding by lazy { ServiceConnectionManager(applicationContext) }
 
@@ -183,6 +200,7 @@ class VpnActivity : ComponentActivity() {
     private var latestTunnel: TunnelState? = null
     private var latestDevice: DeviceState? = null
     private var awaitingSystemPermission = false
+    private var notificationPermissionRequest = false
 
     private val dark by lazy {
         val home = getSharedPreferences("home", MODE_PRIVATE)
@@ -208,7 +226,6 @@ class VpnActivity : ComponentActivity() {
     private lateinit var tunnelLine: TextView
     private lateinit var locationLine: TextView
     private lateinit var deviceLine: TextView
-    private lateinit var diagnosticLine: TextView
     private lateinit var feedback: TextView
     private lateinit var consentButton: Button
 
@@ -225,12 +242,14 @@ class VpnActivity : ComponentActivity() {
         // launch that Activity, so its original account/voucher DI must be loaded here.
         loadKoinModules(listOf(uiModule, paymentModule))
         super.onCreate(savedInstanceState)
+        notificationPermissionRequest = intent?.action == KEY_REQUEST_VPN_PROFILE
         setContentView(buildScreen())
         locationUi.start()
         settingsUi.start()
         splitTunnelingUi.start()
         advancedUi.start()
         networkUi.start()
+        diagnosticsUi.start()
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 if (page == 3 && settingsUi.handleBack()) return
@@ -258,8 +277,8 @@ class VpnActivity : ComponentActivity() {
                 advancedUi.onDaemonReady(daemonReady)
                 advancedUi.onTunnelState(if (daemonReady) latestTunnel else null)
                 networkUi.onDaemonReady(daemonReady)
+                diagnosticsUi.onDaemonReady(daemonReady)
                 grpcLine.text = "Mullvad-Dienst: " + if (daemonReady) "bereit" else state.toString()
-                diagnosticLine.text = grpcLine.text
                 renderTunnel()
                 if (daemonReady && bound) accountUi.refresh()
             }
@@ -281,10 +300,14 @@ class VpnActivity : ComponentActivity() {
                 }
                 deviceLine.text = "Konto: " + value
                 accountUi.onDeviceState(state)
+                diagnosticsUi.onDeviceState(state)
             }
         }
         lifecycleScope.launch {
-            accounts.accountData.collect { accountUi.onAccountData(it) }
+            accounts.accountData.collect {
+                accountUi.onAccountData(it)
+                diagnosticsUi.onAccountData(it)
+            }
         }
         lifecycleScope.launch {
             try {
@@ -299,8 +322,14 @@ class VpnActivity : ComponentActivity() {
                 message("Initialisierung fehlgeschlagen: " + error.safeMessage())
             }
         }
-        if (savedInstanceState != null) showPage(savedInstanceState.getInt("vpnPage", 0).coerceIn(0, 7))
-        else tabs[0].requestFocus()
+        if (savedInstanceState != null) {
+            val restoredPage = savedInstanceState.getInt("vpnPage", 0)
+                .coerceIn(0, sections.lastIndex)
+            showPage(restoredPage)
+            // Dynamically built buttons have no stable view IDs, so Android cannot
+            // restore their focus automatically after Activity recreation.
+            tabs[restoredPage].requestFocus()
+        } else tabs[0].requestFocus()
     }
 
     override fun onResume() {
@@ -308,6 +337,7 @@ class VpnActivity : ComponentActivity() {
         if (bound && daemonReady) accountUi.refresh()
         settingsUi.onResume()
         splitTunnelingUi.onResume()
+        diagnosticsUi.onResume()
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -330,6 +360,12 @@ class VpnActivity : ComponentActivity() {
             consentButton.visibility = View.GONE
             accountUi.refresh()
             message("Originaldienst wird initialisiert. Tunnelstatus kommt direkt von Mullvad.")
+            // Original notifications / Quick Settings can request the VPN profile.
+            // Route their launch to the TV permission flow, not Mullvad's phone UI.
+            if (notificationPermissionRequest) {
+                notificationPermissionRequest = false
+                connectWithPermission()
+            }
         } catch (error: Exception) {
             message("Mullvad-Dienst konnte nicht gestartet werden: " + error.safeMessage())
         }
@@ -504,15 +540,8 @@ class VpnActivity : ComponentActivity() {
         addLocationPanel(detail, networkUi.build())
         focusTargets += networkUi.primaryFocus
 
-        val diagnosis = panel()
-        diagnosis.addView(text("Diagnose", 25f, true))
-        diagnosticLine = text("Mullvad-Dienst: wird geprüft", 17f)
-        diagnosis.addView(diagnosticLine)
-        diagnosis.addView(text("Loganzeige und Supportbericht: noch nicht integriert (M11).", 15f))
-        val overviewButton = button("Zur Statusübersicht") { showPage(0); tabs[0].requestFocus() }
-        diagnosis.addView(overviewButton, LinearLayout.LayoutParams(dp(245), dp(56)))
-        addPanel(detail, diagnosis)
-        focusTargets += overviewButton
+        addPanel(detail, diagnosticsUi.build())
+        focusTargets += diagnosticsUi.primaryFocus
 
         sections.forEachIndexed { index, name ->
             val tab = button(name) {
@@ -527,6 +556,7 @@ class VpnActivity : ComponentActivity() {
                 else if (index == 4) splitTunnelingUi.requestPrimaryFocus()
                 else if (index == 5) advancedUi.requestPrimaryFocus()
                 else if (index == 6) networkUi.requestPrimaryFocus()
+                else if (index == 7) diagnosticsUi.requestPrimaryFocus()
                 else focusTargets[index].requestFocus()
             }
             tab.setOnFocusChangeListener { _, focused ->
@@ -555,7 +585,8 @@ class VpnActivity : ComponentActivity() {
                     else if (index == 3) settingsUi.requestPrimaryFocus()
                     else if (index == 4) splitTunnelingUi.requestPrimaryFocus()
                     else if (index == 5) advancedUi.requestPrimaryFocus()
-                else if (index == 6) networkUi.requestPrimaryFocus()
+                    else if (index == 6) networkUi.requestPrimaryFocus()
+                    else if (index == 7) diagnosticsUi.requestPrimaryFocus()
                     else focusTargets[index].requestFocus()
                     true
                 } else false
@@ -649,6 +680,7 @@ class VpnActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
+        if (this::feedback.isInitialized) diagnosticsUi.dispose()
         if (bound) {
             serviceBinding.unbind() // never disconnect or stop the original VPN on Back/Home
             bound = false

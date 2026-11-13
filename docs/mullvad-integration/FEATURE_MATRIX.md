@@ -1,59 +1,59 @@
 # Feature-Matrix — Inventar des gepinnten Mullvad Android 2026.12
 
-Quelle für **alle** Zeilen: `third_party/mullvadvpn-app/` bei SHA `aa47f606b1a159214c7279344128119fa91be5fd`. Pfade in Tabelle relativ zu `android/`. `lib/feature/<name>/impl` meint die originale Featureimplementierung; `lib/repository`, `lib/usecase` und `app` sind kein neu zu erfindender Stack. `TV` benennt die **geplante**, nicht vorhandene Plume-Ansicht.
+Quelle für **alle** Zeilen: `third_party/mullvadvpn-app/` bei SHA `aa47f606b1a159214c7279344128119fa91be5fd`. Pfade in Tabelle relativ zu `android/`. `lib/feature/<name>/impl` meint die originale Featureimplementierung; `lib/repository`, `lib/usecase` und `app` sind kein neu zu erfindender Stack. `TV` benennt die **tatsächliche M11-Ansicht** (Original-M01-Spalte historisch als Planung angelegt).
 
-**Status für jede Funktion in M01: `not_started`**. Repo-Pfadinspektion belegt den vorhandenen Codebereich, **nicht** Gerätefunktion oder UI-Feature-Parität. Spätere Meilensteine setzen nach Implementierung und Test `partial` bzw. `pass` und hinterlegen konkrete Evidenz in `TEST_MATRIX.md`. Endpunkt-Funktionen je gewähltem OSS/Prod-Flavour prüfen; Play-in-App-Abrechnung ist kein Bestandteil von OSS/Prod.
+**Aktueller Stand M11:** Die folgende Haupttabelle ist der verbindliche M11-Quell-/UI-Abgleich. `implemented` bedeutet ausschließlich Backend- und TV-Codepfad, **nicht** Hardwaretest. `hardware_pending` kennzeichnet zusätzlich noch geräteabhängige Funktion/Anzeige. `not_applicable` gilt nur für im M11-Anhang konkret begründete reine Smartphone-Präsentation. `tested` erst nach nachgewiesenen Tests vergeben. Die späteren M01–M10-Abschnitte bleiben **historische Meilenstein-Snapshots**; ihre früheren `not_started`/`partial`-Angaben sind keine aktuellen Funktionszustände. OSS/Prod enthält keine Play-In-App-Käufe.
 
-| ID | Upstream-Nutzfunktion / Originalpfad oder Original-API | Vorgesehene Plume-TV-Anbindung | Status |
-| --- | --- | --- | --- |
-| F01 | VPN verbinden, trennen, erneut verbinden; `app/service/MullvadVpnService.kt`, `lib/repository/ConnectionProxy.kt` | VPN-Startseite | partial |
-| F02 | Echtzeit-Tunnelstatus, Fehlzustände, Reconnect; `lib/grpc/ManagementService.kt`, `lib/model` | VPN-Startseite/Status | partial |
-| F03 | VPN-Systemfreigabe / Rechte-Dialog; `app/MainActivity.kt`, `app/service/MullvadVpnService.kt` | VPN-Ersteinrichtung | partial |
-| F04 | Hintergrundbetrieb, Foreground-Notification, System-Revoke; `app/service/MullvadVpnService.kt`, `app/service/notifications` | OS + Status | partial |
-| F05 | Rust-Daemon/JNI/Talpid/gRPC-/Management-IPC; `../mullvad-jni`, `../mullvad-daemon`, `../mullvad-management-interface`, `lib/talpid`, `lib/grpc` | interne Originalruntime | partial |
-| F06 | Relay-Land/Stadt/Serverauswahl und Suche; `lib/feature/location/impl`, `lib/repository/RelayListRepository.kt` | Serverauswahl | partial |
-| F07 | Relay-Filter, Anbieter, Besitztyp; `lib/feature/filter/impl`, `lib/repository/RelayListFilterRepository.kt`, `lib/usecase/ProviderToOwnershipsUseCase.kt` | Filterdialog | not_started |
-| F08 | Zuletzt verwendete Standorte/Server; `lib/usecase/RecentsUseCase.kt` | Serverauswahl | not_started |
-| F09 | Benutzerdefinierte Standortlisten bearbeiten/löschen; `lib/feature/customlist/impl`, `lib/repository/CustomListsRepository.kt` | Standortlisten | not_started |
-| F10 | Multihop/Entry/Exit; `lib/feature/multihop/impl`, `lib/usecase/HopSelectionUseCase.kt` | VPN-Erweitert | not_started |
-| F11 | Multihop-Migration/Assistent; `lib/feature/multihopmigration/impl`, `lib/repository/MultihopMigrationRepository.kt` | Erweitert/Migration | not_started |
-| F12 | DAITA; `lib/feature/daita/impl` | VPN-Erweitert | not_started |
-| F13 | WireGuard-Tunnel-Parameter/Constraints; `lib/feature/vpnsettings/impl`, `lib/repository/WireguardConstraintsRepository.kt` | VPN-Einstellungen | partial |
-| F14 | MTU-Einstellung; `lib/feature/vpnsettings/impl` (MtuDialogViewModel) | VPN-Erweitert | partial |
-| F15 | Anti-Zensur/Tunnel-Obfuskation/Ports; `lib/feature/anticensorship/impl`, `../tunnel-obfuscation` | VPN-Erweitert | not_started |
-| F16 | API-Zugangsmethoden / Proxy-Zugang; `lib/feature/apiaccess/impl`, `lib/repository/ApiAccessRepository.kt` | Verbindungseinstellungen | not_started |
-| F17 | Server-IP-Overrides; `lib/feature/serveripoverride/impl`, `lib/repository/RelayOverridesRepository.kt` | Verbindungseinstellungen | not_started |
-| F18 | IPv6 und sonstige VPN-Einstellungen; `lib/feature/vpnsettings/impl`, `lib/repository/SettingsRepository.kt` | VPN-Einstellungen | partial |
-| F19 | Benutzerdefinierte DNS-Server; `lib/feature/dns/impl`, `lib/usecase/DeleteCustomDnsUseCase.kt` | DNS-Einstellungen | partial |
-| F20 | DNS-Inhaltsfilter (Werbung/Tracker/Malware etc. nach Upstream); `lib/feature/dns/impl`, `lib/feature/filter/impl` | DNS-Einstellungen | partial |
-| F21 | Lokales Netzwerk freigeben/LAN sharing; `lib/feature/lansharing/impl` | VPN-Einstellungen | partial |
-| F22 | Split-Tunneling: Apps ausschließen/einbeziehen; `lib/feature/splittunneling/impl`, `lib/repository/SplitTunnelingRepository.kt` | App-Auswahl | not_started |
-| F23 | Auto-Connect/Verbindung bei Start/Boot; `lib/feature/autoconnect/impl`, `lib/repository/AutoStartAndConnectOnBootRepository.kt` | VPN-Einstellungen | partial |
-| F24 | Android Always-On/Lockdown/System-VPN-Konfiguration; `lib/feature/autoconnect/impl`, `lib/usecase/SystemVpnSettingsAvailableUseCase.kt` | Systemhinweise | partial |
-| F25 | Quick-Settings-VPN-Tile; `app/tile/MullvadTileService.kt` | OS-Tile, falls verfügbar | not_started |
-| F26 | Login mit Kontonummer/Logout; `lib/feature/login/impl`, `lib/repository/AccountRepository.kt` | Konto/Ersteinrichtung | not_started |
-| F27 | Kontodaten, Restlaufzeit, Verlängerung; `lib/feature/account/impl`, `lib/repository/AccountRepository.kt` | Konto | not_started |
-| F28 | Zeit hinzufügen / Bezahl-Weiterleitung im OSS-Build; `lib/feature/addtime/impl`, `lib/payment` | Konto/Zeit hinzufügen | not_started |
-| F29 | Voucher einlösen; `lib/feature/redeemvoucher/impl`, `lib/repository/VoucherRepository.kt` | Konto/Gutschein | not_started |
-| F30 | Geräte anzeigen/verwalten; `lib/feature/managedevices/impl`, `lib/repository/DeviceRepository.kt` | Konto/Geräte | not_started |
-| F31 | Gerätelimit/neue Geräte; `lib/feature/login/impl`, `lib/repository/NewDeviceRepository.kt` | Ersteinrichtung/Geräte | not_started |
-| F32 | Account löschen; `lib/feature/deleteaccount/impl` | Konto/Löschen | not_started |
-| F33 | Konto abgelaufen / keine Zeit / gesperrtes Gerät; `lib/feature/home/impl`, `lib/usecase/OutOfTimeUseCase.kt` | VPN-Status/Konto | not_started |
-| F34 | Problembericht/Kontakt Support; `lib/feature/problemreport/impl`, `lib/repository/ProblemReportRepository.kt` | Diagnose/Support | not_started |
-| F35 | Protokolle ansehen/teilen; `lib/feature/problemreport/impl` (ViewLogsViewModel) | Diagnose/Logs | not_started |
-| F36 | Verbindungs-/Ablauf-Benachrichtigungen; `lib/feature/notification/impl`, `lib/push-notification` | VPN-Status/OS | not_started |
-| F37 | Benachrichtigungseinstellungen / Accountwarnungen; `lib/feature/notification/impl`, `lib/usecase/AccountExpiryNotificationActionUseCase.kt` | VPN-Einstellungen | not_started |
-| F38 | Allgemeine Einstellungen / persistente Präferenzen; `lib/feature/settings/impl`, `lib/repository/UserPreferencesRepository.kt` | VPN-Einstellungen | not_started |
-| F39 | Sprache/Locale; `lib/feature/language/impl`, `lib/repository/LocaleRepository.kt` | VPN-Einstellungen | not_started |
-| F40 | Erscheinungsbild/Theme; `lib/feature/appearance/impl` | Plume-Design/optionale Präferenz | not_started |
-| F41 | App-Icon / Tarnungsicon; `lib/feature/appicon/impl` | Funktionsprüfung / ggf. TV-Äquivalent | not_started |
-| F42 | App-Info, Version, Changelog; `lib/feature/appinfo/impl`, `lib/repository/ChangelogRepository.kt` | Über VPN | not_started |
-| F43 | Aktuelle Standort-/Exit-IP-Anzeige; `lib/feature/home/impl`, `lib/usecase/LastKnownLocationUseCase.kt` | VPN-Startseite | not_started |
-| F44 | App-Listen/System-App-Erkennung; `lib/feature/applisting/impl` | Split-Tunneling | not_started |
-| F45 | Upstream-Updatehinweise inkl. Android-16-Hinweis; `lib/usecase/inappnotification`, `app/src/main/AndroidManifest.xml` | VPN-Hinweise | not_started |
-| F46 | Netzwerkverfügbarkeit/Verbindungsweg; `lib/usecase/InternetAvailableUseCase.kt`, `lib/usecase/ConnectionPathUseCase.kt` | VPN-Status | not_started |
-| F47 | Relay-Assets/Übersetzungen/Sortierung; `../dist-assets/relays/relays.json`, `lib/repository/RelayLocationTranslationRepository.kt` | Standortauswahl | not_started |
-| F48 | Navigationszustand/Erststart/Welcome; `lib/feature/home/impl`, `lib/feature/login/impl`, `lib/navigation` | eigenständige TV-Navigation | not_started |
+| ID | Upstream-Nutzfunktion / Originalpfad oder Original-API | Plume-TV-Anbindung | M11-Status | Konkrete Evidenz / Grenze |
+| --- | --- | --- | --- | --- |
+| F01 | VPN verbinden, trennen, erneut verbinden; `app/service/MullvadVpnService.kt`, `lib/repository/ConnectionProxy.kt` | VPN-Startseite | `implemented` | VpnActivity: ConnectionProxy connect/disconnect/reconnect; Tunnel auf Shield nicht belegt |
+| F02 | Echtzeit-Tunnelstatus, Fehlzustände, Reconnect; `lib/grpc/ManagementService.kt`, `lib/model` | VPN-Startseite/Status | `implemented` | VpnActivity: ManagementService.tunnelState und Fehlerstate; Shield offen |
+| F03 | VPN-Systemfreigabe / Rechte-Dialog; `app/MainActivity.kt`, `app/service/MullvadVpnService.kt` | VPN-Ersteinrichtung | `implemented` | VpnActivity: VpnService.prepare; OS-Zustimmung auf Shield offen |
+| F04 | Hintergrundbetrieb, Foreground-Notification, System-Revoke; `app/service/MullvadVpnService.kt`, `app/service/notifications` | OS + Status | `implemented` | Originaler MullvadVpnService/NotificationManager; Home/Boot/Lockdown auf Shield offen |
+| F05 | Rust-Daemon/JNI/Talpid/gRPC-/Management-IPC; `../mullvad-jni`, `../mullvad-daemon`, `../mullvad-management-interface`, `lib/talpid`, `lib/grpc` | interne Originalruntime | `implemented` | Gepinnter Rust/JNI/gRPC im integrierten M10-APK; Laufzeittunnel offen |
+| F06 | Relay-Land/Stadt/Serverauswahl und Suche; `lib/feature/location/impl`, `lib/repository/RelayListRepository.kt` | Serverauswahl | `implemented` | VpnLocationUi: Original RelayListRepository, Suche, Ortswahl; Shield offen |
+| F07 | Relay-Filter, Anbieter, Besitztyp; `lib/feature/filter/impl`, `lib/repository/RelayListFilterRepository.kt`, `lib/usecase/ProviderToOwnershipsUseCase.kt` | Filterdialog | `implemented` | VpnLocationUi: RelayListFilterRepository + ProviderToOwnerships; Shield offen |
+| F08 | Zuletzt verwendete Standorte/Server; `lib/usecase/RecentsUseCase.kt` | Serverauswahl | `implemented` | VpnLocationUi: RecentsUseCase + Präferenz; Shield offen |
+| F09 | Benutzerdefinierte Standortlisten bearbeiten/löschen; `lib/feature/customlist/impl`, `lib/repository/CustomListsRepository.kt` | Standortlisten | `implemented` | VpnLocationUi: CustomListsRepository CRUD; Shield offen |
+| F10 | Multihop/Entry/Exit; `lib/feature/multihop/impl`, `lib/usecase/HopSelectionUseCase.kt` | VPN-Erweitert | `implemented` | VpnAdvancedUi + VpnLocationUi: originale Entry-/Exit-Constraints; Shield offen |
+| F11 | Multihop-Migration/Assistent; `lib/feature/multihopmigration/impl`, `lib/repository/MultihopMigrationRepository.kt` | Erweitert/Migration | `implemented` | VpnAdvancedUi: MultihopMigrationRepository/Geführte Hinweise; Shield offen |
+| F12 | DAITA; `lib/feature/daita/impl` | VPN-Erweitert | `implemented` | VpnAdvancedUi: SettingsRepository.setDaitaEnabled; Shield offen |
+| F13 | WireGuard-Tunnel-Parameter/Constraints; `lib/feature/vpnsettings/impl`, `lib/repository/WireguardConstraintsRepository.kt` | VPN-Einstellungen | `implemented` | VpnSettingsUi: WireguardConstraintsRepository; Shield offen |
+| F14 | MTU-Einstellung; `lib/feature/vpnsettings/impl` (MtuDialogViewModel) | VPN-Erweitert | `implemented` | VpnSettingsUi: originale MTU-Setter/Reset; Shield offen |
+| F15 | Anti-Zensur/Tunnel-Obfuskation/Ports; `lib/feature/anticensorship/impl`, `../tunnel-obfuscation` | VPN-Erweitert | `implemented` | VpnNetworkUi: Obfuscation-Setter + dynamische Ports; Shield offen |
+| F16 | API-Zugangsmethoden / Proxy-Zugang; `lib/feature/apiaccess/impl`, `lib/repository/ApiAccessRepository.kt` | Verbindungseinstellungen | `implemented` | VpnNetworkUi: ApiAccessRepository prüfen/wechseln/CRUD; Shield offen |
+| F17 | Server-IP-Overrides; `lib/feature/serveripoverride/impl`, `lib/repository/RelayOverridesRepository.kt` | Verbindungseinstellungen | `implemented` | VpnNetworkUi: RelayOverridesRepository JSON-Patch/Reset; Shield offen |
+| F18 | IPv6 und sonstige VPN-Einstellungen; `lib/feature/vpnsettings/impl`, `lib/repository/SettingsRepository.kt` | VPN-Einstellungen | `implemented` | VpnSettingsUi: originale IPv6/IP-Version Settings; Shield offen |
+| F19 | Benutzerdefinierte DNS-Server; `lib/feature/dns/impl`, `lib/usecase/DeleteCustomDnsUseCase.kt` | DNS-Einstellungen | `implemented` | VpnSettingsUi: Custom DNS CRUD über Originalrepository; Shield offen |
+| F20 | DNS-Inhaltsfilter (Werbung/Tracker/Malware etc. nach Upstream); `lib/feature/dns/impl`, `lib/feature/filter/impl` | DNS-Einstellungen | `implemented` | VpnSettingsUi: DNS-Blocker/Filter über Originalrepository; Shield offen |
+| F21 | Lokales Netzwerk freigeben/LAN sharing; `lib/feature/lansharing/impl` | VPN-Einstellungen | `implemented` | VpnSettingsUi: setLocalNetworkSharing; Shield offen |
+| F22 | Split-Tunneling: Apps ausschließen/einbeziehen; `lib/feature/splittunneling/impl`, `lib/repository/SplitTunnelingRepository.kt` | App-Auswahl | `implemented` | VpnSplitTunnelingUi: originale exclude/include-App-APIs; Shield offen |
+| F23 | Auto-Connect/Verbindung bei Start/Boot; `lib/feature/autoconnect/impl`, `lib/repository/AutoStartAndConnectOnBootRepository.kt` | VPN-Einstellungen | `implemented` | VpnSettingsUi: AutoStartAndConnectOnBootRepository; Shield offen |
+| F24 | Android Always-On/Lockdown/System-VPN-Konfiguration; `lib/feature/autoconnect/impl`, `lib/usecase/SystemVpnSettingsAvailableUseCase.kt` | Systemhinweise | `implemented` | VpnSettingsUi: Android-VPN-Systemeinstellungen, keine erfundenen Toggles; Shield offen |
+| F25 | Quick-Settings-VPN-Tile; `app/tile/MullvadTileService.kt` | OS-Tile, falls verfügbar | `hardware_pending` | Original-MullvadTileService, QS-Fallback via staged ClassNames-Redirect; TV-QS-Funktion offen |
+| F26 | Login mit Kontonummer/Logout; `lib/feature/login/impl`, `lib/repository/AccountRepository.kt` | Konto/Ersteinrichtung | `implemented` | VpnAccountUi: AccountRepository login/logout; Shield offen |
+| F27 | Kontodaten, Restlaufzeit, Verlängerung; `lib/feature/account/impl`, `lib/repository/AccountRepository.kt` | Konto | `implemented` | VpnAccountUi: accountData Ablauf, Mullvad-Webkonto; Shield offen |
+| F28 | Zeit hinzufügen / Bezahl-Weiterleitung im OSS-Build; `lib/feature/addtime/impl`, `lib/payment` | Konto/Zeit hinzufügen | `implemented` | VpnAccountUi: Original-OSS-Weblink, Play Billing nicht im OSS; Shield offen |
+| F29 | Voucher einlösen; `lib/feature/redeemvoucher/impl`, `lib/repository/VoucherRepository.kt` | Konto/Gutschein | `implemented` | VpnAccountUi: VoucherRepository.submitVoucher; Shield offen |
+| F30 | Geräte anzeigen/verwalten; `lib/feature/managedevices/impl`, `lib/repository/DeviceRepository.kt` | Konto/Geräte | `implemented` | VpnAccountUi: DeviceRepository list/remove; Shield offen |
+| F31 | Gerätelimit/neue Geräte; `lib/feature/login/impl`, `lib/repository/NewDeviceRepository.kt` | Ersteinrichtung/Geräte | `implemented` | VpnAccountUi: NewDeviceRepository/Gerätelimit; Shield offen |
+| F32 | Account löschen; `lib/feature/deleteaccount/impl` | Konto/Löschen | `implemented` | VpnAccountUi: AccountRepository.deleteAccount mit Bestätigung; Shield offen |
+| F33 | Konto abgelaufen / keine Zeit / gesperrtes Gerät; `lib/feature/home/impl`, `lib/usecase/OutOfTimeUseCase.kt` | VPN-Status/Konto | `implemented` | VpnAccountUi + VpnDiagnosticsUi: Revoked/Expired/LoggedOut, echte accountData; Shield offen |
+| F34 | Problembericht/Kontakt Support; `lib/feature/problemreport/impl`, `lib/repository/ProblemReportRepository.kt` | Diagnose/Support | `implemented` | VpnDiagnosticsUi: ProblemReportRepository.collectLogs/sendReport, explizite Bestätigung; CI/Shield offen |
+| F35 | Protokolle ansehen/teilen; `lib/feature/problemreport/impl` (ViewLogsViewModel) | Diagnose/Logs | `implemented` | VpnDiagnosticsUi: ProblemReportRepository.readLogs, Android-SAF Export; CI/Shield offen |
+| F36 | Verbindungs-/Ablauf-Benachrichtigungen; `lib/feature/notification/impl`, `lib/push-notification` | VPN-Status/OS | `implemented` | Original NotificationManager + InAppNotificationController in Diagnose; Shield offen |
+| F37 | Benachrichtigungseinstellungen / Accountwarnungen; `lib/feature/notification/impl`, `lib/usecase/AccountExpiryNotificationActionUseCase.kt` | VPN-Einstellungen | `implemented` | VpnDiagnosticsUi: UserPreferencesRepository.setLocationInNotificationEnabled, OS-Settings; Shield offen |
+| F38 | Allgemeine Einstellungen / persistente Präferenzen; `lib/feature/settings/impl`, `lib/repository/UserPreferencesRepository.kt` | VPN-Einstellungen | `implemented` | VpnSettingsUi + VpnDiagnosticsUi: Original-Settings und UserPreferences; Shield offen |
+| F39 | Sprache/Locale; `lib/feature/language/impl`, `lib/repository/LocaleRepository.kt` | VPN-Einstellungen | `hardware_pending` | VpnDiagnosticsUi: Upstream LanguageRepository auf API 33+, gesamte APK; Android-TV API 28-32 Systemsprache |
+| F40 | Erscheinungsbild/Theme; `lib/feature/appearance/impl` | Plume-Design/optionale Präferenz | `not_applicable` | Eine einzige Plume-APK: Plume-Theme steuert native VPN-Views; separate Mullvad-Compose-Theme ohne VPN-Wirkung |
+| F41 | App-Icon / Tarnungsicon; `lib/feature/appicon/impl` | Funktionsprüfung / ggf. TV-Äquivalent | `not_applicable` | Sechs Smartphone-Aktivitäts-Aliase für Tarnungsicons werden nur im Plume-Manifest entfernt; kein Tunnelmerkmal |
+| F42 | App-Info, Version, Changelog; `lib/feature/appinfo/impl`, `lib/repository/ChangelogRepository.kt` | Über VPN | `implemented` | VpnDiagnosticsUi: AppVersionInfoRepository + ChangelogRepository inkl. Dismiss; Shield offen |
+| F43 | Aktuelle Standort-/Exit-IP-Anzeige; `lib/feature/home/impl`, `lib/usecase/LastKnownLocationUseCase.kt` | VPN-Startseite | `implemented` | VpnActivity: TunnelState.location() zeigt echte Exit-IP/Host, kein IP-Lookup; Shield offen |
+| F44 | App-Listen/System-App-Erkennung; `lib/feature/applisting/impl` | Split-Tunneling | `implemented` | VpnSplitTunnelingUi: ApplicationsProvider incl. System-/nicht installierte Apps; Shield offen |
+| F45 | Upstream-Updatehinweise inkl. Android-16-Hinweis; `lib/usecase/inappnotification`, `app/src/main/AndroidManifest.xml` | VPN-Hinweise | `implemented` | VpnDiagnosticsUi: originale InAppNotificationController inkl. Android-16-Upgrade und NewChangelog; Shield offen |
+| F46 | Netzwerkverfügbarkeit/Verbindungsweg; `lib/usecase/InternetAvailableUseCase.kt`, `lib/usecase/ConnectionPathUseCase.kt` | VPN-Status | `implemented` | VpnActivity + VpnAdvancedUi: gRPC Connectivity/Entry-/Exit-Werte; Geokarten-UI entfällt |
+| F47 | Relay-Assets/Übersetzungen/Sortierung; `../dist-assets/relays/relays.json`, `lib/repository/RelayLocationTranslationRepository.kt` | Standortauswahl | `implemented` | VpnLocationUi: gepinnte Relay-Assets und Übersetzung im Originaldaemon; Shield offen |
+| F48 | Navigationszustand/Erststart/Welcome; `lib/feature/home/impl`, `lib/feature/login/impl`, `lib/navigation` | eigenständige TV-Navigation | `hardware_pending` | VpnActivity: native 8-seitige TV-Navigation, Classic/Overview Einstieg; DPAD/Back/Restore Shield offen |
 
 ## Weitere Inventarregeln
 
@@ -178,3 +178,14 @@ Die historische Inventartabelle bleibt unverändert; diese Fortschreibung ist f�
 | F25 Quick Settings / Tarnungs-Icon | Android-OS-/Launcher-abhängig, nicht Teil der F15–F17-Original-Netzwerk-Repositories | Keine vorgetäuschten TV-Systemaktionen | `not_started`, M11 Geräteprüfung |
 
 **Weiter offen für M11:** F01–F24, F26–F33 und F43+ soweit laut vorigen Meilensteinen `partial`; F25, F34–F42 einschließlich Benachrichtigungen, Diagnose/Problembericht, App-Info, Locale, TV-Quick-Tile/-App-Icon-Äquivalent. Aktuelle Hardware-/CI-Lücken stehen in `TEST_MATRIX.md`.
+
+## M11 — Funktionsabgleich und Scope-Entscheidungen (13.11.2026)
+
+- **F34/F35:** `VpnDiagnosticsUi` nutzt genau `ProblemReportRepository.collectLogs/readLogs/sendReport/deleteLogs`; Vorschau ist auf die letzten 160 Zeilen begrenzt, Export schreibt alle Originalzeilen ausschließlich nach ausdrücklicher Wahl eines Android-SAF-Zieles. Kein eigener Logger, Telemetriesystem oder Hintergrundsammler. Absenden mit optionaler E-Mail und separater Einwilligung zur Konto-ID; leerer Beschreibungstext nicht sendbar. Offline-/Sammelfehler sichtbar. Auf Shield noch ungetestet.
+- **F36/F37/F45:** Systemtunnel-/Ablaufbenachrichtigungen bleiben originale `NotificationManager`/`AccountExpiryNotificationActionUseCase`; In-App-Meldungen stammen direkt aus `InAppNotificationController.notifications` (Tunnel-/Offline-Fehler, Kontoablauf, neues Gerät, Multihop, Version, Android-16-Hinweis). Der TV-Toggle schreibt ausschließlich `UserPreferencesRepository.setLocationInNotificationEnabled`. `NotificationManagerCompat.areNotificationsEnabled()` ist nur eine OS-Abfrage, kein selbst gebauter Push-Service. Die originale `MAIN_ACTIVITY_CLASS` wird **nur in der generierten Host-Kopie** auf `VpnActivity` umgebogen, damit Tile und Original-PendingIntents keine Smartphone-Compose-Seite öffnen; Quick-Settings-Eignung der Shield bleibt `hardware_pending`.
+- **F38/F39/F42:** Version/Support über `AppVersionInfoRepository.versionInfo`, Changelog inkl. Gelesen-Markierung über `ChangelogRepository`, Sprache via vorhandener `LanguageRepository` nur auf Android >= 13 und **für die gemeinsame APK**; auf Android <= 12 folgt die gesamte APK der OS-Sprache. Die übrigen VPN-Präferenzen liegen in `VpnSettingsUi`/`VpnAdvancedUi` und `UserPreferencesRepository`. Die Sprachliste darf nicht so etikettiert werden, als wäre die VPN-UI eine zweite App.
+- **F40 – not_applicable:** Mullvads Compose-Farb-/Darstellungspräferenz ist reine Phone-UI-Präsentation. Die nativen VPN-Views folgen bereits Plumes gewähltem Design (Classic/Overview). Kein Verlust einer VPN-Tunnel- oder Account-Funktion.
+- **F41 – not_applicable:** Smartphone-App-Icon-Umbenennung per `MainActivityAlt*`-Alias ist in der gemeinsamen Launcher-APK irreführend (würde den HOME-Launcher tarnen oder doppelte App-Icons erzeugen). Im Staging-Manifest werden diese sechs ursprünglichen Aliase entfernt, **keine** Tunnel-/VPN-Funktion entfällt.
+- **F28 / Store:** OSS/Prod nutzt Mullvads reguläre Konto-/Bezahl-Webseite in `VpnAccountUi`; Google-Play-Billing ist kein Bestandteil des gepinnten OSS/Prod-Flavours. Keine leere TV-Kauffunktion.
+- **F46:** Originaler Connection-Path-UseCase für die Smartphone-Kartenvisualisierung ist keine separate Tunnel-Einstellfunktion. `VpnActivity`/`VpnAdvancedUi` zeigen bestätigte Entry-/Exit-Werte und gRPC-/Offline-Zustände als Text, keine ungeprüften Kartendaten.
+- **M11 Evidenzstand:** Quell-APIs am Tag `android/2026.12` / `aa47f606b1a159214c7279344128119fa91be5fd` geprüft. [CI-Run 43431639278](https://github.com/Justify87/Plume_Launcher/actions/runs/43431639278) an M11-Codecommit `48eee9561ff19338b61e066014e9d632b5f268a5`: `check=success`, `mullvad-apk=success`, 839 APK-Einträge mit Rust/JNI/Relay-Assets. Alle **48** Inventarpositionen sind einzeln klassifiziert. Kein Shield-D-Pad-, Live-VPN-, QS-Tile- oder Mail-Sende-Pass. Reine App-Store-Listing-Aktionen aus Mullvads Smartphone-App sind bei der neuen gemeinsamen `dev.plume.advanced`-Launcher-APK ohne Play-Store-Eintrag **nicht anwendbar**; Kontoverlängerung erfolgt via regulärem Mullvad-Weblink (F28).

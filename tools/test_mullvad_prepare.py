@@ -239,12 +239,46 @@ class PreparationTests(unittest.TestCase):
         for forbidden in ("HttpURLConnection", "SharedPreferences", "VpnService.Builder",
                           "addDisallowedApplication(", "Socket("):
             self.assertNotIn(forbidden, ui)
+        self.assertIn('tabs[restoredPage].requestFocus()', activity)
         self.assertIn("val railScroll = ScrollView(this)", activity)
         self.assertIn("addView(rail, FrameLayout.LayoutParams(-1, -2))", activity)
         self.assertNotIn("ScrollView.LayoutParams", activity)
         self.assertIn("columns.addView(railScroll", activity)
         self.assertIn('with_name("VpnNetworkUi.kt")',
                       (prepare.ROOT / "tools/mullvad/prepare.py").read_text())
+
+    def test_m11_diagnostics_bind_original_backend_and_notification_targets(self):
+        activity = (prepare.ROOT / "tools/mullvad/VpnActivity.kt").read_text()
+        ui = (prepare.ROOT / "tools/mullvad/VpnDiagnosticsUi.kt").read_text()
+        stage = (prepare.ROOT / "tools/mullvad/prepare.py").read_text()
+        for contract in ("VpnDiagnosticsUi(", "diagnosticsUi.start()",
+                         "diagnosticsUi.onDaemonReady(daemonReady)",
+                         "diagnosticsUi.onDeviceState(state)",
+                         "diagnosticsUi.onAccountData(it)", "diagnosticsUi.dispose()",
+                         "KEY_REQUEST_VPN_PROFILE"):
+            self.assertIn(contract, activity)
+        for contract in ("reports.readLogs()", "reports.sendReport(report, includeAccountId)",
+                         "reports.deleteLogs()", "notifications.notifications.collect",
+                         "preferences.preferencesFlow().collect",
+                         "preferences.setLocationInNotificationEnabled(",
+                         "version.versionInfo.collect", "changelog.getLastVersionChanges()",
+                         "changelog.setDismissNewChangelogNotification()",
+                         'ActivityResultContracts.CreateDocument("text/plain")',
+                         "Exportdialog nicht verfügbar:",
+                         "NotificationManagerCompat.from(activity).areNotificationsEnabled()",
+                         "Supportstatus unbekannt (Dienst nicht erreichbar)",
+                         "renderVersion()"):
+            self.assertIn(contract, ui)
+        self.assertNotIn("HttpURLConnection", ui)
+        self.assertNotIn("VpnService.Builder", ui)
+        self.assertIn('with_name("VpnDiagnosticsUi.kt")', stage)
+        original = 'const val MAIN_ACTIVITY_CLASS = "$MULLVAD_PACKAGE_NAME.app.MainActivity"'
+        updated = prepare.route_original_notifications_to_tv(original)
+        self.assertIn('.app.VpnActivity"', updated)
+        self.assertIn('.app.MainActivity"', original)
+        self.assertNotEqual(original, updated)
+        with self.assertRaises(RuntimeError):
+            prepare.route_original_notifications_to_tv(updated)
 
     def test_prepare_isolation_and_single_application(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -262,6 +296,12 @@ class PreparationTests(unittest.TestCase):
                 (prepare.ROOT / "app/src/main/AndroidManifest.xml").read_text()
             )
             (root / "CHANGELOG.md").write_text("## 1.7.1\n- Test\n")
+            class_names = (upstream / "android/lib/common/src/main/kotlin/net/mullvad/"
+                           "mullvadvpn/lib/common/constant/ClassNames.kt")
+            class_names.parent.mkdir(parents=True, exist_ok=True)
+            class_names.write_text(
+                'const val MAIN_ACTIVITY_CLASS = "$MULLVAD_PACKAGE_NAME.app.MainActivity"\n'
+            )
             with patch.object(prepare, "ROOT", root), patch.object(prepare, "UPSTREAM", upstream), \
                     patch.object(prepare, "verify_upstream"):
                 generated = prepare.prepare(root / "out")
@@ -279,6 +319,11 @@ class PreparationTests(unittest.TestCase):
                 self.assertTrue((generated / "app/src/ossProd/kotlin/net/mullvad/mullvadvpn/app/VpnSplitTunnelingUi.kt").exists())
                 self.assertTrue((generated / "app/src/ossProd/kotlin/net/mullvad/mullvadvpn/app/VpnAdvancedUi.kt").exists())
                 self.assertTrue((generated / "app/src/ossProd/kotlin/net/mullvad/mullvadvpn/app/VpnNetworkUi.kt").exists())
+                self.assertTrue((generated / "app/src/ossProd/kotlin/net/mullvad/mullvadvpn/app/VpnDiagnosticsUi.kt").exists())
+                self.assertIn('.app.VpnActivity"',
+                              (generated / "lib/common/src/main/kotlin/net/mullvad/mullvadvpn/"
+                               "lib/common/constant/ClassNames.kt").read_text())
+                self.assertIn('.app.MainActivity"', class_names.read_text())
                 self.assertFalse((generated / "app/src/ossProdDebug/kotlin/net/mullvad/mullvadvpn/app/PlumeVpnDebugActivity.kt").exists())
                 self.assertIn("VpnActivity", (generated / "app/src/ossProd/AndroidManifest.xml").read_text())
                 staged_manifest = (generated / "plume-ui/src/main/AndroidManifest.xml").read_text()
