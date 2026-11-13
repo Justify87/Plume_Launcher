@@ -18,7 +18,7 @@ nuvio_sha_observed: be4b84a84e004a2d36405601683df000d8dc446a
 milestone: M04
 status: implementation_committed_ci_in_progress_hardware_pending
 work_branch: feature/vdesign-m04-card-styling
-work_code_head_pre_docs: 66cf0da2843c334a9686f2d61499a13f09a9d762
+work_code_head_pre_docs: 13988ae216feecd33c39f5e3b491294b9fff6c22
 draft_pr: 37
 draft_pr_merged: false
 reference_path: docs/v-design/REFERENCE.png
@@ -30,8 +30,11 @@ reference_format: jpeg_jfif_misnamed_png
 reference_verified_in_m04: true
 m04_initial_ci_run: 43523928137
 m04_initial_ci_check_job: 132224852062
-m04_initial_ci_status_at_docs: in_progress
+m04_initial_ci_status_at_docs: cancelled_after_docs_update
 m04_mullvad_native_job_at_docs: skipped
+m04_second_ci_run: 43524298952
+m04_second_ci_status_before_fix: in_progress
+m04_followup_ci: pending_on_final_docs_head
 m04_local_gradle: not_run_no_android_sdk_checkout
 m04_emulator_screenshot: not_run
 m04_shield_pro_2019: hardware_pending
@@ -50,7 +53,7 @@ blockers:
 - Code: `VDesignCardView.kt` rendert 1 Hero, 2 Standard, 3 verfügbare Karten und 8 kompakte Upcoming-Slots mit Full-Bleed-Artwork, statischem dunklem Gradient, Nuvio-Quellenmarke, abgestufter Typografie und Lavender-Fokusring ohne Scale-/Layoutverschiebung. Nuvio `showNewBadge=false` wird respektiert; keine Hardcodes oder SmartTube-Karten. `VDesignCardText.kt` formatiert echtes S/F, reale Restzeit, lokale Tagesdaten; bei fehlender Evidenz keine Aussage.
 - `VDesignHomeView.kt`: 14 wiederverwendbare View-Slots statt leeren M03-Platzhaltern; Bindung an die drei kompletten M02-Listen und Counts. UPCOMING >8 wird auf D-Pad-Abwärts-/Aufwärtsnavigation in Viererschritten umgebunden; M05 übernimmt vollständige Navigation und Focus-Cross-Row-Regression.
 - `MainActivity.kt`: Weiterleitung auf existierenden asynchronen Poster-LruCache-Loader, in-flight Artwork an alle gebundenen passenden V-Karten verteilen; Quelle/Komponente/Action für Nuvio-Intents prüfen. UPCOMING setzt `launchMode=detail`, entfernt `videoId`, bekommt keinen generischen App-Fallback. Mischkanal/SmartTube/Mullvad-Gitlink bleiben unverändert.
-- Tests: `VDesignCardTextTest.kt` mit fehlenden S/F, realer Dauer, lokaler Mitternacht, unsicheren URI-Schemen, Fallback-Art. **Eingecheckt, im lokalen Container nicht ausgeführt** (keine Android-SDK-/GitHub-Checkout-Umgebung). CI [43523928137](https://github.com/Justify87/Plume_Launcher/actions/runs/43523928137), [Job 132224852062](https://github.com/Justify87/Plume_Launcher/actions/runs/43523928137/job/132224852062) war zum Dokumentationszeitpunkt `in_progress`, kein Success-Claim. Mullvad native `skipped`, keine physische Abnahme.
+- Tests: `VDesignCardTextTest.kt` mit fehlenden S/F, realer Dauer, lokaler Mitternacht, unsicheren URI-Schemen, Fallback-Art und ungültigen Hosts/Userinfo. Fix-Commit `13988ae` stellt bei Feed-Eviction Fokus auf die nächste echte Karte/Sidebar wieder her und prüft Bild-URI-Authority mit `java.net.URI`. **Eingecheckt, im lokalen Container nicht ausgeführt** (keine Android-SDK-/GitHub-Checkout-Umgebung). CI [43523928137](https://github.com/Justify87/Plume_Launcher/actions/runs/43523928137), [Job 132224852062](https://github.com/Justify87/Plume_Launcher/actions/runs/43523928137/job/132224852062) war zum Dokumentationszeitpunkt `in_progress`, kein Success-Claim. Mullvad native `skipped`, keine physische Abnahme.
 - Review: [REVIEWS.md](REVIEWS.md) M04; Matrix [TEST_MATRIX.md](TEST_MATRIX.md). **Exakt nächster Meilenstein: M05**.
 
 ## Historischer Stand M03 (nicht aktuell)
@@ -132,3 +135,6 @@ Die **1536×864 Referenzbildpixel** werden nicht als Android-dp interpretiert: `
 ## Verantwortlicher nächster Einstieg
 
 **M04** startet vom tatsächlichen gemergten M03-Commit bzw. vom **echten Draft-PR-#36-HEAD**, falls noch ungemergt. Echt bindbare `NuvioDashboardFeed.sections()`, echte Artwork-, Status- und Deep-Link-Implementierungen für 14 Slots plus D-Pad-Navigation; bei leeren/unbewilligten Kanälen Empty-State statt synthetischer Inhalte. `NuvioMediaItem.daysUntilRelease` beim Bind/Resume/Tageswechsel für UPCOMING anzeigen (nie Uhrzeit erfinden), `showNewBadge` respektieren, 100000ms ohne Restminuten; UPCOMING nur Details. M05 folgt mit vollständigen Apps-/Einstellungen-/HDMI-/Back-/HOME-Fokuspfaden, M06 entfernt Alt-Hosts/Mode. Bis dahin **kein Merge ohne ausdrückliche Nutzerfreigabe**.
+
+
+**M04 Folge-Fix vor Abschluss:** [13988ae](https://github.com/Justify87/Plume_Launcher/commit/13988ae216feecd33c39f5e3b491294b9fff6c22) (Card-Fokus-Eviction und URI Host/Userinfo). Der erste [Run 43523928137](https://github.com/Justify87/Plume_Launcher/actions/runs/43523928137) wurde durch Folge-Commit **cancelled**, obwohl Unit/Lint schon erfolgreich durchliefen. Folge-Run [43524298952](https://github.com/Justify87/Plume_Launcher/actions/runs/43524298952) war zuvor `in_progress`; letzter HEAD-Run gesondert beobachten, nicht als Erfolg behaupten.

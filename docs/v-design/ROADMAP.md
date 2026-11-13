@@ -61,3 +61,6 @@
 - Quelle der Daten M01/M02; M04 übernimmt ausdrücklich keine Erfindung eines `Neu`-Flags oder synthetischer Minuten.
 - JVM-Testquellen committed; [PR #37](https://github.com/Justify87/Plume_Launcher/pull/37) CI-Status nur mit geprüftem Run; Emulator/Shield/Pixel-Overlay offen.
 - **M05 ist exakt als Nächstes dran**: D-Pad-Übergänge zwischen Sidebar/Hero/Standard/Compact, Back/HOME, Alle Apps, Settings, HDMI, VPN, Intent-Laufzeit und Fokusrestauration.
+
+
+**M04 Korrektur vor CI-Abnahme:** [13988ae](https://github.com/Justify87/Plume_Launcher/commit/13988ae216feecd33c39f5e3b491294b9fff6c22) verbessert Fokus-Fallback und URI-Authority-Validierung mit Tests; finaler Docs+Code-HEAD-CI ist weiter nicht als bestanden gewertet. M05 unverändert der nächste Meilenstein.

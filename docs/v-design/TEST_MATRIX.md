@@ -182,3 +182,13 @@ Der frühere failed-Lint-Run 43516551245 bleibt als historische Evidenz erhalten
 | Lokaler Build/Emulator/Shield 2019/Screenshot/Physik/Leistung | Keine lokale Android SDK- und Git-Klon-Umgebung; kein Shield verbunden | **not_run/hardware_pending** |
 
 **Wichtig:** Ein laufender Vorgänger-CI-Run beweist noch keine Buildqualität. Nach Docs-Commit finalen SHA und Workflow/Jobs prüfen; M05 ist nächster Schritt, niemals Merge ohne Freigabe.
+
+
+### M04 Code-Review-Nachtrag vor finalem CI
+| Gate | Prüfung | Stand |
+| --- | --- | --- |
+| Fokus nach entfernter Episode | `VDesignHomeView.bindFeed` Ersatzziel nach Stable-ID-Verlust in `13988ae` | source_review_only, emulator not_run |
+| URL mit leerem Host / HTTP-Userinfo / content ohne Authority | zusätzliche Assertions in `VDesignCardTextTest.kt` plus `java.net.URI`-Validierung | test_added_not_run_at_commit |
+| erster PR-Run `66cf0da` | [Run 43523928137](https://github.com/Justify87/Plume_Launcher/actions/runs/43523928137) | **completed/cancelled** nach neuerem Docs-Commit, Unit+lint success vor Abbruch |
+| Docs-Run vor Source-Fix | [Run 43524298952](https://github.com/Justify87/Plume_Launcher/actions/runs/43524298952) | **in_progress** zuletzt beobachtet; durch Folge-Commit eventuell cancelled, kein Erfolg behauptet |
+| finaler HEAD-Run | noch nach dieser Docs-Aktualisierung prüfen | pending |

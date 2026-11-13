@@ -123,3 +123,9 @@ Das erneute systematische Zeitdaten-Review fand, dass `MainActivity` im Classic-
 **Tests/Evidenz:** `VDesignCardTextTest.kt` neu; statisches Quellreview durchgeführt. Lokal Android Gradle/SDK nicht vorhanden, daher Tests/Build `not_run`. Initialer [Workflow 43523928137](https://github.com/Justify87/Plume_Launcher/actions/runs/43523928137) und [Check 132224852062](https://github.com/Justify87/Plume_Launcher/actions/runs/43523928137/job/132224852062) zum Schreibzeitpunkt `in_progress`; Mullvad-native Job `skipped`. Letzten SHA extra prüfen. Kein Overlay, kein Shield-Test.
 
 **Reviewurteil:** `implementation_committed_pending_ci_visual_hardware`. Bekannte Risiken: ungetestete tatsächliche View-Inflation, Textclip bei großen Font-Scales, Focus-Transition/UPCOMING-Scroll, echte Provider-Image-URLs und Schutz bei Player-Return. **Exakt nächster Meilenstein M05. Kein Merge.**
+
+
+### M04 ergänzender kritischer Review-Fix (nach erster PR-Einreichung)
+- Fall: Fokussierte Episode verschwindet durch Provider-Refresh → zunächst kein expliziter Ersatzfokus; in `13988ae` fällt `VDesignHomeView.bindFeed` auf nächste bindbare Medienkarte, sonst Sidebar Übersicht zurück. **Source-reviewed**, realer DPAD-Device-Test weiterhin `not_run`.
+- Fall: URI startet mit `https://`, hat aber keinen Host oder enthält Userinfo → zuvor durch Prefix-Check akzeptiert. `VDesignCardText.supportedArtwork` prüft nun per `java.net.URI` (HTTP(S) Host und kein Userinfo, content-Authority). Negative Unit-Tests ergänzt; Android/CI-Resultat noch gesondert.
+- [Code-Fix 13988ae](https://github.com/Justify87/Plume_Launcher/commit/13988ae216feecd33c39f5e3b491294b9fff6c22); initialer [Run 43523928137](https://github.com/Justify87/Plume_Launcher/actions/runs/43523928137) nach Docs-Commit **cancelled** (Unit/Lint-Teilstufen success), kein Gesamt-Pass. Folge-HEAD-Run offen. M05 bleibt nächster Meilenstein.

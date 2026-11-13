@@ -56,3 +56,7 @@ M03-Code-Run [43520674555](https://github.com/Justify87/Plume_Launcher/actions/r
 ## M03 CI-Nachtrag – bestätigter Quellcode-/Dokumentationscheck
 
 [Run 43521292243](https://github.com/Justify87/Plume_Launcher/actions/runs/43521292243) auf `8160f2bf05df335b52c9735c675b12a8dbda57b0` **completed/success**; [check-Job 132215945300](https://github.com/Justify87/Plume_Launcher/actions/runs/43521292243/job/132215945300) **success**. Echte Gradle-Unit-/Lint-Checks, Debug-/Release-APK, Größenvergleich: Release `535462→540870` (+5408 Bytes); 44 Installer-Checks, 10 Spotify-, 12 Mullvad-Staging-, 6 Mullvad-APK-Validator-Offline-Tests erfolgreich. Native Mullvad-APK `skipped`; lokale SDK-/Emulator-/Shield-Tests `not_run`. Ein neuer Dokumentations-Evidence-Commit erzeugt einen anderen PR-HEAD, dessen CI wiederum nachzuweisen ist; dieser Erfolg wird **nur** dem konkreten SHA zugeordnet. M04 bleibt exakt nächster Schritt, kein Merge erteilt.
+
+
+### Korrektur nach Code-Review
+[Commit 13988ae](https://github.com/Justify87/Plume_Launcher/commit/13988ae216feecd33c39f5e3b491294b9fff6c22) behandelt entferntes fokussiertes Medium mit Fallback auf die nächste echte Karte/Sidebar; validiert `java.net.URI`-Authorities und lehnt URL-Userinfo ab. Zusätzliche JVM-Assertions committed. Finaler CI-Run für dokumentierten HEAD bleibt offen; kein Emulator-/Hardwarepass behauptet.
