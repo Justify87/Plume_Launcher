@@ -198,3 +198,6 @@ Die historische Inventartabelle bleibt unverändert; diese Fortschreibung ist f�
 - F40/F41 bleiben `not_applicable` für Smartphone-Compose-Theme/Tarnungsicon, F25/F39 nur mit Gerätetest `unsupported_on_device`; `ossProd` ohne Play-Billing. Original-M06-Singlehop-Any-Reset weiter nicht exponiert.
 - M12-APK-Prüfungen messen Binär-/Build-Eigenschaften, **keine** VPN-Tunnelwirkung, App-Routing oder D-Pad-Erreichbarkeit. Geräteprotokoll siehe `TEST_MATRIX.md`.
 
+### M12 ABI-Konsistenz zur Featuregruppe F05
+
+F05 (Rust-Daemon/JNI/Talpid/gRPC) setzt den vorhandenen Original-ARM64-JNI-Kern voraus. Die M11-APK bewarb zusätzlich ARMv7-/x86-/x86_64-Abhängigkeiten, hatte aber dort **keine** Mullvad-JNI. M12 filtert deshalb im **generierten** Host alle anderen nativen ABIs. Für ARM64 gilt bis zum Gerätestest weiterhin `partial`; Nicht-ARM64 wird nicht mehr als kompatible VPN-Plattform behauptet. CI-Gate in `debug-apk.yml` und `check_apk.py`.
