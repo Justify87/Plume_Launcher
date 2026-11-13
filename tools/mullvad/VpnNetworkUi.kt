@@ -174,20 +174,29 @@ internal class VpnNetworkUi(
         activity.lifecycleScope.launch {
             overrides.relayOverrides.collect { relayOverrides = it; render() }
         }
-        // Mullvad provides its supported Shadowsocks ciphers. Never invent a cipher list.
-        withDaemon("API-Zugriff: Chiffren laden") {
-            api.getShadowsocksCiphers().fold(
-                { apiFeedback.text = "Chiffren nicht geladen: " + it },
-                { ciphers = it; render() },
-            )
-        }
     }
+
+    private var ciphersRequested = false
 
     fun onDaemonReady(isReady: Boolean) {
         ready = isReady
         if (!ready) {
+            ciphersRequested = false
             // Repositories can retain cached values: do not show them as effective while offline.
             stateLine.text = "Mullvad-Dienst offline · Änderungen gesperrt"
+        } else if (!ciphersRequested) {
+            // The UI starts before Plume binds the original service. Only request the
+            // supported cipher list once gRPC is ready, never during Activity creation.
+            ciphersRequested = true
+            withDaemon("API-Zugriff: Chiffren laden") {
+                api.getShadowsocksCiphers().fold(
+                    {
+                        ciphersRequested = false
+                        apiFeedback.text = "Chiffren nicht geladen: " + it
+                    },
+                    { ciphers = it; render() },
+                )
+            }
         }
         render()
     }
@@ -283,7 +292,7 @@ internal class VpnNetworkUi(
             else "Originalzustand geladen · Änderungen wirken auf Mullvad"
 
         modeInfo.text = "Verschleierung: " + (mode?.name ?: "nicht verfügbar") +
-            " · Multihop: " + (if (ready) liveWireguard?.multihop?.name else null ?: "unbekannt") +
+            " · Multihop: " + ((if (ready) liveWireguard?.multihop?.name else null) ?: "unbekannt") +
             " · DAITA: " + when (s?.tunnelOptions?.daitaSettings?.enabled) {
                 true -> "an"
                 false -> "aus"
