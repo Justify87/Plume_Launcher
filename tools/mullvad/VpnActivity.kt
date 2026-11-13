@@ -38,6 +38,15 @@ import net.mullvad.mullvadvpn.lib.repository.DeviceRepository
 import net.mullvad.mullvadvpn.lib.repository.NewDeviceRepository
 import net.mullvad.mullvadvpn.lib.repository.VoucherRepository
 import net.mullvad.mullvadvpn.lib.repository.ConnectionProxy
+import net.mullvad.mullvadvpn.lib.repository.CustomListsRepository
+import net.mullvad.mullvadvpn.lib.repository.RelayListFilterRepository
+import net.mullvad.mullvadvpn.lib.repository.RelayListRepository
+import net.mullvad.mullvadvpn.lib.repository.SettingsRepository
+import net.mullvad.mullvadvpn.lib.usecase.FilteredRelayListUseCase
+import net.mullvad.mullvadvpn.lib.usecase.ProviderToOwnershipsUseCase
+import net.mullvad.mullvadvpn.lib.usecase.RecentsUseCase
+import net.mullvad.mullvadvpn.lib.usecase.SelectSinglehopUseCase
+import net.mullvad.mullvadvpn.lib.usecase.customlists.CustomListsRelayItemUseCase
 import net.mullvad.mullvadvpn.lib.repository.UserPreferencesRepository
 import net.mullvad.mullvadvpn.serviceconnection.ServiceConnectionManager
 import org.koin.android.ext.android.getKoin
@@ -58,6 +67,23 @@ class VpnActivity : ComponentActivity() {
     private val accountUi by lazy {
         VpnAccountUi(this, accounts, devices, vouchers, newDevices, ::withDaemon,
             { tabs.getOrNull(2)?.requestFocus() }, dark, ink, secondary, surface, accent)
+    }
+    private val locationUi by lazy {
+        VpnLocationUi(
+            this,
+            getKoin().get<RelayListRepository>(),
+            getKoin().get<FilteredRelayListUseCase>(),
+            getKoin().get<RelayListFilterRepository>(),
+            getKoin().get<CustomListsRepository>(),
+            getKoin().get<CustomListsRelayItemUseCase>(),
+            getKoin().get<RecentsUseCase>(),
+            getKoin().get<SettingsRepository>(),
+            getKoin().get<SelectSinglehopUseCase>(),
+            getKoin().get<ProviderToOwnershipsUseCase>(),
+            ::withDaemon,
+            { tabs.getOrNull(1)?.requestFocus() },
+            dark, ink, secondary, surface, accent,
+        )
     }
     private val preferences by lazy { getKoin().get<UserPreferencesRepository>() }
     private val serviceBinding by lazy { ServiceConnectionManager(applicationContext) }
@@ -116,6 +142,7 @@ class VpnActivity : ComponentActivity() {
         loadKoinModules(listOf(uiModule, paymentModule))
         super.onCreate(savedInstanceState)
         setContentView(buildScreen())
+        locationUi.start()
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 if (page != 0) {
@@ -128,6 +155,7 @@ class VpnActivity : ComponentActivity() {
         lifecycleScope.launch {
             management.connectionState.collect { state ->
                 daemonReady = state == GrpcConnectivityState.Ready
+                locationUi.onDaemonReady(daemonReady)
                 grpcLine.text = "Mullvad-Dienst: " + if (daemonReady) "bereit" else state.toString()
                 diagnosticLine.text = grpcLine.text
                 renderTunnel()
@@ -332,8 +360,8 @@ class VpnActivity : ComponentActivity() {
         addPanel(detail, status)
         focusTargets += connectButton
 
-        addPanel(detail, placeholder("Standorte", "Noch nicht integriert. Die originale Relay-Auswahl folgt in M05–M06."))
-        focusTargets += tabsPlaceholderTarget(detail, 1)
+        addLocationPanel(detail, locationUi.build())
+        focusTargets += locationUi.primaryFocus
 
         val account = panel()
         account.addView(accountUi.build())
@@ -357,6 +385,7 @@ class VpnActivity : ComponentActivity() {
             val tab = button(name) {
                 showPage(index)
                 if (index == 2) accountUi.requestPrimaryFocus()
+                else if (index == 1) locationUi.requestPrimaryFocus()
                 else focusTargets[index].requestFocus()
             }
             tab.setOnFocusChangeListener { _, focused ->
@@ -367,6 +396,7 @@ class VpnActivity : ComponentActivity() {
                 if (event.action == KeyEvent.ACTION_DOWN && key == KeyEvent.KEYCODE_DPAD_RIGHT) {
                     showPage(index)
                     if (index == 2) accountUi.requestPrimaryFocus()
+                    else if (index == 1) locationUi.requestPrimaryFocus()
                     else focusTargets[index].requestFocus()
                     true
                 } else false
@@ -389,6 +419,13 @@ class VpnActivity : ComponentActivity() {
         addView(text(explanation, 17f))
         addView(button("Zur Statusübersicht") { showPage(0); tabs[0].requestFocus() },
             LinearLayout.LayoutParams(dp(245), dp(56)))
+    }
+
+    private fun addLocationPanel(parent: FrameLayout, content: View) {
+        // The location browser owns two independently scrolling D-Pad columns.
+        // Do not nest it in a full-screen ScrollView.
+        parent.addView(content, FrameLayout.LayoutParams(-1, -1))
+        panels += content
     }
 
     private fun addPanel(parent: FrameLayout, content: LinearLayout) {

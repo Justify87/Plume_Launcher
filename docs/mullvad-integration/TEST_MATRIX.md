@@ -270,3 +270,37 @@ M05 bleibt `partial` bis CI **und** Live-/Shield-Kontoabnahme tatsächlich nachg
 
 
 **M05 DI-Folgefehlerprüfung:** Source-Audit am gepinnten Upstream: `MullvadApplication` lädt nur `appModule`; originales `MainActivity` lädt `uiModule`/`paymentModule`. M05-VPN-Activity-Overlay lädt diese beiden Module vor `buildScreen()`. Test `test_m05_account_ui_uses_original_repositories` prüft den Modulaufruf; tatsächliche Runtime-/Koin-Auflösung bleibt `not_run` bis zum Geräte- oder Instrumentationstest.
+
+## M06 — Build, Regression und Shield-Abnahme (13.11.2026)
+
+Basis `main` `2c518bc3427c99d72820559deee5d7258791cee9`, Feature-Branch `feature/m06-mullvad-locations-tv`. M05 CI [43334096218](https://github.com/Justify87/Plume_Launcher/actions/runs/43334096218) zuvor `success` (Beobachtung, kein M06-Lauf).
+
+| Prüfung | Kommando / Szenario | Ergebnis bei Codeerstellung |
+| --- | --- | --- |
+| Source-Staging-Assertion | `python3 -m unittest discover -s tools -p test_mullvad_prepare.py -v` | `not_run` (vor GitHub-CI) |
+| Plume-Regression | `./gradlew testDebugUnitTest lintDebug assembleDebug` | `not_run` (kein SDK/Repo im lokalen Runtime-Container) |
+| Integrierte ARM64-APK | `bash tools/mullvad/build-integrated.sh` | `not_run` (GitHub-CI nach PR-Anlage) |
+| APK Manifest/JNI/Relays | `python3 tools/mullvad/check_apk.py <APK>` | `not_run` |
+| Shield TV: Liste & Auswahl | `adb install -r <APK>`; VPN öffnen → Standorte → Land → Stadt → Server → Auswahl; Exit-IP über Original-Tunnel/externes IP-Check bestätigen | `not_run` |
+| Suche/Offline | Suche nach Land/Stadt/Server, 0 Treffer, aktiv/inaktiv; Netzwerk trennen und Relayliste aktualisieren; Bildschirmtexte/kein Crash | `not_run` |
+| TV D-Pad/Scroll | Classic + Overview VPN öffnen; D-Pad Links/Rechts/OK/Back; Länder-/Serverlisten jeweils 50+ Schritte; Fokus/Scrollposition bei Flow-Update prüfen | `not_run` |
+| Originalfilter | Eigentümer Mullvad/gemietet/Alle; Anbieter einzeln/alle/keine, UI-Relays mit tatsächlichem Tunnel-Constraint abgleichen | `not_run` |
+| Custom Lists | Liste erstellen, umbenennen, Land/Stadt/Hostname hinzufügen und entfernen, Liste als Standort wählen, löschen; Neustart/Neuverbinden | `not_run` |
+| Recents | Zuletzt an/aus, mehrfach Standort wechseln, zuletzt verwendete Ziele auswählen, Neustart | `not_run` |
+| Standortänderung verbunden | Erst VPN verbinden, Standort wählen, Status/Exit-IP und eventuelle originale Wiederverbindung beobachten (kein manuelles Reconnect aus M06) | `not_run` |
+
+```bash
+git checkout feature/m06-mullvad-locations-tv
+git submodule update --init --recursive
+test "$(git -C third_party/mullvadvpn-app rev-parse HEAD)" = aa47f606b1a159214c7279344128119fa91be5fd
+python3 -m unittest discover -s tools -p test_mullvad_prepare.py -v
+./gradlew testDebugUnitTest lintDebug assembleDebug
+bash tools/mullvad/build-integrated.sh
+python3 tools/mullvad/check_apk.py <APK>
+adb devices -l
+adb install -r <APK>
+adb shell am start -n dev.plume.advanced/net.mullvad.mullvadvpn.app.VpnActivity
+adb logcat -d -s AndroidRuntime MullvadVpnService MullvadDaemon
+```
+
+**Abnahme:** Quelle/Integration bis CI = `partial`; Singlehop-Exit-Any-Reset = `partial` wegen fehlender Upstream-Mutations-API; echte VPN-/D-Pad-/Relay-/Filter-/Listen-Prüfung = `not_run`. Der Stand ist erst dann `pass`, wenn APK-CI **und** physische Shield-Prüfung gegen Mullvads Originaldienst protokolliert sind.

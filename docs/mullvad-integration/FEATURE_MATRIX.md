@@ -108,3 +108,16 @@ A shared manual/PR integrated APK build now uses the official pinned Mullvad And
 
 
 **M05 Bootstrap-Review:** `VoucherRepository` und `NewDeviceRepository` sind im originalen `uiModule`, nicht im bei Application-Start geladenen `appModule`; die Plume-`VpnActivity` lädt daher wie Mullvads MainActivity `uiModule` und `paymentModule`. Ohne diesen Schritt wären F29/F31 auf Gerät nicht auflösbar. Staging-Assertion ergänzt; Gerätepass bleibt offen.
+
+## M06 — Standort-/Listen-Feature-Matrix (Quellanbindung ohne Shield-Abnahme)
+
+| ID | TV-Implementierung und originaler Quellpfad | Status |
+| --- | --- | --- |
+| F06 | `VpnLocationUi`: Länder → Städte → Server, originale `RelayListRepository.relayList`, `FilteredRelayListUseCase(Single)`, `newFilterOnSearch`, `SelectSinglehopUseCase`; Auswahlzustand original `selectedLocation` | `partial`: UI und Repositories angebunden; Live-Tunnel/Shield/Fokus `not_run` |
+| F07 | Eigentümer `MullvadOwned`/`Rented`/`Any`, original Provider-Liste (`ProviderToOwnershipsUseCase`), `RelayListFilterRepository.updateSelectedOwnership/updateSelectedProviders` für `EXIT` | `partial`: echte API-Anbindung; Laufzeittest `not_run` |
+| F08 | `RecentsUseCase(RelayListType.Single)`, `SettingsRepository.setRecentsEnabled` und `RecentItem.Relay` | `partial`: keine eigene Recents-Datenbank, Shield `not_run` |
+| F09 | `CustomListsRepository.createCustomList/updateCustomListName/updateCustomListLocations/deleteCustomList`, `CustomListsRelayItemUseCase`, Singlehop-Selektion einer Liste | `partial`: API + TV-Dialoge; CRUD auf echtem Gerät `not_run` |
+| F47 | Original-Daemon-Relaystream `ManagementService.relayCountries` über Übersetzung/Sortierung des `RelayListRepository`; kein separater Launcher-Download | `partial`: Integrationspfad; APK/Endgerät `not_run` |
+| M06-Gap | Original `ManagementService.setRelayLocation(RelayItemId)` schreibt nur `Constraint.Only`. Initial-`Constraint.Any` wird angezeigt, ein Singlehop-Exit-Reset ist nicht über öffentliches Upstream-Repository verfügbar; Multihop-Entry-Any erst M09 | `partial` für expliziten Auto-Reset, **nicht** als geliefert darstellen |
+
+Alle `partial`-Angaben bedeuten Source-/UI-Einbindung und **nicht** erfüllte Endgeräte-Feature-Parität. Keine Pingwerte, keinen künstlichen Standort und keinen manuellen VPN-Reconnect eingeführt.

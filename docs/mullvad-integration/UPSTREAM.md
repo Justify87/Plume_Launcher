@@ -132,3 +132,7 @@ M03 ändert die normalen Mullvad-Original-Quelldateien **nicht**. Die generierte
 
 
 **M05-Review-Korrektur:** Das originale `MullvadApplication` lädt nur `appModule`; `Mullvad MainActivity` lädt `uiModule` und `paymentModule` separat. Das Plume-Host-Overlay `VpnActivity.kt` lädt deshalb genau diese originalen Module vor der nativen Konto-View, damit `VoucherRepository`/`NewDeviceRepository` auflösbar sind. Originalquellen weiterhin **null Änderungen**.
+
+## M06 — Standort-Overlay (13.11.2026)
+
+Original-Pin bleibt `android/2026.12` / `aa47f606b1a159214c7279344128119fa91be5fd`, **keine** Änderung an `third_party/mullvadvpn-app`. Neue Plume-kontrollierte `tools/mullvad/VpnLocationUi.kt` wird in `prepare.py` ausschließlich nach `android/app/src/ossProd/kotlin/net/mullvad/mullvadvpn/app/` im temporär kopierten Host gestaged. Anpassung an `tools/mullvad/VpnActivity.kt` bindet den View und die bereits durch `uiModule` registrierten Original-Repositories/Use-Cases an. Alle Relaylisten kommen aus Mullvads `ManagementService` und `RelayListRepository`, nicht über einen Plume-Server oder HTTP-Parser. Test: `python3 -m unittest discover -s tools -p test_mullvad_prepare.py -v` und integrierter `bash tools/mullvad/build-integrated.sh`. Einschränkung: offizieller Singlehop-Selector unterstützt keinen Rückstellaufruf auf `Constraint.Any` über die exponierte Repository-API; kein Originalpatch für M06.
