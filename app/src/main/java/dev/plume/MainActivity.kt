@@ -307,7 +307,9 @@ class MainActivity : Activity() {
                        val seriesTitle: String? = null, val episodeTitle: String? = null,
                        val seasonNumber: String? = null, val episodeNumber: String? = null,
                        val channelId: Long? = null, val channelProviderId: String? = null,
-                       val releaseDate: String? = null)
+                       val releaseDate: String? = null, val shortDescription: String? = null,
+                       val longDescription: String? = null, val posterUri: String? = null,
+                       val logoUri: String? = null)
 
     private val prefs by lazy { getSharedPreferences("home", MODE_PRIVATE) }
     private val io = Executors.newSingleThreadExecutor()
@@ -315,6 +317,8 @@ class MainActivity : Activity() {
     private val mediaFeed = MediaFeedRepository().apply { replaceSource("demo", DemoMedia.asMediaItems()) }
     // Read and atomically replace on the existing TV query executor; not rendered before M02.
     @Volatile private var nuvioProviderFeeds = NuvioProviderFeeds.EMPTY
+    // M02's complete, counted and sorted three-section projection for the M03 V-Design host.
+    @Volatile private var nuvioDashboardFeed = NuvioDashboardFeed.EMPTY
     @Volatile private var tvFeedQueryFailed = false // Only a real provider exception, never a missing episode.
     private val youtubeSource by lazy { YouTubeRssSource(prefs) }
     /** Small wallpaper pictures for the settings grids, by choice and size; 8 MB holds every built-in twice over. */
@@ -5752,6 +5756,7 @@ class MainActivity : Activity() {
             android.util.Log.w("Plume", "continue watching: no $TV_LISTINGS")
             mediaFeed.replaceSource("tv", emptyList())
             nuvioProviderFeeds = NuvioProviderFeeds.EMPTY
+            nuvioDashboardFeed = NuvioDashboardFeed.EMPTY
             showWatchNext(emptyList())
             if (homeLayoutMode == HomeLayoutMode.OVERVIEW) updateOverviewPreview(sortedApps().filter { inRow(it.pkg, rowHiddenSet()) })
             return
@@ -5764,6 +5769,7 @@ class MainActivity : Activity() {
                 android.util.Log.w("Plume", "continue watching failed ($e)")
                 mediaFeed.replaceSource("tv", emptyList())
                 nuvioProviderFeeds = NuvioProviderFeeds.EMPTY
+                nuvioDashboardFeed = NuvioDashboardFeed.EMPTY
                 emptyList()
             }
             ui.post {
@@ -5891,6 +5897,8 @@ class MainActivity : Activity() {
                 episodeTitle = p.episodeTitle, seasonNumber = p.seasonNumber,
                 episodeNumber = p.episodeNumber, channelId = p.channelId,
                 channelProviderId = p.channelProviderId, releaseDate = p.releaseDate,
+                shortDescription = p.shortDescription, longDescription = p.longDescription,
+                posterUri = p.posterUri, logoUri = p.logoUri,
             )
         val candidates = feedEntries.mapIndexed(::tvProgram)
         nuvioProviderFeeds = AndroidTvMediaSource.selectNuvio(
@@ -5900,6 +5908,7 @@ class MainActivity : Activity() {
             legacyPrograms = candidates,
             permissionGranted = true,
         )
+        nuvioDashboardFeed = NuvioMediaProjector.project(nuvioProviderFeeds)
         val classified = AndroidTvMediaSource.select(candidates, permissionGranted = true)
             .filter { prefs.getBoolean("yt_new_on", false) ||
                 !(YouTubeSubscriptions.isSmartTube(it.sourcePackage) && it.category == MediaCategory.NEW) }
@@ -6068,6 +6077,9 @@ class MainActivity : Activity() {
                     seasonNumber = season, episodeNumber = episode,
                     channelId = channelId, channelProviderId = channelProviderId,
                     releaseDate = str("release_date"),
+                    shortDescription = str("short_description"),
+                    longDescription = str("long_description"),
+                    posterUri = str("poster_art_uri"), logoUri = str("logo_uri"),
                 )
                 out += Triple(num("weight"),
                     if (group == null) watchSortKey(num("watch_next_type"), engaged) else channelSortKey(engaged, prefs.getLong("t_$pkg", 0)), prog)

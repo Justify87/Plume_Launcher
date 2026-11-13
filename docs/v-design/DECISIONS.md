@@ -30,3 +30,17 @@ Ein Kanal gilt nur dann als Nuvio-Kategorie, wenn `package_name` aus der geprüf
 
 ## D-009 — Opt-in/Legacy-Fallback und Nicht-Rendering, 2026-11-13 (M01)
 Neue Vorschau-Feeds werden nur gelesen, wenn `browsable == true` aus dem TV-Provider geliefert wird. Fehlende Browsable-Spalte gilt nicht automatisch als genehmigt. Keine `requestChannelBrowsable`-Aufrufe aus Plume, kein Overlay und keine eigene Nuvio-DB-Abfrage. Legacy/Watch Next liefert ausschließlich bei positiver Progress-Evidenz einen **In-Progress**-Fallback bei fehlendem neuen Kanal. Available/Upcoming werden niemals aus Misch- oder Namensdaten rekonstruiert. `NuvioProviderFeeds` bleibt bis M02/M03 nicht gerendert, damit alte UI/Classic ohne neues Kachellayout erhalten bleibt. M02 muss Quelle/Sortierung/Dedupe/Release-Datum weiter verifizieren.
+
+ 
+## D-010 — Separate M02-V-Datenform statt Alt-Feed-Regeln, 2026-11-13
+
+`NuvioDashboardFeed` erhält drei stets vorhandene Bereiche, `NuvioMediaItem` Episode/S-E, tatsächliche Zeitfelder, Beschreibungen, Artwork, Releases und Quellreihenfolge. Es wird ausschließlich aus bereits genehmigten M01-Kanälen projiziert. Bestehende `MediaCategory`/`MediaFeedRepository` mit Classic/SmartTube und per-App-Quoten bleiben bis zur UI-Migration erhalten, statt sie innerhalb M02 quer zu refactoren. Dedupe verwendet die Nuvio-programmspezifische Provider-ID mit Episoden-Suffix und optional erkanntes Intent-`S.contentId`, nie bloßen Titel, generisches Intent oder TV-`_id`. Bei unbekannter Identität keine unbewiesene Zusammenführung. Nuvios upstream `distinctBy(contentId)` kann vorab unterschiedliche Next-Ups derselben Serie unterdrücken; kein privater DB-Zugriff als Workaround.
+
+## D-011 — Release-Evidenz, synthetische Dauer und lokaler Tag, 2026-11-13
+
+Kategorisierter Available-Channel bedeutet „verfügbar“, nicht „gerade neu“. Lokalisierte `short_description` inklusive „New Episode“ beweist nicht das interne `isReleaseAlert`-Flag. Daher in M02 `showNewBadge=false`, bis der TV-Provider echte maschinenlesbare Evidenz bietet. Nuvios 100000-ms-Fallback ist nicht von echter 100-s-Laufzeit unterscheidbar: Prozent anzeigen, **nie** echte Laufzeit/Restzeit aus diesen Werten. `release_date` ist streng parsebares `LocalDate`; kein ableitbarer Termin aus `last_engagement_time` oder Quellgewichtung. Tageszählung via `Instant+ZoneId`, neue UI muss beim Rebind/Resume und einmaligen lokalen Tageswechsel frisch auswerten, kein Dauerpolling.
+
+ 
+## D-012 — Widersprüchliche TV-Progress-Daten nicht als 100% darstellen, 2026-11-13
+
+Der vorhandene Classic-`Prog`-Parser clampte rechnerisch ungültige `playbackPositionMillis > durationMillis` auf 100 Prozent. Ein solcher Wert darf im neuen V-Dashboard keine Fortschrittsevidenz sein. Die M02-Projektion verwirft in diesem Fall sogar bereits befülltes `progressPercent`; die originale Classic-Laufzeitlogik bleibt wegen Meilenstein-Scope unangetastet. Regression mit explizit 100%-geklemmtem Eingabewert ergänzt.

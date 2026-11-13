@@ -18,6 +18,10 @@ internal data class AndroidTvProgram(
     val channelId: Long? = null,
     val channelProviderId: String? = null,
     val releaseDate: String? = null,
+    val shortDescription: String? = null,
+    val longDescription: String? = null,
+    val posterUri: String? = null,
+    val logoUri: String? = null,
 )
 
 /** Channel ID, real package, localized label, provider key, and approved visibility. */
