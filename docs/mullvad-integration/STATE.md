@@ -2,15 +2,15 @@
 
 ```yaml
 schema: plume-mullvad-handoff/v1
-milestone: M09
+milestone: M10
 status: partial
 checked_on: "2026-11-13"
-main_head_at_start: 560ee47cffb1640af7ac9dd889b6441f78efc824
-predecessor_milestone: M08
-predecessor_pr: 23
+main_head_at_start: 0df3ead5749ad5a3f465029308c104e9babe67d1
+predecessor_milestone: M09
+predecessor_pr: 24
 predecessor_merged_into_main: true
 base_branch: main
-feature_branch: feature/m09-mullvad-multihop-daita-tv
+feature_branch: feature/m10-mullvad-network-access-tv
 upstream_tag: android/2026.12
 upstream_sha: aa47f606b1a159214c7279344128119fa91be5fd
 upstream_gitlink_unchanged: true
@@ -20,7 +20,10 @@ m08_initial_commit: 0e64a56f35fdfa860e1a5e25f7fcb01af633562b
 m08_initial_ci: observed_ci_pass
 m08_initial_ci_run: 43402989685
 m08_final_ci: not_verified_after_final_review_commits
-m09_ci: not_run
+m09_ci: observed_ci_pass
+m09_ci_run: 43409181838
+m10_ci: not_run
+m10_shield_test: hardware_pending
 m09_shield_test: hardware_pending
 m08_shield_test: hardware_pending
 m06_ci: observed_ci_pass
@@ -127,3 +130,13 @@ Der Originalcode registriert `VoucherRepository` und `NewDeviceRepository` in `u
 - **Review:** Kein neuer VPN-Stack, keine eigene Relay-Paarungsregel, kein zusätzlicher Speicher, keine Neuverbindung nur wegen Standortwahl; explizite Neuverbindung über vorhandenen `ConnectionProxy`-Pfad. Ein Modus ist erst als aktiv markiert, wenn Original-Flow ihn bestätigt. `WHEN_NEEDED` lässt keinen manuell gewählten Entry zu; `ALWAYS` erlaubt ihn.
 - **Abnahmestand:** `partial` bis CI-Kotlin/Rust/JNI-/APK-Gate und echte TV-/Tunnelprüfung. Staging-Assertions erweitert; lokale Android-Toolchain/Shield nicht vorhanden. Den aktuellen CI-Lauf erst nach PR-Anlage als nachgewiesen eintragen. `hardware_pending`: D-Pad, Single/Multi/Auto, reale Entry-/Exit-Relays, DAITA-Filter, PQ-/Tunnelwirkung, Standardwerte, Neustart/Background.
 - **M10-Handoff:** auf gemergtem M09-`main` oder gestapeltem Feature-Branch aufbauen; originale Anti-Zensur-/Obfuskations- und Netzwerkoptionen integrieren, `setCustomWireguardPort` als Obfuskationsport bezeichnen, nicht als generischen WireGuard-Port. Bestehende M06–M09-Repositories/Views erhalten; alle Hardwareprüfungen nachholen, bevor `pass` gesetzt wird.
+
+## M10 — Verschleierung, API-Zugriff und Server-IP (13.11.2026)
+
+- **Basis:** `main` `0df3ead5749ad5a3f465029308c104e9babe67d1` (M09 PR #24 bereits gemergt), bei Start keine offenen PRs. M09-PR-CI [43409181838](https://github.com/Justify87/Plume_Launcher/actions/runs/43409181838) `success`; M09-/M10-Shield-Hardwareabnahmen weiterhin offen.
+- **Feature-Branch:** `feature/m10-mullvad-network-access-tv`, direkte Base `main`, keine fremden PR-Merges. Gepinnter Original-Upstream: `android/2026.12` / `aa47f606b1a159214c7279344128119fa91be5fd`, Gitlink unverändert, keine Änderung am originalen Mullvad-Rust-/Kotlin-/JNI-/gRPC-/Servicecode.
+- **Implementierung:** `tools/mullvad/VpnNetworkUi.kt` mit eigenem TV-Tab „Netzwerk“ und Unterseiten Verschleierung, API-Zugriff, Server-IP. `VpnActivity.kt` übernimmt D-Pad/Back, Statusbindung und Koin-Repositories; `prepare.py` kopiert die View in das abgeleitete `ossProd`-SourceSet. `test_mullvad_prepare.py` prüft die unveränderten Original-Schreibpfade.
+- **Originalzustand:** `SettingsRepository` kontrolliert die sieben im Pin vorhandenen Obfuskationsmodi samt echten Port-Settern; `RelayListRepository.portRanges` stellt die erlaubten WireGuard-/LWO-Portbereiche bereit. `ApiAccessRepository` verwaltet aktuelle/eingeschaltete Methoden und eigene SOCKS5-/Shadowsocks-Proxys mit Original-Test/CRUD; `RelayOverridesRepository` importiert JSON-Patches (Text/Datei) oder setzt alle Einträge zurück. Backend-Flows rendern den Status, Offlinezustände deaktivieren Änderungen. Keine lokale VPN- oder Proxy-Konfiguration.
+- **Grenzen:** Die originale Server-IP-UI bietet am Pin JSON-Datei-/Textimport und globalen Reset, aber keinen per-Host-Edit-Setter im Repository; deshalb keine erfundene Einzel-IP-Mutation. QUIC besitzt keine eigene Portauswahl. Android-TV-Quick-Settings-Tile, Tarnungsicons, Smartphone-Touch/Share-Flows werden M11 als getrennte OS-/Gerätefragen übergeben.
+- **Belegstand:** `partial` — GitHub-CI des neuen M10-PRs und echte Shield-/VPN-/Offline-/Reconnect-Tests stehen aus. Keine lokale Android-SDK-/NDK-/Rust-/ADB-Umgebung verfügbar; die Staging-Tests sind ergänzt, aber noch nicht als `pass` gemeldet. Nach erfolgreichem CI bitte CI-Run/Artifact/Commit hier ergänzen.
+- **M11-Handoff:** Auf PR/Branch M10 nach Merge auf `main` (sonst gestapelt) aufsetzen. Noch nicht abgenommene Originalbereiche gemäß `FEATURE_MATRIX.md`: M01–M10 geräteabhängige VPN-/Konto-/Relay-/DNS-/Split-/Multihop-/Verschleierungs-/API-/Override-Tests; F25 Quick Tile, F34–F35 Problembericht/Logs, F36–F37 Benachrichtigungen, F38–F42 allgemeine Präferenzen/Locale/Appearance/App-Info, F41 Tarnungsicons sowie weitere unverifizierte Funktionen. Nur `pass` vergeben, wenn tatsächlich auf TV und mit Originaldienst geprüft.
