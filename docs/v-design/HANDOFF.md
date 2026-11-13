@@ -1,5 +1,7 @@
 # M05 → M06: operativer Handoff
 
+**CI-Nachtrag (nach Code+Docs):** [Run 43528616572](https://github.com/Justify87/Plume_Launcher/actions/runs/43528616572), [Check 132240568044](https://github.com/Justify87/Plume_Launcher/actions/runs/43528616572/job/132240568044) für `1e8a7cb5e7d2c823a32e4069cfa96e1a71a11b0e`: **completed/success**, `testDebugUnitTest lintDebug assembleDebug assembleRelease` erfolgreich; Release `545714 → 550334` B (**+4620**). Mullvad-native skipped, Hardware pending. Dieser Evidence-Docs-Commit ist ein neuer SHA; sein Run bleibt separat zu prüfen.
+
 **Kanonischer State:** [STATE.md](STATE.md), **Branch:** `feature/vdesign-m05-navigation-interaction`, **Draft-PR:** [#38](https://github.com/Justify87/Plume_Launcher/pull/38), **Basis:** der echte M04-Merge `main@fdd10f3394463bd5d4142c9978834d78464905cc` ([#37](https://github.com/Justify87/Plume_Launcher/pull/37) merged). Vor M06-Start den **realen HEAD/PR-Merge und letzten CI-Lauf** erneut prüfen. Nuvio `dev@be4b84a84e004a2d36405601683df000d8dc446a` read-only.
 
 ## M05-Quellen und Invarianten für M06

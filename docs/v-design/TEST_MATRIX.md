@@ -222,3 +222,18 @@ Der frühere failed-Lint-Run 43516551245 bleibt als historische Evidenz erhalten
 | Lokale JVM/Android-SDK-Builds, Emulator, Shield Pro 2019, echte IPTV/VPN-/HDMI-Session, UI-Pixel und Memory/GPU | Kein Android-SDK/Repo-Checkout im Container, kein Gerät angebunden | **not_run / hardware_pending** |
 
 **Regel:** Aktuelle `STATE.md`-YAML hat Vorrang vor älteren M04-/M03-Momentaufnahmen. Finale CI-Nachweise nur mit tatsächlicher Job-URL und zugehörigem commit SHA; keine physische Abnahme aus Unit-Tests ableiten.
+
+
+### M05 — CI-Ergebnis auf dem vollständigen Code-und-Dokumentationsstand
+
+| Gate | Beobachtete Evidenz | Status |
+| --- | --- | --- |
+| Full source+docs SHA | [`1e8a7cb5e7d2c823a32e4069cfa96e1a71a11b0e`](https://github.com/Justify87/Plume_Launcher/commit/1e8a7cb5e7d2c823a32e4069cfa96e1a71a11b0e), [Run 43528616572](https://github.com/Justify87/Plume_Launcher/actions/runs/43528616572) | **completed_success** |
+| Check-Job, Repo/ADB/Offline + Kotlin/JVM und lint | [Job 132240568044](https://github.com/Justify87/Plume_Launcher/actions/runs/43528616572/job/132240568044): `./gradlew testDebugUnitTest lintDebug` BUILD SUCCESSFUL | **passed_ci** |
+| Debug- und Release-APK | gleicher Job: `./gradlew assembleDebug assembleRelease` BUILD SUCCESSFUL | **passed_ci** |
+| Release APK mit tatsächlicher Baseline | Joblog `APK: 545714 -> 550334 bytes (4620)` | **passed_measured_delta +4620 B** |
+| Native Mullvad/ARM64/VPN | [Job 132240569945](https://github.com/Justify87/Plume_Launcher/actions/runs/43528616572/job/132240569945) | **skipped_branch_filter**, VPN/Shield hardware_pending |
+| Alte M05-Workflow-Runs | [43528093899](https://github.com/Justify87/Plume_Launcher/actions/runs/43528093899) und [43528175980](https://github.com/Justify87/Plume_Launcher/actions/runs/43528175980) | **cancelled_by_new_commits**, kein Pass |
+| Dieser CI-Evidence-Docs-Commit | Neuer HEAD und GitHub-Actions-Run erst nach Push auszuwerten | **pending_new_ci** |
+
+Damit sind Unit- und Code-/Docs-CI-Gates nachgewiesen, aber **nicht** physische Device-/HOME-/VPN-/Nuvio-Playback-Tests oder Pixelvergleich.
