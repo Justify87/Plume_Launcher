@@ -80,3 +80,24 @@ Nur GitHub-Lauf mit zugehörigem finalen Commit nachträglich als CI-Pass werten
 | M01-nativer Mullvad-APK-Job | Run 43513105647, Branch-Bedingung des Workflows | **skipped**, kein nativer Runtime-Pass |
 | CI für nachgezogenen Dokumentations-HEAD | wird nach diesem Commit neu ausgelöst, anschließend realen URL/Status prüfen | **pending**, nicht vorweggenommen |
 | Physische Shield 2019, echte TV-Channel-Opt-in/Permission-Laufzeit | kein Gerät angebunden | **hardware_pending**, kein Screenshot-Vergleich |
+
+ 
+## M02 — aktuelle Test- und CI-Evidenz (2026-11-13)
+
+| Prüfung | Konkreter Test/Nachweis | Beobachteter Status |
+| --- | --- | --- |
+| Baseline M01 merged | GitHub [PR #34](https://github.com/Justify87/Plume_Launcher/pull/34) merged, Main `3d4abbdf`; [CI 43514084610](https://github.com/Justify87/Plume_Launcher/actions/runs/43514084610) completed/success | **passed_source_and_ci_observed** |
+| Normreferenz 249663 Bytes, JPEG/JFIF 1536×864 und SHA-256 | GitHub-BLOB `d1b14c00...` Base64 gelesen, SHA-256 `95af66ad...` neu berechnet | **passed_binary_verification** |
+| Section-Reihenfolge/Empty und voller Count >8 | `NuvioDashboardFeedTest.fixedOrderAndHonestEmptySections`, `fullVisibleCountsNotMountedThreeOrEightCards` | **added; PR-CI pending** |
+| Cross-Channel-Dedupe, Provider-S/E, Titeldoppler, Intent | `crossChannelDuplicateStartedWinsAndWatchNextPrefixNormalizes`, `distinctEpisodesAndShowsSurviveEvenWhenTitlesMatch`, `titleAndGenericIntentAndRowIdAloneCannotCrossDedupe`, `recognizedIntentContentIdIsCrossChannelEvidence` | **added; PR-CI pending** |
+| Provider-Gewichtung, Engagement, chronologische Releases | `priorityIsWatchTimeThenProviderWeightThenUpcomingCivilDate` | **added; PR-CI pending** |
+| Synthetische 100s, echte Zeiten, unbekannte/fehlerhafte Werte | `percentOnlyPublisherDurationNeverClaimsMinutes`, `realDurationAndPositionYieldValidProgressAndRemaining`, `unknownAndImpossibleTimingRemainsUnknown` | **added; PR-CI pending** |
+| Keine falschen Neu-Badges oder Bilddaten | `descriptionIsNotAnAlertFlagAndMissingArtIsNotFilteredOut` | **added; PR-CI pending** |
+| ISO LocalDate, Kalender/Timezone, 2028-02-29, DST | `strictCivilDateNeverFallsBackToEngagementTimestamp`, `todayAndTimezoneSwitchAtActualLocalMidnight`, `leapDayAndDstBoundaryDoNotAssume24HourDays` | **added; PR-CI pending** |
+| Fremd-App-Spoofing aus V-Dashboard ausgeschlossen | `nonNuvioEntriesCannotEnterThreeFeeds` | **added; PR-CI pending** |
+| Erste M02-CI | [Run 43516551245](https://github.com/Justify87/Plume_Launcher/actions/runs/43516551245), [check Job 132199847040](https://github.com/Justify87/Plume_Launcher/actions/runs/43516551245/job/132199847040) | **in_progress bei erster Beobachtung**, kein success claim |
+| M02 Kotlin/lint/APKs lokal | Kein lokaler GitHub-Checkout/Android SDK; `git ls-remote` DNS nicht auflösbar | **not_run_environment** |
+| Mullvad CI / Original-JNI-Runtime | CI `mullvad-apk` durch Branchfilter skipped, keine Originalsubmoduländerung | **skipped / hardware_pending** |
+| UI-Screenshot/D-Pad/Shield Pro 2019/echte Provider-Permission | Keine Emulator-/physische Geräteverbindung | **not_run / hardware_pending** |
+
+**Nach CI:** Jede spätere Testaussage muss exakt den neuesten M02-PR-Code-/Dokumentations-HEAD und den beobachteten Run/Job referenzieren. Alte M01-Tabellen sind historisch.

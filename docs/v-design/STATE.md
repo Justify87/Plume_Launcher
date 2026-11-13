@@ -5,44 +5,41 @@ schema: plume-v-design-handoff/v1
 checked_on: "2026-11-13"
 repository: Justify87/Plume_Launcher
 base_branch: main
-main_head_observed: 59c7988d4b019c12647550095e24f8cf62aece33
+main_head_observed: 3d4abbdf4f3dbfb481e0a8a6bf95aea815a172bd
 nuvio_branch: dev
 nuvio_head_observed: be4b84a84e004a2d36405601683df000d8dc446a
-active_milestone: M01
-active_status: partial_hardware_pending
-predecessor_milestone: M00
-predecessor_pr: 33
+active_milestone: M02
+active_status: implementation_committed_ci_in_progress_hardware_pending
+predecessor_milestone: M01
+predecessor_pr: 34
 predecessor_merged: true
-predecessor_merge_sha: 59c7988d4b019c12647550095e24f8cf62aece33
-m00_final_ci_run: 43509990732
-m00_final_ci_result: check_success_mullvad_apk_skipped
-work_branch: feature/vdesign-m01-nuvio-provider
-work_head_sha_at_documentation: 30084ee9fd630c805e799e4c2bec20416310bb05
-current_pr: 34
+predecessor_merge_sha: 3d4abbdf4f3dbfb481e0a8a6bf95aea815a172bd
+m01_final_ci_run: 43514084610
+m01_final_ci_result: completed_success_check_success_mullvad_job_skipped
+work_branch: feature/vdesign-m02-media-model
+work_head_sha_at_documentation: 9003878bf5289d201bbf1027c9b08805292d766b
+current_pr: 35
 current_pr_state: open_draft_not_merged
-m01_local_unit_test: not_run_no_checkout_or_android_sdk
-m01_test_code: passed_ci_unit_tests_and_lint_43513105647
-m01_android_build: ci_debug_and_release_built_43513105647_local_not_run
-m01_ci: success_check_43513105647_code_head_30084ee9
-m01_ci_job: 132188191911
-m01_first_failed_run: 43512433898
-m01_first_failure: two_unit_tests_fixed_in_30084ee9
-m01_final_docs_head_ci: pending_new_run
-m01_release_apk_before_bytes: 529422
-m01_release_apk_after_bytes: 532270
-m01_release_apk_delta_bytes: 2848
-m01_shield: hardware_pending
+m02_local_unit_test: not_run_no_checkout_or_android_sdk
+m02_android_build: not_run_locally
+m02_ci_run_first: 43516551245
+m02_ci_job_first: 132199847040
+m02_ci_observed: in_progress_first_run_after_code_commit
+m02_mullvad_apk_job: skipped_by_workflow_branch_condition
+m02_shield: hardware_pending
+m02_visual_comparison: not_run_no_ui_in_m02
 reference_sha256: 95af66ad04f462867b5d52825c7e1946ac68b5e40bed52c07f4e74c085218f25
 reference_git_blob_sha: d1b14c00a6478cb3b49fcbbd637e0aa71db5df18
 reference_dimensions: "1536x864"
 reference_bytes: 249663
 reference_format: JPEG_JFIF_under_png_extension
-reference_verified_in_m01: true
-nuvio_feeds_snapshot: isolated_not_rendered
-next_milestone: M02_after_M01_review_and_CI
+reference_verified_in_m02: true
+nuvio_feeds_snapshot: three_sorted_deduplicated_not_rendered
+next_milestone: M03_single_v_design_host_after_review
 blockers:
-  - "CI for final documentation-only commit not yet observed; preceding code commit 30084ee9 check succeeded"
-  - "Physical Shield TV provider/approval/permission integration not tested"
+  - "CI for final M02 head not yet observed as completed; no pass implied"
+  - "Physical Shield TV provider/browsability, content intents and VPN runtime not tested"
+  - "M03 must bind civil-day countdown refresh on resume/rebind/day boundary and replace old UI"
 ```
 
 ## Baseline / tatsächliche Repository-Geschichte
@@ -80,3 +77,14 @@ Der reale Referenzblob wurde erneut aus GitHub-Base64 dekodiert, unabhängig SHA
 - [PR #34](https://github.com/Justify87/Plume_Launcher/pull/34) (Draft, ungemergt). Erster [Run 43512433898](https://github.com/Justify87/Plume_Launcher/actions/runs/43512433898) auf `9480a941...` endete `failure` mit **2 fehlgeschlagenen Tests von 213**: `differentShowsWithSameEpisodeTitleAndGenericIntentRemainDistinct` und `classicMixedEntriesDoNotBecomeAvailableOrUpcoming`. Es handelte sich um echte M01-Dedupe-/Fallback-Regressionsbefunde, keine Gradle-Infrastrukturfehler. Code-Fix [30084ee9](https://github.com/Justify87/Plume_Launcher/commit/30084ee9fd630c805e799e4c2bec20416310bb05) vermeidet Serien-Kollision bei expliziten Serien-IDs und doppelte Legacy-Fallback-Sätze.
 - [Korrigierter Run 43513105647](https://github.com/Justify87/Plume_Launcher/actions/runs/43513105647) auf Code-SHA `30084ee9fd630c805e799e4c2bec20416310bb05`: **completed/success**. [Job check 132188191911](https://github.com/Justify87/Plume_Launcher/actions/runs/43513105647/job/132188191911): `testDebugUnitTest lintDebug` **success**, `assembleDebug assembleRelease` **success**, APK-Größenvergleich **success**. Release-APK: **529422 → 532270 Bytes (+2848 Bytes)**. `mullvad-apk` in diesem PR nach Branch-Regel **skipped**, das ist **kein** ausgeführter Mullvad-Integrationstest. Lokale Gradle-/Hardware-Abnahme weiterhin `not_run`.
 - Nach diesem Dokumentationscommit entsteht ein neuer PR-HEAD, dessen CI unabhängig zu prüfen ist; daher noch keine vorweggenommene finale CI-Behauptung. **M01 bleibt `partial_hardware_pending`** bis echter Android-TV-11-/Shield-Test des Package-/Provider-/Browsable-Pfads. Kein Merge erteilt. Nächster technischer Meilenstein **M02**.
+
+ 
+## M02 — kanonischer Stand (2026-11-13)
+
+M01 wurde tatsächlich als [PR #34](https://github.com/Justify87/Plume_Launcher/pull/34) am 13.11.2026 in `main@3d4abbdf4f3dbfb481e0a8a6bf95aea815a172bd` gemergt. Dessen finaler [Run 43514084610](https://github.com/Justify87/Plume_Launcher/actions/runs/43514084610) ist `completed/success`; die frühere Draft-/nicht-gemergt-Darstellung in historischen M01-Absätzen ist **überholt**. M02 beginnt exakt von diesem Main-HEAD. Nuvio `dev@be4b84a...` bleibt unverändert.
+
+M02 implementiert `NuvioDashboardFeed.kt` (Android-freie, drei fixierte Reihen), `NuvioDashboardFeedTest.kt`, vier Metadatenfelder in `AndroidTvMediaSource.kt` und die tatsächliche Befüllung durch `MainActivity.queryWatchNext()`, ohne Classic-Darstellung/Deep-Links anzutasten. Exakte Priorität: engagierteste In-Progress-Episode → providergewichtete Available-Reihe → Upcoming nach realem lokalem Kalendertag. Episode-Key aus Nuvio-Provider-ID mit S/E; keine Deduplizierung per Name oder TV-`_id`. Kein Badging aus lokalisierten Texten, keine Restzeit bei Nuvios synthetischer 100-s-Dauer; unbekannte Werte bleiben null, echte Full-Feed-Counts bleiben erhalten.
+
+Originaldatei `REFERENCE.png` wurde in M02 erneut als GitHub-Base64 gelesen und byteweise SHA-256-geprüft: **249663 Bytes, `95af66ad...`, JPEG/JFIF, 1536×864**, Ergebnis match. [Draft PR #35](https://github.com/Justify87/Plume_Launcher/pull/35), Code-HEAD zunächst `9003878bf5289d201bbf1027c9b08805292d766b`. Erster [CI-Run 43516551245](https://github.com/Justify87/Plume_Launcher/actions/runs/43516551245), [check-Job 132199847040](https://github.com/Justify87/Plume_Launcher/actions/runs/43516551245/job/132199847040), beim Review **in_progress**, kein CI-Pass behauptet. Lokale Gradle-/Android-Tests `not_run`, Shield `hardware_pending`. Die reale finale CI nach dem Dokumentationscommit separat abrufen. **Kein Merge erteilt.**
+
+Historische M00-/M01-Abschnitte unten dokumentieren damalige Zwischenstände und sind nicht der aktuelle Handoff. **Exakt nächster Schritt M03**, erst nach Abschlussreview von M02.

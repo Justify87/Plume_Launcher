@@ -1,29 +1,26 @@
-# V-Design — aktuelle Übergabe nach M01 (2026-11-13)
+# V-Design — operative Übergabe nach M02 (2026-11-13)
 
-## Verifizierter Einstieg
+## Vertrauenswürdiger Einstieg
 
-- Plume `main@59c7988d4b019c12647550095e24f8cf62aece33`; M00 [PR #32](https://github.com/Justify87/Plume_Launcher/pull/32) und [#33](https://github.com/Justify87/Plume_Launcher/pull/33) tatsächlich gemergt. Letzte M00-[CI 43509990732](https://github.com/Justify87/Plume_Launcher/actions/runs/43509990732): `completed/success`, `check=success`, `mullvad-apk=skipped`.
-- Aktiver **M01** [Draft-PR #34](https://github.com/Justify87/Plume_Launcher/pull/34), Branch `feature/vdesign-m01-nuvio-provider`, dokumentierter Code-HEAD `30084ee9fd630c805e799e4c2bec20416310bb05`; nach diesem Dokumentationscommit muss die tatsächliche Branch-HEAD-SHA erneut ermittelt werden. Nicht gemergt ohne neue Nutzerfreigabe.
-- Nuvio `dev@be4b84a84e004a2d36405601683df000d8dc446a` nur gelesen, Originalkanal nicht verändert. Native Mullvad-Dokumente liegen unter `docs/archive/legacy-features/mullvad-vpn/`, originales Submodul unangetastet.
-- Normative Datei `docs/v-design/REFERENCE.png`: 249663 Bytes, 1536×864, SHA-256 `95af66ad04f462867b5d52825c7e1946ac68b5e40bed52c07f4e74c085218f25`; historisch JPEG-Bytes bei PNG-Endung. M01 erneut aus Original-Blob geprüft.
+- Plume letzter vor Beginn von M02 geprüfter **gemergter Main-HEAD**: `3d4abbdf4f3dbfb481e0a8a6bf95aea815a172bd`. M00 #32/#33 und M01 [#34](https://github.com/Justify87/Plume_Launcher/pull/34) **sind gemergt**. [M01-finaler CI-Run 43514084610](https://github.com/Justify87/Plume_Launcher/actions/runs/43514084610) `completed/success`.
+- **M02** Branch `feature/vdesign-m02-media-model`, [Draft-PR #35](https://github.com/Justify87/Plume_Launcher/pull/35), Code-HEAD bei Dokumentation `9003878bf5289d201bbf1027c9b08805292d766b`; nach Docs-Commit tatsächlichen aktuellen Branch/PR-HEAD und dessen CI erneut prüfen. **Nicht gemergt**.
+- Nuvio `Justify87/NuvioTV dev@be4b84a84e004a2d36405601683df000d8dc446a` nur gelesen. Dokumente der abgeschlossenen Mullvad-Funktion befinden sich unter `docs/archive/legacy-features/mullvad-vpn/`; kein Submodul/JNI/Rust/VpnService geändert.
+- Normative `docs/v-design/REFERENCE.png`: aus Original-GitHub-Base64 erneut SHA-256-bestätigt `95af66ad04f462867b5d52825c7e1946ac68b5e40bed52c07f4e74c085218f25`, 249663 Bytes, **1536×864**. JPEG/JFIF-Bytes unter historischer PNG-Endung bleiben unverändert.
 
-## Tatsächliche technische Übergabe
+## M02: tatsächlich implementierte Schnittstelle für M03
 
-`TvPreviewChannel` erhält ID, Package, Display-Label, `channelProviderId` und `browsable` (tri-state). `AndroidTvMediaSource.nuvioKind` prüft exakt Paket + Provider-Suffix statt lokalisiertem Namen. In `MainActivity.queryWatchNext()` werden optional genehmigte Nuvio-Kanäle `:in-progress`, `:available`, `:upcoming` in derselben IO-Abfrage gelesen und als `nuvioProviderFeeds` gespeichert — noch **nicht** in alte Overview-/Classic-Tiles gerendert. Program-Provider-ID und Channel-Provider-ID sind getrennt. Release-Date wird unverändert mitgeführt; M02 übernimmt Datums-/Zeitinterpretation.
+- `MainActivity.queryWatchNext()` füllt `nuvioProviderFeeds` aus M01 und danach `nuvioDashboardFeed = NuvioMediaProjector.project(nuvioProviderFeeds)`. Bei fehlender TV-Listings-Berechtigung/Providerfehler werden **beide** Snapshots geleert; der einzelne bestehende TV-IO-Executor bleibt. Das Modell ist bislang nicht in alten Classic-/Overview-Kacheln gerendert.
+- `NuvioDashboardFeed.sections()` liefert **immer genau** `IN_PROGRESS`, `AVAILABLE`, `UPCOMING` inklusive leerer Listen; `NuvioDashboardSection.count` ist die vollständige Anzahl nach Cross-Channel-Dedupe, **nicht** die 3/8 tatsächlich montierten Cards.
+- `NuvioMediaItem` trägt reale Staffel/Folge/Episodentitel, Serien-ID (falls Provider liefert), Kurz-/Langbeschreibung, Release-LocalDate, Artwork-/Poster-/Logo-URLs, Intent, sortierte Provider-Position, belastbaren Prozent-/Zeitstatus. Identität: programmbezogene Nuvio-Provider-ID `contentId_sXeY` bzw. `wn_`-Variante, erkannte `S.contentId`-Intent-Extra als Fallback; Staffel/Folge unterscheiden Episoden. **Keine Dedupe per bloßem Titel oder TV-`_id`**; bei völlig fehlender Identität absichtlich kein Cross-Channel-Zusammenwurf.
+- Reihenfolge: In-Progress `lastWatched` absteigend, Available originaler Kanal-Weight (Index der bereits sortierten Query), Upcoming echte ISO-`yyyy-MM-dd` aufsteigend; unbekanntes Datum **zuletzt**. Identische Episode in mehreren Kategorien erhält Vorrang `IN_PROGRESS > AVAILABLE > UPCOMING`. Nuvios vorgelagerte `distinctBy(contentId)`-Serienunterdrückung kann Plume **nicht** rückgängig machen.
+- Nuvio synthetisiert für Prozent-only manchmal 100000 ms und eine dazu passende Position: solche Werte dürfen eine Fortschrittsanzeige begründen, aber **keine** verbleibenden Minuten. Auch eine theoretisch reale Episode von exakt 100 Sekunden wird aus Sicherheitsgründen ohne Restzeit angezeigt. Fehlendes Bild oder Datum darf eine echte Episode nicht löschen.
+- `NuvioMediaItem.showNewBadge` ist bewusst immer `false`: Nuvio überträgt `isReleaseAlert` nicht strukturiert, `short_description` ist lokalisierte Anzeige, keine boolesche Evidenz. `daysUntilRelease(now, zone)` vergleicht **lokale Kalendertage**; `NuvioMediaProjector.nextLocalDayBoundary(now, zone)` liefert den DST-korrekten nächsten einmaligen Rebind-Zeitpunkt. **Noch kein Polling und keine UI-Timer**.
 
-Classic-Auswahl und Watch Next behalten ihre Vorfilter und vorhandene SmartTube-Logik; Nuvio-kategorisierte Preview-Kanäle gelangen nicht in die klassische Mischzeile. Wenn ein expliziter Nuvio-In-Progress-Kanal fehlt, können echte gestartete Legacy-/Watch-Next-Einträge ihn ersetzen, niemals mit falschen Available-/Upcoming-Episoden. Fehlt `browsable`, werden Kategorien nicht ungeprüft angezeigt; für echtes Android-TV-11-Opt-in besteht eine Hardwareprüfung.
+## Nachprüfung und exakt M03
 
-## Exakt nächster Schritt M02 — Datenqualität, Sortierung, Verknüpfung
+1. Vor M03 tatsächlichen M02-PR-HEAD und **finalen** CI-Run auf diesem SHA lesen. Erster [Run 43516551245](https://github.com/Justify87/Plume_Launcher/actions/runs/43516551245), [check 132199847040](https://github.com/Justify87/Plume_Launcher/actions/runs/43516551245/job/132199847040) war bei letzter M02-Quellprüfung `in_progress`, Mullvad-APK-Job `skipped`; finalen Status erst nach realem Abruf eintragen. Lokaler Build `not_run`, Shield `hardware_pending`.
+2. **M03: einziges V-Design-Home plus Sidebar nach Normbild** aus `NuvioDashboardFeed.sections()` bauen, keine Demo-SmartTube-Tiles. Bei Empty States die drei Bereiche behalten; die alten Layouts erst gemäß Roadmap ersetzen.
+3. Day-count beim Bind/Resume neu aus `daysUntilRelease(Instant.now(), ZoneId.systemDefault())` auswerten und **einmalig** an `nextLocalDayBoundary` invalidieren; Callback bei Pause/Destroy bzw. geänderter Zeitzone sauber erneuern. Dies ist UI-Lebenszyklusarbeit für M03, kein M02-Polling.
+4. Sichere Deep-Link-Grenze `MainActivity` weiter beachten; UPCOMING immer Details. Testen auf Emulator/Shield erst wenn wirklich möglich; kein Screenshot-/VPN-Hardware-Pass behaupten.
 
-1. Erst den **aktuellen** Branch/PR-HEAD und das finale PR-CI kontrollieren. M01 nicht als bestanden ohne CI/Review; Shield `hardware_pending`.
-2. Aus `NuvioProviderFeeds` echte V-Design-Medienmodelle ableiten: In-Progress-Hero-Validierung, Available-Releasebeleg, Upcoming-Datum und lokale Zeitzonengrenzen; Episode-ID/Staffel/Folge deduplizieren ohne `_id`-Kollaps.
-3. Nuvios synthetische 100s-Progress-Dauer niemals als echte Restzeit ausgeben. Kein SmartTube im Drei-Feed-Modell. Provider-Empty-States und Error-/Permission-Fälle explizit darstellen.
-4. M03 übernimmt erst anschließend die visuelle V-Design-Umstellung; keine hartcodierten Demodaten. VPN-/D-Pad-/HDMI-/Settings-Funktionen behalten.
-
-Alle tatsächlichen Fakten in `STATE.md`, `ROADMAP.md`, `REVIEWS.md`, `TEST_MATRIX.md` dokumentieren. **Kein Merge ohne explizite Freigabe.**
-
-## Nachgetragene CI-Abnahme des M01-Code-HEAD
-
-- [Erster PR-Run 43512433898](https://github.com/Justify87/Plume_Launcher/actions/runs/43512433898) **failure**, 2/213 JVM-Tests scheiterten (Serienidentität und Legacy-Fallback-Duplikat). Ursachen in [Code-Commit 30084ee9](https://github.com/Justify87/Plume_Launcher/commit/30084ee9fd630c805e799e4c2bec20416310bb05) behoben.
-- [Korrigierter Run 43513105647](https://github.com/Justify87/Plume_Launcher/actions/runs/43513105647) **completed/success**; [check-Job 132188191911](https://github.com/Justify87/Plume_Launcher/actions/runs/43513105647/job/132188191911) Unit-Tests+Lint, Debug+Release-APK und Größenvergleich erfolgreich. APK **529422 → 532270 Bytes (+2848)**. Mullvad-APK-Job absichtlich `skipped`; Shield `hardware_pending`.
-- Für nachfolgende M02-Arbeit **den HEAD des Draft-PR #34 nach diesem Dokumentationscommit erneut abrufen** und aktuelle finale CI beobachten. Kein M01-Merge ohne explizite Freigabe, keine Verwechslung mit tatsächlicher Shield-Abnahme.
+**Kein Merge ohne explizite Freigabe.** Historische M01-Draft-Angaben in älteren Review-Abschnitten sind durch den verifizierten Merge #34 überholt.
