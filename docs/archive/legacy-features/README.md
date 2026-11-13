@@ -15,12 +15,13 @@ Die Originalinhalte bleiben unverändert; Pfadangaben in alten Texten beziehen s
 | [nuvio-tv-channels/](nuvio-tv-channels/) | M08 frühere Nuvio-Next-Up-Kanalintegration, vor der neuen Vier-Kanal-Architektur |
 | [smarttube-youtube/](smarttube-youtube/) | M09 SmartTube-Preview-/YouTube-RSS-Integration |
 | [spotify-podcasts/](spotify-podcasts/) | M10 Spotify-Podcast-Machbarkeitsprüfung |
+| [mullvad-vpn/](mullvad-vpn/) | M01–M12 Mullvad-Integration: Architektur, Status, Featurematrix, Upstream, Testmatrix und Release |
 
 ## Abgrenzung
 
 - **Archiviert wird die bisherige Feature- und UI-Dokumentation, nicht ihre produktive Implementierung.** Existierende Features und Einstellungen werden mit dieser reinen Dokumentationsänderung nicht entfernt.
 - Die historischen Anleitungen, die den alten Classic-/Overview-Layoutwechsel verlangen, sind **keine Vorgabe** für das geplante V-Design. Bis dessen Umsetzung kann der derzeitige Launcher allerdings noch das bisherige UI zeigen.
-- `docs/mullvad-integration/` bleibt aktiv: VPN-Architektur, Release-/Testmatrix und Status gelten weiterhin unabhängig vom UI-Redesign. Ebenso bleiben allgemeine Projektunterlagen und aktuell referenzierte Wallpaper-/Webseiten-Assets bestehen.
+- Die nach Angaben des Projektinhabers bereits veröffentlichte und abgenommene Mullvad-Integration wird ebenfalls als **abgeschlossene Feature-Dokumentation** archiviert. Historische Einträge in `STATE.md` oder `TEST_MATRIX.md` können einen damals noch offenen Prüfstand enthalten; sie werden nicht rückwirkend als neue Testergebnisse umgeschrieben. Die produktive VPN-Implementierung, Buildskripte, CI und das Original-Submodul bleiben erhalten. Ebenso bleiben allgemeine Projektunterlagen und aktuell referenzierte Wallpaper-/Webseiten-Assets bestehen.
 - Ein neuer V-Design-Meilenstein soll seine **eigene** aktuelle Spezifikation, Fortschritts- und Testdateien in einem getrennten Verzeichnis verwalten. Es darf nicht behauptet werden, dass das neue Design durch diese Archivierung bereits implementiert sei.
 
 ## Umzugstabelle
@@ -34,4 +35,11 @@ Die Originalinhalte bleiben unverändert; Pfadangaben in alten Texten beziehen s
 - `docs/smarttube-m09.md` → [`docs/archive/legacy-features/smarttube-youtube/smarttube-m09.md`](smarttube-youtube/smarttube-m09.md)
 - `docs/spotify-m10-feasibility.md` → [`docs/archive/legacy-features/spotify-podcasts/spotify-m10-feasibility.md`](spotify-podcasts/spotify-m10-feasibility.md)
 
-Bei Verweisen aus anderen Dateien bitte den neuen Pfad verwenden. Die acht historischen Dokumentdateien wurden als unveränderte Git-Blobs verschoben.
+- `docs/mullvad-integration/DECISIONS.md` → [`docs/archive/legacy-features/mullvad-vpn/DECISIONS.md`](mullvad-vpn/DECISIONS.md)
+- `docs/mullvad-integration/FEATURE_MATRIX.md` → [`docs/archive/legacy-features/mullvad-vpn/FEATURE_MATRIX.md`](mullvad-vpn/FEATURE_MATRIX.md)
+- `docs/mullvad-integration/RELEASE.md` → [`docs/archive/legacy-features/mullvad-vpn/RELEASE.md`](mullvad-vpn/RELEASE.md)
+- `docs/mullvad-integration/STATE.md` → [`docs/archive/legacy-features/mullvad-vpn/STATE.md`](mullvad-vpn/STATE.md)
+- `docs/mullvad-integration/TEST_MATRIX.md` → [`docs/archive/legacy-features/mullvad-vpn/TEST_MATRIX.md`](mullvad-vpn/TEST_MATRIX.md)
+- `docs/mullvad-integration/UPSTREAM.md` → [`docs/archive/legacy-features/mullvad-vpn/UPSTREAM.md`](mullvad-vpn/UPSTREAM.md)
+
+Bei Verweisen aus anderen Dateien bitte den neuen Pfad verwenden. Alle 14 historischen Dokumentdateien wurden als unveränderte Git-Blobs verschoben.
