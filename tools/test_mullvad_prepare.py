@@ -236,6 +236,9 @@ class PreparationTests(unittest.TestCase):
         for forbidden in ("HttpURLConnection", "SharedPreferences", "VpnService.Builder",
                           "addDisallowedApplication(", "Socket("):
             self.assertNotIn(forbidden, ui)
+        self.assertIn("val railScroll = ScrollView(this)", activity)
+        self.assertIn("addView(rail, ScrollView.LayoutParams(-1, -2))", activity)
+        self.assertIn("columns.addView(railScroll", activity)
         self.assertIn('with_name("VpnNetworkUi.kt")',
                       (prepare.ROOT / "tools/mullvad/prepare.py").read_text())
 
