@@ -18,7 +18,7 @@ nuvio_sha_observed: be4b84a84e004a2d36405601683df000d8dc446a
 milestone: M04
 status: implementation_committed_ci_in_progress_hardware_pending
 work_branch: feature/vdesign-m04-card-styling
-work_code_head_pre_docs: 13988ae216feecd33c39f5e3b491294b9fff6c22
+work_code_head_pre_docs: 3516fb0463747a72b84604e3b6b9490b0ceb33f8
 draft_pr: 37
 draft_pr_merged: false
 reference_path: docs/v-design/REFERENCE.png
@@ -35,6 +35,7 @@ m04_mullvad_native_job_at_docs: skipped
 m04_second_ci_run: 43524298952
 m04_second_ci_status_before_fix: in_progress
 m04_followup_ci: pending_on_final_docs_head
+m04_binder_unit_tests: committed_pending_final_ci
 m04_local_gradle: not_run_no_android_sdk_checkout
 m04_emulator_screenshot: not_run
 m04_shield_pro_2019: hardware_pending
@@ -138,3 +139,6 @@ Die **1536×864 Referenzbildpixel** werden nicht als Android-dp interpretiert: `
 
 
 **M04 Folge-Fix vor Abschluss:** [13988ae](https://github.com/Justify87/Plume_Launcher/commit/13988ae216feecd33c39f5e3b491294b9fff6c22) (Card-Fokus-Eviction und URI Host/Userinfo). Der erste [Run 43523928137](https://github.com/Justify87/Plume_Launcher/actions/runs/43523928137) wurde durch Folge-Commit **cancelled**, obwohl Unit/Lint schon erfolgreich durchliefen. Folge-Run [43524298952](https://github.com/Justify87/Plume_Launcher/actions/runs/43524298952) war zuvor `in_progress`; letzter HEAD-Run gesondert beobachten, nicht als Erfolg behaupten.
+
+
+**M04 Binder-Test-Nachtrag vor finalem Docs-Commit:** `VDesignCardSlots.kt` bindet die 3/3/8 Plätze als reine, Android-freie Projektion, begrenzt Upcoming-Paging auf die tatsächliche Listenlänge und erhält volle Counts. `VDesignHomeView` nutzt die geprüfte Projektion. `VDesignCardSlotsTest.kt` deckt 1/0/1 echte Elemente, >8, letzte Position und Paginierungsgrenzen ab. [Code-Commit 3516fb](https://github.com/Justify87/Plume_Launcher/commit/3516fb0463747a72b84604e3b6b9490b0ceb33f8). **Testquellen hinzugefügt, Ausführung erst durch finalen CI-Run nachzuweisen.**

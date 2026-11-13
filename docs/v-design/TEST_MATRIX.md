@@ -192,3 +192,12 @@ Der frühere failed-Lint-Run 43516551245 bleibt als historische Evidenz erhalten
 | erster PR-Run `66cf0da` | [Run 43523928137](https://github.com/Justify87/Plume_Launcher/actions/runs/43523928137) | **completed/cancelled** nach neuerem Docs-Commit, Unit+lint success vor Abbruch |
 | Docs-Run vor Source-Fix | [Run 43524298952](https://github.com/Justify87/Plume_Launcher/actions/runs/43524298952) | **in_progress** zuletzt beobachtet; durch Folge-Commit eventuell cancelled, kein Erfolg behauptet |
 | finaler HEAD-Run | noch nach dieser Docs-Aktualisierung prüfen | pending |
+
+
+### M04 zusätzliche bindbare Regressionstests
+| Gate | Nachweis | Status vor finalem CI |
+| --- | --- | --- |
+| 3+3+8-Binder, fehlende Titel/Serien, keine Dummies/Cross-Kategorien | `VDesignCardSlotsTest.partialOrEmptySectionsNeverReceiveDummiesOrCrossFeedContent` | **committed_not_yet_run** |
+| UPCOMING 13 Einträge, mehr als 8 reale Vorschauen | `eightVisibleUpcomingCardsAreAWindowAndAllCountsSurvive` | **committed_not_yet_run** |
+| UP/DOWN-Paging, letzte unvollständige Reihe, Clamp | `pagingNeverSkipsTheLastEntryOrEscapesTheSection` | **committed_not_yet_run** |
+| realer View-Renderer/GPU/Emulator/Shield | kein UI-/Hardware-Lauf im Container | **not_run/hardware_pending** |

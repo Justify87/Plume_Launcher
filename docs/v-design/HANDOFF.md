@@ -60,3 +60,7 @@ M03-Code-Run [43520674555](https://github.com/Justify87/Plume_Launcher/actions/r
 
 ### Korrektur nach Code-Review
 [Commit 13988ae](https://github.com/Justify87/Plume_Launcher/commit/13988ae216feecd33c39f5e3b491294b9fff6c22) behandelt entferntes fokussiertes Medium mit Fallback auf die nächste echte Karte/Sidebar; validiert `java.net.URI`-Authorities und lehnt URL-Userinfo ab. Zusätzliche JVM-Assertions committed. Finaler CI-Run für dokumentierten HEAD bleibt offen; kein Emulator-/Hardwarepass behauptet.
+
+
+### M04 Binder-/Paging-Regression ergänzend
+`VDesignCardSlots.media(feed, section, slot, offset)` und `nextUpcomingOffset(total,current,slot,direction)` sind die kleine reine Binding-Schnittstelle. [3516fb](https://github.com/Justify87/Plume_Launcher/commit/3516fb0463747a72b84604e3b6b9490b0ceb33f8) ersetzt die lokalen manuellen Indizes in `VDesignHomeView`, Unit-Tests für 3+3+8, echte Empty States und Scroll-Grenzen ergänzt. CI auf diesem Commit plus finalem Docs-HEAD separat auswerten. **Nächster Schritt M05.**

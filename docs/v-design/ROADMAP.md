@@ -64,3 +64,6 @@
 
 
 **M04 Korrektur vor CI-Abnahme:** [13988ae](https://github.com/Justify87/Plume_Launcher/commit/13988ae216feecd33c39f5e3b491294b9fff6c22) verbessert Fokus-Fallback und URI-Authority-Validierung mit Tests; finaler Docs+Code-HEAD-CI ist weiter nicht als bestanden gewertet. M05 unverändert der nächste Meilenstein.
+
+
+**M04 Testbarkeit:** Der gezielte JVM-Binder `VDesignCardSlots` (Commit `3516fb`) prüft 3+3+8-Slot-Zuordnung und Upcoming-Paging ohne Android-UI-Simulator. Reale Layout-/Bildprüfung bleibt M07/M08. Erster finaler CI-Gate ist weiterhin abzuwarten; M05 folgt.
