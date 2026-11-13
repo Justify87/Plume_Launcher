@@ -591,3 +591,9 @@ adb logcat -d -s AndroidRuntime MullvadVpnService MullvadDaemon
 - `adb shell dumpsys meminfo dev.plume.advanced` (PSS/RSS) VPN aus und verbunden, danach Home/Appwechsel. `am force-stop` im verbundenen Test vermeiden. D-Pad-Fokusfallen/merkliche Verzögerung real beobachten.
 - Grünen Compiler/CI-Lauf **nicht** mit realer Shield-Funktion gleichsetzen. `M12=partial` bis Gerätetests nachgewiesen sind.
 
+### M12 realer Binärbefund, ABI-Fehler und neuer Gate
+
+- **Gemessen, keine Schätzung:** M11-Roh-APK aus Run 43433569189 / Artifact 14043766791 = **121321933 Byte**, SHA256 `8bedd39977a829a255eec333ef08aea9faae8d3bcc2ee497dcc3596977c8f2f5`. Archiv: 839 Einträge, `lib/arm64-v8a/libmullvad_jni.so` = 51522800 Byte, ELF64/little-endian/AArch64 (machine 183), `assets/relays.json` gültiges JSON.
+- **Systematischer Packaging-Fehler der M11-Baseline:** `aapt badging native-code` = `arm64-v8a`, `armeabi-v7a`, `x86`, `x86_64`. In den letzten drei Gruppen liegen nur AndroidX-Shared-Libraries, **keine** Mullvad-JNI. Dies konnte auf einem inkompatiblen Gerät eine installierbare, aber VPN-funktionslose APK melden.
+- **M12-Fix-Review:** Im `prepare.py`-Staging `defaultConfig.ndk.abiFilters += "arm64-v8a"`; der Original-Gitlink bleibt unberührt. `test_mullvad_prepare.py` fordert das generierte Gradle-Flag, `test_mullvad_apk.py` prüft bewusst fremde ABI-Negativfälle, `check_apk.py` und CI-`aapt badging` verlangen ausschließlich ARM64 in Debug **und** Release. Teststatus bis zum erneuten **CI-Lauf** weiterhin `not_run` / `in_progress`.
+- Nutzer-/Hardwareeffekt nicht hypothetisch als behoben markieren, bevor CI den Filter und die reale Shield die VPN-Funktion bestätigt. Nur ARM64-Geräte sind Ziel.
