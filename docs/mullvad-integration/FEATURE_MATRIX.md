@@ -142,9 +142,9 @@ M07 liefert keine Anti-Zensur-`setCustomWireguardPort`-Funktion (M10), keine Spl
 
 | Gruppe | Original-Anbindung und Plume-TV-UI | Status |
 | --- | --- | --- |
-| F22 | \`SplitTunnelingRepository.splitTunnelingEnabled/excludedApps\`, \`enableSplitTunneling/excludeApp/includeApp\` über den originalen Daemon; 6. Rail-Tab, D-Pad/OK/Back und sichtbare aktive/inaktive Regeln | \`partial\`: Quelle/UI umgesetzt; Routing/Persistenz auf Shield \`hardware_pending\` |
-| F22 App-Liste | \`ApplicationsProvider.apps()\`, \`QUERY_ALL_PACKAGES\` des Host-Manifests, Label/Paket-Suche, Icon, virtualisierte ListView, sortierte Ausschlüsse, Systemapp-Originalpräferenz | \`partial\`: Fokus/Großliste/Keyboard auf Shield \`hardware_pending\` |
-| F22 Paketwechsel | onResume + Android-Paketbroadcasts bei offener Activity, fehlende gespeicherte Ausnahmen über Original-Repository entfernbar | \`partial\`: Install-/Uninstall-Test \`hardware_pending\` |
-| F24 Sperrmodus | ehrlicher Warntext: Android-Lockdown kann Ausnahmen blockieren; kein unbewiesener Routing-/Sperrmodusstatus | \`partial\`: Lockdown-Netztest \`hardware_pending\` |
+| F22 | `SplitTunnelingRepository.splitTunnelingEnabled/excludedApps`, `enableSplitTunneling/excludeApp/includeApp` über den originalen Daemon; 6. Rail-Tab, D-Pad/OK/Back und sichtbare aktive/inaktive Regeln | `partial`: Quelle/UI umgesetzt; Routing/Persistenz auf Shield `hardware_pending` |
+| F22 App-Liste | `ApplicationsProvider.apps()`, `QUERY_ALL_PACKAGES` des Host-Manifests, Label/Paket-Suche, Icon, virtualisierte ListView, sortierte Ausschlüsse, Systemapp-Originalpräferenz | `partial`: Fokus/Großliste/Keyboard auf Shield `hardware_pending` |
+| F22 Paketwechsel | onResume + Android-Paketbroadcasts bei offener Activity, fehlende gespeicherte Ausnahmen über Original-Repository entfernbar | `partial`: Install-/Uninstall-Test `hardware_pending` |
+| F24 Sperrmodus | ehrlicher Warntext: Android-Lockdown kann Ausnahmen blockieren; kein unbewiesener Routing-/Sperrmodusstatus | `partial`: Lockdown-Netztest `hardware_pending` |
 
-Original \`MigrateSplitTunneling\` nicht verändert; die Device-Abnahme aus M01–M07 bleibt separat offen.
+Original `MigrateSplitTunneling` nicht verändert; die Device-Abnahme aus M01–M07 bleibt separat offen.

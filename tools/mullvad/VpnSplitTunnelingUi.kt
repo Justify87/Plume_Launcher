@@ -94,6 +94,9 @@ internal class VpnSplitTunnelingUi(
             contentDescription = "Apps durchsuchen"
             setTextColor(ink)
             setHintTextColor(secondary)
+            setOnFocusChangeListener { _, focused ->
+                background = shape(surface, if (focused) accent else secondary, if (focused) 3 else 1)
+            }
             setPadding(dp(12), 0, dp(12), 0)
             background = shape(surface, secondary, 1)
             addTextChangedListener(object : TextWatcher {
