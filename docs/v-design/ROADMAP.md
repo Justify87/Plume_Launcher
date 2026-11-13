@@ -4,7 +4,7 @@
 
 | Schritt | Abhängigkeit | Konkretes Deliverable | Stand 2026-11-13 | Branch / PR | Review |
 | --- | --- | --- | --- | --- | --- |
-| M00 | Plume `main@fbf2473` → gemergter #32 `7866632` | Originalreferenz, Verträge, echte Baseline und Migration-Inventar | **partial — Original-SHA nun im Git, CI/Review für Nachtrag ausstehend** | [#32 gemergt](https://github.com/Justify87/Plume_Launcher/pull/32); `feature/vdesign-m00-reference-completion` (Ergänzungs-PR) | `REVIEWS.md#M00` |
+| M00 | Plume `main@fbf2473` → gemergter #32 `7866632` | Originalreferenz, Verträge, echte Baseline und Migration-Inventar | **partial — Original-SHA nun im Git, CI/Review für Nachtrag ausstehend** | [#32 gemergt](https://github.com/Justify87/Plume_Launcher/pull/32); [Draft #33](https://github.com/Justify87/Plume_Launcher/pull/33) (`feature/vdesign-m00-reference-completion`) | `REVIEWS.md#M00` |
 | M01 | M00 **passed**, Referenz im Git | Exakte Nuvio-ID-Provider-Zuordnung, Permission/Empty-State, Legacy isoliert | not_started | — | pending |
 | M02 | M01 | Drei Datenkategorien, Dedupe, Prozent vs. Dauer, Release/Countdown | not_started | — | pending |
 | M03 | M02 | einziges V-Layout und Sidebar; sichere App-/VPN-Ziele | not_started | — | pending |

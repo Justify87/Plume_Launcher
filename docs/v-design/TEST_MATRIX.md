@@ -45,3 +45,5 @@ Die folgenden Statuswerte sind **beobachtete** Ergebnisse oder `not_run`; späte
 | Historische PR-#32-CI | [Run 43505553469](https://github.com/Justify87/Plume_Launcher/actions/runs/43505553469) abgeschlossen `cancelled` | cancelled, kein Erfolg |
 | Neuer M00-Ergänzungs-PR-CI | Nach PR-Erstellung mit Run-/Job-URL und Endstatus nachtragen | pending |
 | Android-Gradle lokal, Screenshot-Vergleich, Shield Pro 2019 | Keine lokale SDK-/Checkout-/Geräteumgebung; Bild ist Referenz und keine App-Screenshot-Evidenz | not_run / hardware_pending |
+
+**Erster PR-#33-CI-Beobachtungspunkt:** [Run 43509467207](https://github.com/Justify87/Plume_Launcher/actions/runs/43509467207), `check=in_progress`, `mullvad-apk=skipped` zum Abrufzeitpunkt. Dokumentations-Metadatencommit kann diesen Run gemäß Workflow-Concurrency abbrechen. Deshalb **für finale Abnahme unbedingt neuesten HEAD/Run erneut lesen**; kein `passed` aus diesem Zwischenstand.

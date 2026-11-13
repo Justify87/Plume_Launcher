@@ -18,13 +18,16 @@ completed_bootstrap_merged: true
 completed_bootstrap_merge_sha: 78666326d97c5692eaa49f652da77c9a16e5433c
 work_branch: feature/vdesign-m00-reference-completion
 reference_commit_observed: e1c13b2783aa632c2cbf391b10eb923426f8fc81
-work_head_sha_observed: e1c13b2783aa632c2cbf391b10eb923426f8fc81
-work_head_note: "Reference-only commit; subsequent documentation commit and PR head must be verified live"
-current_pr: pending_creation
-current_pr_state: pending_creation
+work_head_sha_observed: 28a2acc8aefb5b1e9610a49ea12b62baf970bc35
+work_head_note: "Last observed documentation commit before PR metadata update; actual live HEAD is in PR #33"
+current_pr: 33
+current_pr_state: open_draft
 local_tests: passed_sha256_header_dimensions_and_git_blob_identity
 android_build: not_run_no_local_android_sdk_or_checkout
-ci: pending_new_pr
+ci: pending_final_pr_head_checks
+ci_first_run_id: 43509467207
+ci_first_run_initial_status: in_progress_not_success
+ci_first_run_url: https://github.com/Justify87/Plume_Launcher/actions/runs/43509467207
 ci_previous_m00_run: "43505553469 cancelled; no success claim"
 shield: hardware_pending
 visual_comparison: not_run_no_launcher_screenshot
@@ -35,7 +38,7 @@ reference_path: docs/v-design/REFERENCE.png
 reference_encoding: JPEG_JFIF_under_original_png_filename
 next_milestone: M01_after_M00_CI_review
 blockers:
-  - "New PR CI has not yet been observed to pass"
+  - "PR #33 CI on final commit not yet confirmed successful"
   - "No local Android SDK/checkout or Shield runtime evidence; Shield acceptance belongs to M08"
 ```
 
@@ -55,6 +58,6 @@ blockers:
 ## CI / Handoff
 
 - Historischer [PR-#32-CI-Run 43505553469](https://github.com/Justify87/Plume_Launcher/actions/runs/43505553469) endete **`cancelled`**, nicht `success`. Main Combined-Status lieferte `statuses: []`.
-- Aktueller Ergänzungs-PR wird nach Commit-Erstellung eingetragen bzw. ist über Branch `feature/vdesign-m00-reference-completion` auffindbar. Bis zu einer **beobachteten** CI-Prüfung Status **`partial_pending_pr_ci`**, nicht `passed`.
+- **[Draft-PR #33](https://github.com/Justify87/Plume_Launcher/pull/33)** wurde tatsächlich erstellt (Basis `main@78666326…`, erster geprüfter PR-HEAD `28a2acc8…`); erster [PR-CI-Run 43509467207](https://github.com/Justify87/Plume_Launcher/actions/runs/43509467207) war beim Abruf `in_progress`, kein Pass. Der Metadaten-Nachtrag erzeugt einen neuen HEAD: finale CI für den tatsächlichen PR-HEAD erneut prüfen. Status bis dahin **`partial_pending_pr_ci`**.
 - **M01**: Nuvio `IN_PROGRESS` / `AVAILABLE` / `UPCOMING` anhand Channel-`internal_provider_id` anbinden, Installationspaket/Provider-Berechtigungen real prüfen; keine SmartTube-Medien und keine Mischkanal-Aufteilung.
 - Keine Merge-Aktion ohne neue ausdrückliche Nutzerfreigabe.
