@@ -428,3 +428,44 @@ adb shell dumpsys connectivity
 ```
 
 **Review-Entscheidung:** keine originalen Mullvad-Dateien oder VPN-Krypto verändert, ein einziges APK; originaler Relay-Filter und `ModifyMultihopUseCase` statt eigener Server-Paarung; M07-PQ-Writer wiederverwendet; keine Fake-Effektivzustände. CI-/Shield-Ergebnisse erst nach realen Runs ergänzen. M09 `partial` bis vollständiger Abnahme, M10 kann auf derselben Original-Runtime aufbauen.
+
+## M10 — Netzwerkoptionen / nachzuweisende TV-Abnahme (13.11.2026)
+
+Basis `main` `0df3ead5749ad5a3f465029308c104e9babe67d1`, gepinnter Mullvad-SHA `aa47f606b1a159214c7279344128119fa91be5fd`. M09-PR #24 CI [43409181838](https://github.com/Justify87/Plume_Launcher/actions/runs/43409181838) abgeschlossen mit `success`. M10 hat zum Zeitpunkt der Implementierung **noch keinen CI-/Hardwarebeleg**.
+
+| Testfall | Prüfschritte / Originalzustand | Stand |
+| --- | --- | --- |
+| Source-/Staging-Gates | `python3 -m unittest discover -s tools -p test_mullvad_prepare.py -v`; Host enthält VpnNetworkUi, keine Submodulmutation | `not_run` bis M10-CI |
+| Plume Regressionen | `./gradlew testDebugUnitTest assembleDebug lintDebug assembleRelease`; `sh tools/plume-install-test/run.sh` | `not_run` bis M10-CI |
+| Integrierter APK-Build | `bash tools/mullvad/build-integrated.sh`; `python3 tools/mullvad/check_apk.py <APK>` | `not_run` bis M10-CI |
+| Obfuskation | Auf Shield alle sieben Modi Auto/Off/UDP→TCP/Shadowsocks/QUIC/LWO/WireguardPort schalten; `settingsUpdates`, Offline, Reconnect, Restart, Tunnelstatus/Fehler | `hardware_pending` |
+| Ports | Automatisch, 80/443/5001, 51820/53, zulässige/ungültige eigene Ports, Relayportbereiche, Persistenz, Verbindungswechsel | `hardware_pending` |
+| DAITA/Multihop-Konflikte | M09 ALWAYS/WHEN_NEEDED/NEVER, DAITA on/off kombinieren, Mullvad-Fehler/Relay-Effekt statt künstlichem Umschalten prüfen | `hardware_pending` |
+| API-Zugang | Direkt/Brücken/EncryptedDNS; aktive/inaktive Methode, Testen, erfolgreich/fehlerhaft Wechseln, Offline-Neustart | `hardware_pending` |
+| Eigene API-Methode | SOCKS5 mit/ohne Auth, Shadowsocks unterstützte Cipher, Add/Edit/Test/Enable/Disable/Delete; Name/IP/Port invalid, letzter aktiver Zugang | `hardware_pending` |
+| Server-IP | Gültiger/ungültiger JSON-Text- und Dateiimport, Liste, Neustart, Reset/Abbruch, tatsächlicher Relay-Effekt | `hardware_pending` |
+| TV/Launcher | Classic und Overview: sichtbarer VPN-Einstieg, Netzwerk-Unterseiten per D-Pad/OK/Back, Tastatur/Dateipicker, Home ohne Tunnelabbruch | `hardware_pending` |
+
+**Reproduzierbare Abnahme (NVIDIA Shield):**
+```bash
+git checkout feature/m10-mullvad-network-access-tv
+git submodule update --init --recursive
+test "$(git -C third_party/mullvadvpn-app rev-parse HEAD)" = aa47f606b1a159214c7279344128119fa91be5fd
+python3 -m unittest discover -s tools -p test_mullvad_prepare.py -v
+./gradlew testDebugUnitTest assembleDebug lintDebug assembleRelease
+sh tools/plume-install-test/run.sh
+bash tools/mullvad/build-integrated.sh
+python3 tools/mullvad/check_apk.py <integrated-debug.apk>
+adb devices -l
+adb shell getprop ro.build.version.sdk
+adb shell getprop ro.product.cpu.abilist
+adb install -r <integrated-debug.apk>
+adb shell am start -n dev.plume.advanced/dev.plume.MainActivity
+adb logcat -c
+# In Classic und Overview VPN > Netzwerk; Originalkonto/VPN-Zustimmung.
+# Alle obigen Szenarien durchspielen, reale IP/Relay-Wirkung separat belegen.
+adb logcat -d -s AndroidRuntime MullvadVpnService MullvadDaemon
+adb shell dumpsys connectivity
+```
+
+**Review:** Original Rust/JNI/Service unverändert, keine zweite Anwendung/Proxyengine, echte Repositories; kein reales Shield/ADB im Arbeitskontext. Ein grüner Build ohne Geräte-/Tunnelabnahme bleibt `partial`.
