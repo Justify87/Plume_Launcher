@@ -493,14 +493,14 @@ adb shell dumpsys connectivity
 
 ## M11 — Diagnose, Notifications, Abdeckung (13.11.2026)
 
-Basis: `main` = `056b1c5245982ee8fddfe581ee859735511aae14` (M10 PR #27 bereits gemergt), keine offenen PRs. Gepinnter Mullvad-Commit bleibt `aa47f606b1a159214c7279344128119fa91be5fd`. **Keine ADB-/Shield-Verbindung und kein vollständiger SDK/Rust-Checkout hier**, GitHub-CI muss neue Builds erst beweisen; M10-Beleg ist keine M11-Code-Kompilation.
+Basis: `main` = `056b1c5245982ee8fddfe581ee859735511aae14` (M10 PR #27 gemergt), keine offenen PRs zu Beginn. Pin `aa47f606b1a159214c7279344128119fa91be5fd`. **Keine ADB-/Shield-Verbindung und kein lokaler vollständiger SDK/Rust-Checkout**. Die **M11-Code-Kompilation ist jetzt durch [CI 43431639278](https://github.com/Justify87/Plume_Launcher/actions/runs/43431639278) am Commit `48eee9561ff19338b61e066014e9d632b5f268a5` bewiesen**. Das ist keine Hardware-/Runtime-Abnahme.
 
 | Test | Reproduktion | Status |
 | --- | --- | --- |
 | M11-01 Original-Repository-Verträge | `ProblemReportRepository`, `InAppNotificationController`, `UserPreferencesRepository`, `AppVersionInfoRepository`, `ChangelogRepository` und gepinntes `ClassNames.kt` gegen M11-Overlay | `reviewed_source` (kein Compilerpass) |
-| M11-02 lokaler Generator/Quelltest | `python3 -m unittest discover -s tools -p test_mullvad_prepare.py -v` | `not_run` bis CI/vollständigem Checkout |
-| M11-03 Launcherregression | `./gradlew testDebugUnitTest lintDebug`, `sh tools/plume-install-test/run.sh`, `python3 -m unittest discover -s tools -p test_spotify_podcast_probe.py -v` | `not_run` bis CI |
-| M11-04 ARM64-APK / 1 App | `bash tools/mullvad/build-integrated.sh --no-configuration-cache --max-workers=2`; `python3 tools/mullvad/check_apk.py <APK>` | `not_run` bis M11-CI |
+| M11-02 Generator/Quelltest | `python3 -m unittest discover -s tools -p test_mullvad_prepare.py -v` | `observed_ci_pass` in Jobs `check` und `mullvad-apk`, Run 43431639278 |
+| M11-03 Launcherregression | `./gradlew testDebugUnitTest lintDebug`, `sh tools/plume-install-test/run.sh`, Spotify-Offline-Probe | `observed_ci_pass`: alle Schritte im `check`-Job von Run 43431639278; Legacy-Standalone-APK bewusst skipped |
+| M11-04 ARM64-APK / 1 App | `bash tools/mullvad/build-integrated.sh`; `python3 tools/mullvad/check_apk.py <APK>` | `observed_ci_pass`: Run 43431639278, `BUILD SUCCESSFUL in 9m 30s`, 839 APK-Einträge, Original-Rust/JNI und Relay-Assets, Manifest/Paket/SHA256, Artifact `Plume-Mullvad-ARM64-Debug-89` (14039849900, 121357240 Byte ZIP) |
 | M11-05 TV D-Pad und Back | Classic und Overview → VPN → alle 8 Seiten, Fokus, Back, lange Logs/Listen und Tastatur | `hardware_pending` |
 | M11-06 Original-Notifications | Echt ausgelöster Tunnel-Offline-Fehler, Reconnect, ablaufendes Konto, Device-Revoked/NewDevice, Bannerreihenfolge, Systemmeldungen + Tap → native TV-Activity | `hardware_pending` |
 | M11-07 Location-Notification | Toggle Ein/Aus; gespeicherter `UserPreferencesRepository`-Status nach Neustart; Android-System-Notifications erlaubt/verweigert | `hardware_pending` |
@@ -530,7 +530,7 @@ adb logcat -d -s AndroidRuntime MullvadVpnService MullvadDaemon
 adb shell dumpsys connectivity
 ```
 
-**Review M11:** neue Diagnose ausschließlich Original-Repositories; höchstens 160 Logzeilen im TV-Text, vollständiger Export nur explizit; Original-PendingIntents im generierten Host zur TV-Activity. Integrations- und Gerätescreenshots, echtes Senden, OS-Tile-Abnahme nicht vorhanden. Damit M11 bis CI + Shield nur `partial`, keinerlei Runtime-/Geräte-`pass`.
+**Review M11:** neue Diagnose ausschließlich Original-Repositories; höchstens 160 Logzeilen im TV-Text, vollständiger Export nur explizit; Original-PendingIntents im generierten Host zur TV-Activity. `check` und integrierter `mullvad-apk`-Job **beide success** am M11-Code-Commit. Integrations-/Gerätescreenshots, echtes Senden, OS-Tile-Abnahme nicht vorhanden. Deshalb M11 als Meilenstein **`partial` trotz CI `pass`**; keine Runtime-/Geräte-`pass`.
 
 **M11 Navigationsreview-Fix:** Android restauriert dynamisch erzeugte Fokusziele ohne View-ID nicht automatisch. `VpnActivity.onCreate(savedInstanceState)` setzt deshalb den Menüfokus nach `showPage(restoredPage)` explizit auf `tabs[restoredPage]`; `test_mullvad_prepare.py` verlangt diese Quellverdrahtung. Physisches D-Pad-Fokusrestore bleibt `hardware_pending`.
 

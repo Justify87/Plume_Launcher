@@ -17,9 +17,18 @@ upstream_gitlink_unchanged: true
 single_apk_application_id: dev.plume.advanced
 m10_ci: observed_ci_pass
 m10_ci_run: 43423552657
-m11_ci: pending_new_head
+m11_ci: observed_ci_pass
+m11_ci_run: 43431639278
+m11_ci_code_commit: 48eee9561ff19338b61e066014e9d632b5f268a5
+m11_ci_apk_entries: 839
+m11_ci_artifact: Plume-Mullvad-ARM64-Debug-89
+m11_ci_artifact_id: 14039849900
+m11_pr: 28
+m11_pr_state: open_draft
 m11_shield_test: hardware_pending
 m11_local_android_build: not_run
+m11_build_proven_in_github_actions: true
+m11_pinned_container_build: observed_ci_pass
 m11_original_submodule_diff: none
 next_milestone: M12
 ```
@@ -43,5 +52,5 @@ next_milestone: M12
 ## Nachweis, Risiken, M12-Handoff
 
 - `FEATURE_MATRIX.md`: alle F01–F48 mit Originalpfad, TV-Pfad, Status `implemented`/`hardware_pending`/`not_applicable` und Einzelevidenz; reine Phone-UI-/Play-Billing-Ausnahmen begründet.
-- `TEST_MATRIX.md`: Kommandos und Fälle M11-01–12; aktueller Stand ist **keine M11-APK-Kompilation/keine Hardware**, bis ein entsprechender CI-Run tatsächlich verifiziert ist.
-- **M12:** zuerst neuen M11-PR-CI-Status und Artefakt prüfen, alle Compile-/Stagingfehler beheben. Dann Shield 2019 Android-TV-ADB mit gültigem Mullvad-Konto: VPN nach Home/Back, F34–F37/42/45, QS-Tile/Notification-PendingIntents, API-33-Sprachverhalten und vollständige D-Pad-Navigation tatsächlich abnehmen. M01–M10 Hardwarelücken in `TEST_MATRIX.md` ebenfalls schließen. Kein `tested` vor gemessener Geräte-/Build-Evidenz.
+- `TEST_MATRIX.md`: M11-01–12 dokumentiert. **Bestätigt:** [GitHub Actions 43431639278](https://github.com/Justify87/Plume_Launcher/actions/runs/43431639278), Codecommit `48eee9561ff19338b61e066014e9d632b5f268a5`, beide relevanten Jobs `success`, ARM64 OSS/Prod Debug `BUILD SUCCESSFUL in 9m 30s`, 839 APK-Einträge inkl. original Rust/JNI/Relay, Artifact `Plume-Mullvad-ARM64-Debug-89` (ID `14039849900`). **Nicht bestätigt:** jede Shield-/D-Pad-/Live-VPN-/Berichts- und Notification-Gerätefunktion.
+- **M12:** den bestätigten M11-APK-Artefakt-Run 43431639278 / Codecommit `48eee956...` als Baseline nehmen; ein reiner Dokumentations-Nachtrag nach dem Run verändert keine Kotlin-/Generator-Datei. Dann Shield 2019 Android-TV-ADB mit gültigem Mullvad-Konto: VPN nach Home/Back, F34–F37/42/45, QS-Tile/Notification-PendingIntents, API-33-Sprachverhalten und vollständige D-Pad-Navigation tatsächlich abnehmen. M01–M10 Hardwarelücken in `TEST_MATRIX.md` ebenfalls schließen. Kein `tested` vor gemessener Geräte-/Build-Evidenz.
