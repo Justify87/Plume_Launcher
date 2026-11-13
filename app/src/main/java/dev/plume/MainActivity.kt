@@ -4533,6 +4533,8 @@ class MainActivity : Activity() {
         when {
             tag == VDesignHomeView.OVERVIEW && allApps.visibility != View.VISIBLE &&
                 settingsScrim.visibility != View.VISIBLE -> openAllApps()
+            tag == VDesignHomeView.SETTINGS && allApps.visibility != View.VISIBLE &&
+                settingsScrim.visibility != View.VISIBLE -> showSources(v)
             allApps.visibility == View.VISIBLE && tag != null -> unlock { // grid: pin to the front of the row (unhiding it)
                 prefs.edit().putStringSet("row_hidden", rowHiddenSet() - tag).apply()
                 saveOrder(listOf(tag) + sortedApps().map { it.pkg }.filter { it != tag })
@@ -5123,7 +5125,7 @@ class MainActivity : Activity() {
         if (::vDesign.isInitialized) vDesign.visibility = View.INVISIBLE
         // Glass shows the wallpaper here, so the home screen under the grid has to go; without glass the opaque
         // background covers it anyway.
-        findViewById<View>(R.id.content).visibility = if (glassActive()) View.INVISIBLE else View.VISIBLE
+        findViewById<View>(R.id.content).visibility = if (::vDesign.isInitialized || glassActive()) View.INVISIBLE else View.VISIBLE
         homeFocusable(false)
         allAppsGrid.getChildAt(0)?.requestFocus()
     }
