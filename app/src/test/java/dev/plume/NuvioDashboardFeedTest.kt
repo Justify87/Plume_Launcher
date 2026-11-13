@@ -169,6 +169,10 @@ class NuvioDashboardFeedTest {
         assertNull(impossible.progressPercent)
         assertNull(impossible.remainingMillis)
         assertNull(impossible.playbackPositionMillis)
+        // MainActivity's legacy Prog parser may clamp this impossible ratio to 100.
+        val clamped = feed(progress = listOf(record(NuvioSection.IN_PROGRESS,
+            duration = 20_000L, position = 21_000L, percent = 100))).inProgress.single()
+        assertNull(clamped.progressPercent)
     }
 
     @Test fun descriptionIsNotAnAlertFlagAndMissingArtIsNotFilteredOut() {
