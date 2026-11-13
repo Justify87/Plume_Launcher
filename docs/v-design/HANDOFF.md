@@ -1,3 +1,9 @@
+# M02 finaler CI-Nachtrag — 2026-11-13
+
+**Maßgeblicher beobachteter Check:** [Run 43517654027](https://github.com/Justify87/Plume_Launcher/actions/runs/43517654027) `completed/success` auf `97ed765829d8e75dde9868925bd3cd7b607fff2b`; [check 132203743576](https://github.com/Justify87/Plume_Launcher/actions/runs/43517654027/job/132203743576) JVM-Tests/Lint, Debug+Release, 44 Installer-Checks sowie 10/12/6 Offline-Python-Tests bestanden, APK `532270→535462` (+3192 B). Nachfolgender Evidence-Docs-Commit braucht neuen separaten CI-Nachweis; native Mullvad-Job skipped, Shield hardware_pending. PR [#35](https://github.com/Justify87/Plume_Launcher/pull/35) **offen, ungemergt**. Genau nächster Meilenstein M03.
+
+---
+
 # V-Design — operative Übergabe nach M02 (2026-11-13)
 
 ## Vertrauenswürdiger Einstieg

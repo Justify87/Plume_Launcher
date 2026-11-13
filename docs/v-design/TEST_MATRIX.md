@@ -112,3 +112,19 @@ Nur GitHub-Lauf mit zugehörigem finalen Commit nachträglich als CI-Pass werten
 | Folgefehler in Datenvalidierung | [6b740628](https://github.com/Justify87/Plume_Launcher/commit/6b740628d10e05d92f9c065ff38f42e6371c2cef), [1a057219](https://github.com/Justify87/Plume_Launcher/commit/1a057219e8afb355fb2e1c6f7cda9c0227e587a0) | **fix + test committed**: `position > duration` trotz Parser-Clamp kein 100% |
 | Weitere Workflow-Läufe | 43517228539, 43517300556, 43517409755 | **cancelled** wegen späterer Commits; kein Pass |
 | Letzter Dokumentations-HEAD CI | nach finalem Dokumentationscommit URL/Status erneut lesen | **pending, nicht als bestanden gewertet** |
+
+ 
+### M02 — tatsächlicher finaler Code-/Docs-CI-Erfolg
+
+| Gate | Echte Ausführung | Ergebnis |
+| --- | --- | --- |
+| [Run 43517654027](https://github.com/Justify87/Plume_Launcher/actions/runs/43517654027), SHA `97ed765829d8e75dde9868925bd3cd7b607fff2b` | [check 132203743576](https://github.com/Justify87/Plume_Launcher/actions/runs/43517654027/job/132203743576) | **completed/success** |
+| Android-Lint und JVM-Unit-Tests | `./gradlew testDebugUnitTest lintDebug`, BUILD SUCCESSFUL im Check-Log | **passed_ci** |
+| Debug- und Release-APK | `./gradlew assembleDebug assembleRelease`, BUILD SUCCESSFUL | **passed_ci** |
+| APK-Größenvergleich | Baseline `532270`, M02 `535462` Byte, Differenz `+3192` | **passed_ci** |
+| Repo/Offline-Tests | 44 ADB Installer Checks/0 failed; 10 Spotify-, 12 Mullvad-Staging-, 6 Mullvad-APK-Validator-Python-Tests | **passed_ci** |
+| Native Mullvad-APK | Job `mullvad-apk` in diesem V-Design-PR `skipped` | **not_run_branch_condition** |
+| Neuer Evidence-Docs-HEAD | Nach diesem Nachtrag CI separat prüfen, keine Vorwegnahme | **pending_new_run** |
+| Hardware-Shield, echte Opt-in/Intent-/VPN-Sessions | Kein Gerät oder Emulator angebunden | **hardware_pending** |
+
+Der frühere failed-Lint-Run 43516551245 bleibt als historische Evidenz erhalten. Die Testfalllisten in diesem Dokument wurden im erfolgreichen Lauf mit ausgeführt; keine Test-Suppression.

@@ -9,7 +9,7 @@ main_head_observed: 3d4abbdf4f3dbfb481e0a8a6bf95aea815a172bd
 nuvio_branch: dev
 nuvio_head_observed: be4b84a84e004a2d36405601683df000d8dc446a
 active_milestone: M02
-active_status: implementation_committed_first_ci_failed_fixed_final_ci_pending_hardware_pending
+active_status: code_and_ci_passed_hardware_pending
 predecessor_milestone: M01
 predecessor_pr: 34
 predecessor_merged: true
@@ -17,15 +17,23 @@ predecessor_merge_sha: 3d4abbdf4f3dbfb481e0a8a6bf95aea815a172bd
 m01_final_ci_run: 43514084610
 m01_final_ci_result: completed_success_check_success_mullvad_job_skipped
 work_branch: feature/vdesign-m02-media-model
-work_head_sha_at_documentation: 1a057219e8afb355fb2e1c6f7cda9c0227e587a0
+work_head_sha_at_documentation: 97ed765829d8e75dde9868925bd3cd7b607fff2b
 current_pr: 35
 current_pr_state: open_draft_not_merged
 m02_local_unit_test: not_run_no_checkout_or_android_sdk
-m02_android_build: not_run_locally
+m02_android_build: ci_debug_release_success_run_43517654027_local_not_run
 m02_ci_run_first: 43516551245
 m02_ci_job_first: 132199847040
-m02_ci_observed: first_run_failed_lint_suspicious_indentation_corrected_final_ci_pending
+m02_ci_observed: success_run_43517654027_on_pre_evidence_head_97ed7658
 m02_mullvad_apk_job: skipped_by_workflow_branch_condition
+m02_final_code_ci_run: 43517654027
+m02_final_code_ci_job: 132203743576
+m02_final_code_ci_head: 97ed765829d8e75dde9868925bd3cd7b607fff2b
+m02_final_code_ci_result: completed_success
+m02_release_apk_before_bytes: 532270
+m02_release_apk_after_bytes: 535462
+m02_release_apk_delta_bytes: 3192
+m02_docs_evidence_head_ci: pending_new_run
 m02_shield: hardware_pending
 m02_visual_comparison: not_run_no_ui_in_m02
 reference_sha256: 95af66ad04f462867b5d52825c7e1946ac68b5e40bed52c07f4e74c085218f25
@@ -37,7 +45,8 @@ reference_verified_in_m02: true
 nuvio_feeds_snapshot: three_sorted_deduplicated_not_rendered
 next_milestone: M03_single_v_design_host_after_review
 blockers:
-  - "First PR run 43516551245 failed Android lint; fixed in 834ae544. Final head CI not yet observed as completed"
+  - "Hardware/TV provider visibility and launcher content-intents not actually tested"
+  - "Latest evidence-only documentation commit requires independent follow-up CI verification"
   - "Physical Shield TV provider/browsability, content intents and VPN runtime not tested"
   - "M03 must bind civil-day countdown refresh on resume/rebind/day boundary and replace old UI"
 ```
@@ -95,3 +104,10 @@ Historische M00-/M01-Abschnitte unten dokumentieren damalige Zwischenstände und
 [Run 43516551245](https://github.com/Justify87/Plume_Launcher/actions/runs/43516551245) auf `9003878...` **completed/failure** ([check 132199847040](https://github.com/Justify87/Plume_Launcher/actions/runs/43516551245/job/132199847040)): `testDebugUnitTest` führte aus, `lintDebug` brach mit **1 neuem SuspiciousIndentation-Fehler in `MainActivity.kt:5773`** ab. Kein Problem durch ignorierte Tests oder geänderte Lint-Baseline versteckt. **Fix-Commit [834ae544](https://github.com/Justify87/Plume_Launcher/commit/834ae544b3d24a8963842e19a9562d6ce6af07f5)** rückt die Exception-Pfad-Reset-Zeile korrekt ein. Zusätzliches Logikreview identifizierte, dass die Classic-Parser-Prozentberechnung eine unmögliche `position > duration` auf 100 % klemmen kann; [Fix 6b740628](https://github.com/Justify87/Plume_Launcher/commit/6b740628d10e05d92f9c065ff38f42e6371c2cef) unterdrückt diesen Wert im V-Feed, [Test 1a057219](https://github.com/Justify87/Plume_Launcher/commit/1a057219e8afb355fb2e1c6f7cda9c0227e587a0) ergänzt den Regressionfall.
 
 Die Folge-Runs `43517228539` und `43517300556` wurden durch das PR-Workflow-`cancel-in-progress` nach weiteren Commits **cancelled**, nicht als grün bewertet; der Run `43517409755` wurde ebenfalls durch den folgenden Testcommit abgebrochen. **CI für den endgültigen Commit nach diesem Dokumentationsnachtrag neu beobachten.** Gesamtstatus bleibt `partial_pending_final_ci_and_shield`.
+
+ 
+### M02 — erfolgreicher CI-Abschluss auf dokumentiertem Implementierungsstand
+
+Der [Run 43517654027](https://github.com/Justify87/Plume_Launcher/actions/runs/43517654027) auf exakt `97ed765829d8e75dde9868925bd3cd7b607fff2b` endete **completed/success**. [check Job 132203743576](https://github.com/Justify87/Plume_Launcher/actions/runs/43517654027/job/132203743576) führte Plume-Regeln, ADB Installer Regression (44 Checks, 0 Fehlchecks), Spotify (10 Python-Tests), Mullvad Staging (12 Python-Tests), Mullvad APK Validator (6 Python-Tests), Gradle `testDebugUnitTest lintDebug`, `assembleDebug assembleRelease` und APK-Vergleich tatsächlich aus; **alle erfolgreich**. Release-APK `532270 → 535462 Bytes`, **+3192 Bytes**. Native Mullvad-APK-Job `skipped` nach Workflow-Branchbedingung, keine VPN-Laufzeitabnahme. Lokale Gradle-Builds `not_run`; Shield Pro 2019 `hardware_pending`.
+
+Dieser Dokumentationsnachtrag erzeugt einen **neuen Git-HEAD**, für den ein eigener CI-Lauf erst nach dem Push ausgewertet werden darf. Die beobachtete Erfolgsaussage bezieht sich ausdrücklich nur auf `97ed765...`. M02-Quellcode und vollständiger PR-Diff unverändert. Nächster Schritt M03, Merge nur nach Nutzerfreigabe.

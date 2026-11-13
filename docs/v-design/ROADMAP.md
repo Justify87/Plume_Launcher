@@ -6,7 +6,7 @@
 | --- | --- | --- | --- | --- | --- |
 | M00 | Plume baseline; #32 + #33 merged | Originalreferenz, Verträge, Baseline, Inventar | **source/reference+CI passed; hardware not applicable** | [#32](https://github.com/Justify87/Plume_Launcher/pull/32) + [#33](https://github.com/Justify87/Plume_Launcher/pull/33) merged; [CI success 43509990732](https://github.com/Justify87/Plume_Launcher/actions/runs/43509990732) | `REVIEWS.md#M00` |
 | M01 | M00 merged `59c7988` | Exakte Nuvio-Provider-/Paket-/Opt-in-Zuordnung, separate ungerenderte Daten | **merged into main `3d4abbdf`; final CI success, hardware pending** | [#34](https://github.com/Justify87/Plume_Launcher/pull/34) merged; [run 43514084610](https://github.com/Justify87/Plume_Launcher/actions/runs/43514084610) success | `REVIEWS.md#M01` |
-| M02 | M01 merged `3d4abbdf` | Drei Datenkategorien, Episode-Dedupe, Prozent vs. Dauer, civil date/Countdown | **implemented; first CI lint failure fixed; final CI pending; hardware pending** | [Draft #35](https://github.com/Justify87/Plume_Launcher/pull/35); [first run 43516551245](https://github.com/Justify87/Plume_Launcher/actions/runs/43516551245) in_progress at review | `REVIEWS.md#M02` |
+| M02 | M01 merged `3d4abbdf` | Drei Datenkategorien, Episode-Dedupe, Prozent vs. Dauer, civil date/Countdown | **code & CI passed on 97ed7658; evidence-only docs CI pending; hardware pending** | [Draft #35](https://github.com/Justify87/Plume_Launcher/pull/35); [first run 43516551245](https://github.com/Justify87/Plume_Launcher/actions/runs/43516551245) in_progress at review | `REVIEWS.md#M02` |
 | M03 | M02 | einziges V-Layout und Sidebar; sichere App-/VPN-Ziele | not_started | — | pending |
 | M04 | M03 | echte Hero-/Standard-/Mini-Poster + typografische Overlays/Focus | not_started | — | pending |
 | M05 | M04 | D-Pad, All Apps, Settings, HDMI, Back/HOME und Details-/Playback-Ziele | not_started | — | pending |
@@ -38,3 +38,6 @@
 
  
 **M02-Übergabe 2026-11-13:** M01 ist tatsächlich gemergt; historische Anmerkungen mit `M01 pending` sind nicht aktuell. M02 arbeitet auf [PR #35](https://github.com/Justify87/Plume_Launcher/pull/35) ohne UI-Refactor, nur Quellmodell/Parser/Tests. Countdown-Datum ist dynamisch bei erneuter Auswertung; **M03 muss das Render-Rebind/Resume und den einzelnen DST-sicheren Tagwechsel-Callback tatsächlich verdrahten**. Kein Merge ohne Freigabe.
+
+ 
+**M02 CI-Nachtrag:** [Run 43517654027](https://github.com/Justify87/Plume_Launcher/actions/runs/43517654027) ist **completed/success** auf `97ed765829d8e75dde9868925bd3cd7b607fff2b`; `testDebugUnitTest lintDebug assembleDebug assembleRelease` erfolgreich, Release-APK +3192 B. Der Evidence-Docs-Commit danach erzeugt einen neuen HEAD; dessen CI muss separat beobachtet werden. M03 bleibt exakt nächster Meilenstein, Shield-Abnahme offen.
