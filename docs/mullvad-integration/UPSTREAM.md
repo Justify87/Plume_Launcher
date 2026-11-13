@@ -163,3 +163,10 @@ Keine Änderungen an `third_party/mullvadvpn-app`, originalen `SplitTunnelingRep
 | `tools/test_mullvad_prepare.py` | Staging-/Architektur-Assertions, keine Android/Rust-Patches |
 
 **Originalschnittstellen:** `WireguardConstraintsRepository`, `SettingsRepository`, `FilteredRelayListUseCase`, `ModifyMultihopUseCase`, `HopSelectionUseCase`, `MultihopMigrationRepository`, `RelayListFilterRepository`, `ConnectionProxy`. `ConnectionPathUseCase` liefert Geokoordinaten, keine verlässliche Hostname-Anzeige; dafür wird der bestehende `TunnelState.Connected.location` gelesen. Wiederherstellbarer Build: `python3 tools/mullvad/prepare.py`, `bash tools/mullvad/build-integrated.sh`. Kein Upgrade des Upstream-Pins und kein zusätzliches APK.
+
+## M10 — unveränderter Upstream / lokales UI-Overlay (13.11.2026)
+
+- Original-Tag `android/2026.12`, Gitlink `aa47f606b1a159214c7279344128119fa91be5fd`, kein Update, keine neuen Patches und **keine** geänderten Original-Mullvad-Dateien. Neuerer Android-Beta-Tag `2026.13-beta1` ist kein Ersatz für diesen Pin.
+- Neu in Plume: `tools/mullvad/VpnNetworkUi.kt`; Änderungen ausschließlich in `tools/mullvad/VpnActivity.kt`, `tools/mullvad/prepare.py`, Source-Staging-Tests und Übergabedokumentation. `prepare.py` kopiert die neue View nur in die temporäre Host-APK, neben M04–M09-Overlays. Die originalen `android/lib/feature/anticensorship`, `apiaccess`, `serveripoverride`, `lib/repository` und `mullvad-daemon` bleiben 1:1.
+- Original-Schnittstellen: `SettingsRepository` (Obfuscation-/Port-Setter), `RelayListRepository` (Portbereiche), `ApiAccessRepository` (API-Zugangsfluss, Test, CRUD) und `RelayOverridesRepository` (Settings-Patch/Reset). Änderungen werden durch den originalen ManagementService/gRPC verarbeitet; keine direkte Mutation von JSON-/Konfigurationsdateien.
+- Diff-Reproduktion: `git -C third_party/mullvadvpn-app status --porcelain` muss leer sein, `git ls-tree HEAD third_party/mullvadvpn-app` muss den gepinnten SHA zeigen. Der einzige Hostpatch entsteht kontrolliert unter `.build/plume-mullvad/`.
