@@ -446,7 +446,7 @@ internal class VpnNetworkUi(
             if (focusId == button.tag) toRestore = button
             apiRows.addView(button, rowParams())
         }
-        if (toRestore != null) toRestore?.requestFocus()
+        toRestore?.requestFocus()
     }
 
     private fun apiTypeName(method: ApiAccessMethod): String = when (method) {
@@ -596,13 +596,13 @@ internal class VpnNetworkUi(
                     else -> {
                         val proxy: ApiAccessMethod.CustomProxy = if (shadowsocks) {
                             ApiAccessMethod.CustomProxy.Shadowsocks(
-                                address, parsedPort!!,
+                                address, parsedPort,
                                 password.text.toString().ifBlank { null },
                                 ciphers[cipher.selectedItemPosition],
                             )
                         } else {
                             ApiAccessMethod.CustomProxy.Socks5Remote(
-                                address, parsedPort!!,
+                                address, parsedPort,
                                 if (auth.isChecked) SocksAuth(
                                     user.text.toString(), password.text.toString()
                                 ) else null,
