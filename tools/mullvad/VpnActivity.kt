@@ -33,6 +33,10 @@ import net.mullvad.mullvadvpn.lib.model.DeviceState
 import net.mullvad.mullvadvpn.lib.model.DisconnectReason
 import net.mullvad.mullvadvpn.lib.model.GeoIpLocation
 import net.mullvad.mullvadvpn.lib.model.TunnelState
+import net.mullvad.mullvadvpn.lib.repository.AutoStartAndConnectOnBootRepository
+import net.mullvad.mullvadvpn.lib.repository.WireguardConstraintsRepository
+import net.mullvad.mullvadvpn.lib.usecase.DeleteCustomDnsUseCase
+import net.mullvad.mullvadvpn.lib.usecase.SystemVpnSettingsAvailableUseCase
 import net.mullvad.mullvadvpn.lib.repository.AccountRepository
 import net.mullvad.mullvadvpn.lib.repository.DeviceRepository
 import net.mullvad.mullvadvpn.lib.repository.NewDeviceRepository
@@ -82,6 +86,19 @@ class VpnActivity : ComponentActivity() {
             getKoin().get<ProviderToOwnershipsUseCase>(),
             ::withDaemon,
             { tabs.getOrNull(1)?.requestFocus() },
+            dark, ink, secondary, surface, accent,
+        )
+    }
+    private val settingsUi by lazy {
+        VpnSettingsUi(
+            this,
+            getKoin().get<SettingsRepository>(),
+            getKoin().get<WireguardConstraintsRepository>(),
+            getKoin().get<AutoStartAndConnectOnBootRepository>(),
+            getKoin().get<DeleteCustomDnsUseCase>(),
+            getKoin().get<SystemVpnSettingsAvailableUseCase>(),
+            ::withDaemon,
+            { tabs.getOrNull(3)?.requestFocus() },
             dark, ink, secondary, surface, accent,
         )
     }
@@ -143,8 +160,10 @@ class VpnActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContentView(buildScreen())
         locationUi.start()
+        settingsUi.start()
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
+                if (page == 3 && settingsUi.handleBack()) return
                 if (page != 0) {
                     showPage(0)
                     tabs[0].requestFocus()
@@ -156,6 +175,7 @@ class VpnActivity : ComponentActivity() {
             management.connectionState.collect { state ->
                 daemonReady = state == GrpcConnectivityState.Ready
                 locationUi.onDaemonReady(daemonReady)
+                settingsUi.onDaemonReady(daemonReady)
                 grpcLine.text = "Mullvad-Dienst: " + if (daemonReady) "bereit" else state.toString()
                 diagnosticLine.text = grpcLine.text
                 renderTunnel()
@@ -203,6 +223,7 @@ class VpnActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         if (bound && daemonReady) accountUi.refresh()
+        settingsUi.onResume()
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -368,8 +389,10 @@ class VpnActivity : ComponentActivity() {
         addPanel(detail, account)
         focusTargets += accountUi.primaryFocus
 
-        addPanel(detail, placeholder("VPN-Einstellungen", "Noch nicht integriert. Originale Mullvad-Einstellungen folgen in M07–M10."))
-        focusTargets += tabsPlaceholderTarget(detail, 3)
+        val vpnSettings = panel()
+        vpnSettings.addView(settingsUi.build())
+        addPanel(detail, vpnSettings)
+        focusTargets += settingsUi.primaryFocus
 
         val diagnosis = panel()
         diagnosis.addView(text("Diagnose", 25f, true))
@@ -386,6 +409,7 @@ class VpnActivity : ComponentActivity() {
                 showPage(index)
                 if (index == 2) accountUi.requestPrimaryFocus()
                 else if (index == 1) locationUi.requestPrimaryFocus()
+                else if (index == 3) settingsUi.requestPrimaryFocus()
                 else focusTargets[index].requestFocus()
             }
             tab.setOnFocusChangeListener { _, focused ->
@@ -397,6 +421,7 @@ class VpnActivity : ComponentActivity() {
                     showPage(index)
                     if (index == 2) accountUi.requestPrimaryFocus()
                     else if (index == 1) locationUi.requestPrimaryFocus()
+                    else if (index == 3) settingsUi.requestPrimaryFocus()
                     else focusTargets[index].requestFocus()
                     true
                 } else false
@@ -406,19 +431,6 @@ class VpnActivity : ComponentActivity() {
         }
         showPage(0)
         return root
-    }
-
-    private fun tabsPlaceholderTarget(detail: FrameLayout, index: Int): View {
-        val scroll = detail.getChildAt(index) as ScrollView
-        val inner = scroll.getChildAt(0) as LinearLayout
-        return inner.getChildAt(inner.childCount - 1)
-    }
-
-    private fun placeholder(title: String, explanation: String): LinearLayout = panel().apply {
-        addView(text(title, 25f, true))
-        addView(text(explanation, 17f))
-        addView(button("Zur Statusübersicht") { showPage(0); tabs[0].requestFocus() },
-            LinearLayout.LayoutParams(dp(245), dp(56)))
     }
 
     private fun addLocationPanel(parent: FrameLayout, content: View) {

@@ -220,6 +220,7 @@ def prepare(output: Path) -> Path:
     shutil.copy2(Path(__file__).with_name("VpnActivity.kt"), vpn_activity)
     shutil.copy2(Path(__file__).with_name("VpnAccountUi.kt"), vpn_activity.with_name("VpnAccountUi.kt"))
     shutil.copy2(Path(__file__).with_name("VpnLocationUi.kt"), vpn_activity.with_name("VpnLocationUi.kt"))
+    shutil.copy2(Path(__file__).with_name("VpnSettingsUi.kt"), vpn_activity.with_name("VpnSettingsUi.kt"))
     name_res = android / "app/src/ossProd/res/values/plume_integration.xml"
     name_res.parent.mkdir(parents=True, exist_ok=True)
     name_res.write_text(

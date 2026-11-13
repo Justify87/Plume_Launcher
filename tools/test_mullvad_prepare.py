@@ -118,6 +118,41 @@ class PreparationTests(unittest.TestCase):
         self.assertIn("twoColumns.addView(leftScroll", browser)
         self.assertIn("twoColumns.addView(rightScroll", browser)
 
+    def test_m07_settings_bind_original_mullvad_state_and_android_system(self):
+        vpn = (prepare.ROOT / "tools/mullvad/VpnActivity.kt").read_text()
+        ui = (prepare.ROOT / "tools/mullvad/VpnSettingsUi.kt").read_text()
+        self.assertIn("settingsUi.start()", vpn)
+        self.assertIn("settingsUi.onDaemonReady(daemonReady)", vpn)
+        self.assertIn("settingsUi.handleBack()", vpn)
+        self.assertIn("settingsUi.requestPrimaryFocus()", vpn)
+        self.assertIn("VpnSettingsUi(", vpn)
+        for contract in (
+            "settings.settingsUpdates.collect",
+            "wireguard.wireguardConstraints.collect",
+            "boot.autoStartAndConnectOnBoot.collect",
+            "settings.updateContentBlockers(",
+            "settings.setDnsState(",
+            "settings.setCustomDns(",
+            "settings.addCustomDns(",
+            "deleteDns(index)",
+            "InetAddressValidator.getInstance()",
+            "settings.setLocalNetworkSharing(",
+            "settings.setIpv6Enabled(",
+            "settings.setWireguardQuantumResistant(",
+            "wireguard.setDeviceIpVersion(",
+            "Mtu.fromString(",
+            "settings.setWireguardMtu(",
+            "settings.resetWireguardMtu()",
+            "boot.setAutoStartAndConnectOnBoot(",
+            'Intent("android.net.vpn.SETTINGS")',
+            "systemSettingsAvailable()",
+        ):
+            self.assertIn(contract, ui)
+        self.assertNotIn("SharedPreferences", ui)
+        self.assertNotIn("HttpURLConnection", ui)
+        self.assertNotIn("setCustomWireguardPort", ui)  # Obfuscation belongs to M10
+        self.assertIn('with_name("VpnSettingsUi.kt")', (prepare.ROOT / "tools/mullvad/prepare.py").read_text())
+
     def test_prepare_isolation_and_single_application(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -147,6 +182,7 @@ class PreparationTests(unittest.TestCase):
                 self.assertTrue((generated / "app/src/ossProd/kotlin/net/mullvad/mullvadvpn/app/VpnActivity.kt").exists())
                 self.assertTrue((generated / "app/src/ossProd/kotlin/net/mullvad/mullvadvpn/app/VpnAccountUi.kt").exists())
                 self.assertTrue((generated / "app/src/ossProd/kotlin/net/mullvad/mullvadvpn/app/VpnLocationUi.kt").exists())
+                self.assertTrue((generated / "app/src/ossProd/kotlin/net/mullvad/mullvadvpn/app/VpnSettingsUi.kt").exists())
                 self.assertFalse((generated / "app/src/ossProdDebug/kotlin/net/mullvad/mullvadvpn/app/PlumeVpnDebugActivity.kt").exists())
                 self.assertIn("VpnActivity", (generated / "app/src/ossProd/AndroidManifest.xml").read_text())
                 staged_manifest = (generated / "plume-ui/src/main/AndroidManifest.xml").read_text()

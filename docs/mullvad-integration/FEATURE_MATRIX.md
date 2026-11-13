@@ -18,18 +18,18 @@ Quelle für **alle** Zeilen: `third_party/mullvadvpn-app/` bei SHA `aa47f606b1a1
 | F10 | Multihop/Entry/Exit; `lib/feature/multihop/impl`, `lib/usecase/HopSelectionUseCase.kt` | VPN-Erweitert | not_started |
 | F11 | Multihop-Migration/Assistent; `lib/feature/multihopmigration/impl`, `lib/repository/MultihopMigrationRepository.kt` | Erweitert/Migration | not_started |
 | F12 | DAITA; `lib/feature/daita/impl` | VPN-Erweitert | not_started |
-| F13 | WireGuard-Tunnel-Parameter/Constraints; `lib/feature/vpnsettings/impl`, `lib/repository/WireguardConstraintsRepository.kt` | VPN-Einstellungen | not_started |
-| F14 | MTU-Einstellung; `lib/feature/vpnsettings/impl` (MtuDialogViewModel) | VPN-Erweitert | not_started |
+| F13 | WireGuard-Tunnel-Parameter/Constraints; `lib/feature/vpnsettings/impl`, `lib/repository/WireguardConstraintsRepository.kt` | VPN-Einstellungen | partial |
+| F14 | MTU-Einstellung; `lib/feature/vpnsettings/impl` (MtuDialogViewModel) | VPN-Erweitert | partial |
 | F15 | Anti-Zensur/Tunnel-Obfuskation/Ports; `lib/feature/anticensorship/impl`, `../tunnel-obfuscation` | VPN-Erweitert | not_started |
 | F16 | API-Zugangsmethoden / Proxy-Zugang; `lib/feature/apiaccess/impl`, `lib/repository/ApiAccessRepository.kt` | Verbindungseinstellungen | not_started |
 | F17 | Server-IP-Overrides; `lib/feature/serveripoverride/impl`, `lib/repository/RelayOverridesRepository.kt` | Verbindungseinstellungen | not_started |
-| F18 | IPv6 und sonstige VPN-Einstellungen; `lib/feature/vpnsettings/impl`, `lib/repository/SettingsRepository.kt` | VPN-Einstellungen | not_started |
-| F19 | Benutzerdefinierte DNS-Server; `lib/feature/dns/impl`, `lib/usecase/DeleteCustomDnsUseCase.kt` | DNS-Einstellungen | not_started |
-| F20 | DNS-Inhaltsfilter (Werbung/Tracker/Malware etc. nach Upstream); `lib/feature/dns/impl`, `lib/feature/filter/impl` | DNS-Einstellungen | not_started |
-| F21 | Lokales Netzwerk freigeben/LAN sharing; `lib/feature/lansharing/impl` | VPN-Einstellungen | not_started |
+| F18 | IPv6 und sonstige VPN-Einstellungen; `lib/feature/vpnsettings/impl`, `lib/repository/SettingsRepository.kt` | VPN-Einstellungen | partial |
+| F19 | Benutzerdefinierte DNS-Server; `lib/feature/dns/impl`, `lib/usecase/DeleteCustomDnsUseCase.kt` | DNS-Einstellungen | partial |
+| F20 | DNS-Inhaltsfilter (Werbung/Tracker/Malware etc. nach Upstream); `lib/feature/dns/impl`, `lib/feature/filter/impl` | DNS-Einstellungen | partial |
+| F21 | Lokales Netzwerk freigeben/LAN sharing; `lib/feature/lansharing/impl` | VPN-Einstellungen | partial |
 | F22 | Split-Tunneling: Apps ausschließen/einbeziehen; `lib/feature/splittunneling/impl`, `lib/repository/SplitTunnelingRepository.kt` | App-Auswahl | not_started |
-| F23 | Auto-Connect/Verbindung bei Start/Boot; `lib/feature/autoconnect/impl`, `lib/repository/AutoStartAndConnectOnBootRepository.kt` | VPN-Einstellungen | not_started |
-| F24 | Android Always-On/Lockdown/System-VPN-Konfiguration; `lib/feature/autoconnect/impl`, `lib/usecase/SystemVpnSettingsAvailableUseCase.kt` | Systemhinweise | not_started |
+| F23 | Auto-Connect/Verbindung bei Start/Boot; `lib/feature/autoconnect/impl`, `lib/repository/AutoStartAndConnectOnBootRepository.kt` | VPN-Einstellungen | partial |
+| F24 | Android Always-On/Lockdown/System-VPN-Konfiguration; `lib/feature/autoconnect/impl`, `lib/usecase/SystemVpnSettingsAvailableUseCase.kt` | Systemhinweise | partial |
 | F25 | Quick-Settings-VPN-Tile; `app/tile/MullvadTileService.kt` | OS-Tile, falls verfügbar | not_started |
 | F26 | Login mit Kontonummer/Logout; `lib/feature/login/impl`, `lib/repository/AccountRepository.kt` | Konto/Ersteinrichtung | not_started |
 | F27 | Kontodaten, Restlaufzeit, Verlängerung; `lib/feature/account/impl`, `lib/repository/AccountRepository.kt` | Konto | not_started |
@@ -121,3 +121,18 @@ A shared manual/PR integrated APK build now uses the official pinned Mullvad And
 | M06-Gap | Original `ManagementService.setRelayLocation(RelayItemId)` schreibt nur `Constraint.Only`. Initial-`Constraint.Any` wird angezeigt, ein Singlehop-Exit-Reset ist nicht über öffentliches Upstream-Repository verfügbar; Multihop-Entry-Any erst M09 | `partial` für expliziten Auto-Reset, **nicht** als geliefert darstellen |
 
 Alle `partial`-Angaben bedeuten Source-/UI-Einbindung und **nicht** erfüllte Endgeräte-Feature-Parität. Keine Pingwerte, keinen künstlichen Standort und keinen manuellen VPN-Reconnect eingeführt.
+
+## M07 — Original-Einstellungswerte in nativer TV-UI (ohne Shield-Funktionspass)
+
+| Gruppe | Reale M07-Anbindung | Evidenzstatus |
+| --- | --- | --- |
+| F13 | `WireguardConstraintsRepository.wireguardConstraints` + `setDeviceIpVersion`; WireGuard-Obfuskationsport ausdrücklich M10 | `partial`: Quellcode, Runtime-Test `not_run` |
+| F14 | `SettingsRepository.setWireguardMtu/resetWireguardMtu` und `Mtu.fromString` (1280–1420) | `partial`: Quellcode, Runtime-Test `not_run` |
+| F18 | IPv6 `settingsUpdates.tunnelOptions.enableIpv6`, `setIpv6Enabled`; einfache Quantumresistenz `setWireguardQuantumResistant` | `partial` |
+| F19 | `DnsOptions.Custom` / `SettingsRepository.setCustomDns/addCustomDns/setDnsState` + `DeleteCustomDnsUseCase`, Original-`InetAddressValidator` und Duplikatprüfung | `partial` |
+| F20 | Sechs `DefaultDnsOptions`-Blocker über `updateContentBlockers`, Original-DNS-Modus live | `partial` |
+| F21 | `settingsUpdates.allowLan` / `setLocalNetworkSharing` | `partial` |
+| F23 | `AutoStartAndConnectOnBootRepository.autoStartAndConnectOnBoot` / `setAutoStartAndConnectOnBoot` + originaler Receiver | `partial` |
+| F24 | `SystemVpnSettingsAvailableUseCase`, `android.net.vpn.SETTINGS`; echter Android-Always-on-/Lockdown-Wert nur in OS-UI | `partial` (OS-Unterseite, keine vorgetäuschte App-API) |
+
+M07 liefert keine Anti-Zensur-`setCustomWireguardPort`-Funktion (M10), keine Split-Tunneling-App-Auswahl (M08), keine neue VPN-Engine. `pass` erfordert kompiliertes APK, D-Pad/UI und realen Gerätespeicher-/Tunnel-Nachweis gemäß `TEST_MATRIX.md`.
