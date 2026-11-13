@@ -54,7 +54,8 @@ internal class VpnAccountUi(
     private val surface: Int,
     private val accent: Int,
 ) {
-    private var deviceState: DeviceState = DeviceState.LoggedOut
+    // Unknown until the original daemon delivers its first state.
+    private var deviceState: DeviceState? = null
     private var accountData: AccountData? = null
     private var limitAccount: AccountNumber? = null
     private var listedAccount: AccountNumber? = null
@@ -132,13 +133,15 @@ internal class VpnAccountUi(
         }
         addView(devicesGroup)
         render()
+        renderDevices()
     }
 
     val primaryFocus: View get() = loginInput
 
     fun requestPrimaryFocus() {
         if (deviceState is DeviceState.LoggedIn) refreshButton.requestFocus()
-        else loginInput.requestFocus()
+        else if (deviceState != null) loginInput.requestFocus()
+        else focusRail()
     }
 
     fun onDeviceState(state: DeviceState) {
@@ -153,6 +156,7 @@ internal class VpnAccountUi(
             limitAccount = null
         }
         render()
+        renderDevices()
         if (current != null && previous != current) refresh()
     }
 
@@ -184,6 +188,7 @@ internal class VpnAccountUi(
                             limitAccount = error.accountNumber
                             notice("Gerätelimit erreicht. Entferne ein altes Gerät und melde dich erneut an.")
                             render()
+                            renderDevices()
                             loadDevicesFromDaemon(error.accountNumber)
                         }
                         else -> notice(loginError(error))
@@ -362,7 +367,7 @@ internal class VpnAccountUi(
     private fun render() {
         if (!::loginGroup.isInitialized) return
         val loggedIn = deviceState as? DeviceState.LoggedIn
-        loginGroup.visibility = if (loggedIn == null) View.VISIBLE else View.GONE
+        loginGroup.visibility = if (loggedIn == null && deviceState != null) View.VISIBLE else View.GONE
         loggedInGroup.visibility = if (loggedIn != null) View.VISIBLE else View.GONE
         devicesGroup.visibility =
             if (loggedIn != null || limitAccount != null) View.VISIBLE else View.GONE
@@ -371,6 +376,7 @@ internal class VpnAccountUi(
             DeviceState.LoggedOut -> if (limitAccount != null) "Anmeldung: Gerätelimit erreicht"
                 else "Nicht angemeldet"
             DeviceState.Revoked -> "Geräteberechtigung widerrufen – erneut anmelden"
+            null -> "Mullvad-Kontostatus wird geladen"
         }
         if (loggedIn != null) {
             accountNumberText.text = "Kontonummer: " +
@@ -382,7 +388,8 @@ internal class VpnAccountUi(
                 else -> "Gültig bis " + date(expiry)
             }
         }
-        renderDevices()
+        // Device rows are rebuilt only when the list/device state changes. A fresh expiry
+        // event must not remove focused buttons while the user operates the remote.
     }
 
     private fun renderDevices() {

@@ -92,6 +92,9 @@ class PreparationTests(unittest.TestCase):
         self.assertNotIn("SharedPreferences", account)
         self.assertNotIn("HttpURLConnection", account)
         self.assertNotIn("renameDevice(", account)
+        self.assertIn("private var deviceState: DeviceState? = null", account)
+        self.assertIn("Mullvad-Kontostatus wird geladen", account)
+        self.assertIn("A fresh expiry", account)
 
     def test_prepare_isolation_and_single_application(self):
         with tempfile.TemporaryDirectory() as tmp:
