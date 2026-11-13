@@ -201,3 +201,24 @@ Der frühere failed-Lint-Run 43516551245 bleibt als historische Evidenz erhalten
 | UPCOMING 13 Einträge, mehr als 8 reale Vorschauen | `eightVisibleUpcomingCardsAreAWindowAndAllCountsSurvive` | **committed_not_yet_run** |
 | UP/DOWN-Paging, letzte unvollständige Reihe, Clamp | `pagingNeverSkipsTheLastEntryOrEscapesTheSection` | **committed_not_yet_run** |
 | realer View-Renderer/GPU/Emulator/Shield | kein UI-/Hardware-Lauf im Container | **not_run/hardware_pending** |
+
+
+## M05 — D-Pad, Overlay, Home und abgesicherte Nuvio-Starts (2026-11-14)
+
+| Prüfung | Faktische Evidenz | Status zur Dokumentation |
+| --- | --- | --- |
+| M04-HEAD/PR real gemergt | [PR #37](https://github.com/Justify87/Plume_Launcher/pull/37), `main@fdd10f3394463bd5d4142c9978834d78464905cc` | **verified_merged** |
+| M04 letzter Code-/Docs-Run | [43524952681](https://github.com/Justify87/Plume_Launcher/actions/runs/43524952681), Check 132228353581 | **completed_success** |
+| Originalbild SHA/Größe/Format | GitHub blob `d1b14c00...`, SHA-256 `95af66ad04f462867b5d52825c7e1946ac68b5e40bed52c07f4e74c085218f25`, 249663 Bytes JPEG/JFIF 1536×864 | **passed_original_binary_sha** (kein Launcher-Screenshot) |
+| 1 Hero + 2 Standard, 3 Available, 4×2 Mini, kein Wrap und Empty-Row-Skip | `VDesignFocusNavigatorTest.heroAndTwoNeighborsRespectWideGeometry`, `availableThreeAndFourByTwoMinisNeverWrapOrStrand`, `emptyBandsSkipToActualLiveCardsAndNoDeadEnd` | **tests_committed_ci_pending** |
+| Sidebar D-Pad sichtbare Targets, kein Invalid-Focus | `VDesignFocusNavigatorTest.sidebarVisibleItemsOnlyAndPreferredTarget` | **test_committed_ci_pending** |
+| Nuvio Stream/Detail/UPCOMING never stream | `VDesignLaunchPolicyTest.episodePlaybackAndDetailFallback`, `upcomingNeverAutoplays` | **tests_committed_ci_pending** |
+| Provider-intent package/component/action/scheme/selector | `VDesignLaunchPolicyTest.explicitComponentNoUntrustedSchemesOrSelectors`, Nuvio `AndroidTvChannelManager` Quell-HEAD gelesen | **test_committed_ci_pending/source_review** |
+| App-/VPN-/Overlay-/HOME-/Back-/Return-Fokus und Deinstallation | `VDesignHomeView`/ `MainActivity` Code-Review und neue Fokusverdrahtung | **source_review_only**; TV-Integration **not_run** |
+| Long-OK Alle Apps/Settings; HDMI, Systemsettings, Power, Home-Setup | `MainActivity.showVDesignSystemActions`, `onHold`, `onBackPressed` Quellenreview | **source_review_only**, Fernbedienung **not_run** |
+| CI-Codebranch nach JVM-Testtyp-Korrektur | [Run 43528175980](https://github.com/Justify87/Plume_Launcher/actions/runs/43528175980), [Job 132239022875](https://github.com/Justify87/Plume_Launcher/actions/runs/43528175980/job/132239022875) auf `d80aa6fd...` | **in_progress at documentation**, kein Success angenommen |
+| CI auf finalem Code+Docs-HEAD | Workflow läuft erneut beim Dokumentationscommit, finale URL/Status neu lesen | **pending_new_run** |
+| Native Mullvad/JNI/VpnService Original | GitHub Compare nur 7 Plume-Code-/Testdateien, kein Submodul/Manifest/Gradle geändert; M05-Workflow Mullvad `skipped` | **scope_passed**, **native_not_run** |
+| Lokale JVM/Android-SDK-Builds, Emulator, Shield Pro 2019, echte IPTV/VPN-/HDMI-Session, UI-Pixel und Memory/GPU | Kein Android-SDK/Repo-Checkout im Container, kein Gerät angebunden | **not_run / hardware_pending** |
+
+**Regel:** Aktuelle `STATE.md`-YAML hat Vorrang vor älteren M04-/M03-Momentaufnahmen. Finale CI-Nachweise nur mit tatsächlicher Job-URL und zugehörigem commit SHA; keine physische Abnahme aus Unit-Tests ableiten.

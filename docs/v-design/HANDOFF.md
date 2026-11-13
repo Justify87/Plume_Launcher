@@ -1,3 +1,24 @@
+# M05 → M06: operativer Handoff
+
+**Kanonischer State:** [STATE.md](STATE.md), **Branch:** `feature/vdesign-m05-navigation-interaction`, **Draft-PR:** [#38](https://github.com/Justify87/Plume_Launcher/pull/38), **Basis:** der echte M04-Merge `main@fdd10f3394463bd5d4142c9978834d78464905cc` ([#37](https://github.com/Justify87/Plume_Launcher/pull/37) merged). Vor M06-Start den **realen HEAD/PR-Merge und letzten CI-Lauf** erneut prüfen. Nuvio `dev@be4b84a84e004a2d36405601683df000d8dc446a` read-only.
+
+## M05-Quellen und Invarianten für M06
+
+1. `VDesignFocusNavigator.kt` ist die reine Fokusmatrix: 1 Hero + 2 Standard / 3 Available / 4×2 Upcoming, räumlich nach x-Überlappung, keine Wrap-Sprünge. `VDesignHomeView.handleDpad()` verwendet sie in `MainActivity.dispatchKeyEvent()` **vor** alter `homeNav`; bei leerem Feed bleibt Sidebar fokussierbar. `VDesignCardView.onFocused` erfasst die tatsächliche Medien-ID, nicht die Karten-View als langfristigen Schlüssel.
+2. `VDesignHomeView.restoreFocus()` erinnert Sidebar-Key, Section und Medien-`stableId` auch über Provider-Rebind und Upcoming-Paging; nur sichtbare, attached und focusable Views dürfen gewählt werden. `MainActivity.onResume/onNewIntent/onBackPressed` sowie All-Apps-/Settings-Schließpfade sind verbunden. Nach echten App-Rückkehr-/HOME-/Overlay-/Deinstallationsfällen auf Shield prüfen; nicht aus Source-Review als erledigt behaupten.
+3. `VDesignLaunchPolicy.kt` trennt STREAM/DETAIL/UNAVAILABLE; `openVDesignMedia()` startet nur neu konstruierten, eingeschränkten Nuvio-MainActivity-Intent. InProgress/Available dürfen ausschließlich mit gültigem Publisher-Video-ID-/Mode streamen; UPCOMING nie. Nuvio `CONTINUE` bleibt im Publisher unverändert, SmartTube nur Sidebar-App.
+4. `Übersicht` langes OK → `openAllApps`; `Einstellungen` OK → `openLauncherSettings`; langes OK → `showVDesignSystemActions` mit erreichbarem HDMI/Quellen, OS-/WLAN-Settings, Power, Home-Einrichtung. VPN öffnet `net.mullvad.mullvadvpn.app.VpnActivity` aus dem **integrierten** APK, falls real installiert. Keine sechste Standard-Sidebar-Kachel.
+5. `MainActivity` und `activity_main.xml` enthalten weiter unsichtbare Classic-/Overview-/Topbar-Hosts und `home_layout_mode`-Einstellungen. **Genau M06:** diese strukturiert entfernen, alle Settings-/App-/TV-Provider-/Wallpaper-/Power-/Setup-/Sources-Funktionen zuvor gegen ihre neuen Pfade inventarisieren, Pref-Migration behandeln und Regressionstests anpassen. Original `third_party/mullvadvpn-app` und generierte originale Mullvad-Rust/JNI/VpnService nicht verändern. `GlassLayer`-Root-Index 2 und Direct-Boot-Guard vor Preference-/Provider-Zugriff bewahren.
+6. CI-Beleg bis Dokumentationscommit: [PR #38](https://github.com/Justify87/Plume_Launcher/pull/38), [Run 43528175980](https://github.com/Justify87/Plume_Launcher/actions/runs/43528175980) zunächst `in_progress`. Finalen Docs-HEAD/Run nachlesen und bei Fehlern real korrigieren; nativer Mullvad-Build im V-Design-PR branchbedingt `skipped`. Kein Android-SDK-/Emulator-/Shield-Lauf lokal vorhanden: `not_run/hardware_pending`; kein Referenz-Pixel-Claim.
+
+**Normreferenz:** Git-Blob `d1b14c00a6478cb3b49fcbbd637e0aa71db5df18`, 249663 Bytes, JPEG/JFIF 1536×864 unter `REFERENCE.png`; unabhängig geprüfter SHA-256 `95af66ad04f462867b5d52825c7e1946ac68b5e40bed52c07f4e74c085218f25`.
+
+**Nächster Meilenstein ausschließlich M06. Kein Merge ohne explizite Freigabe.**
+
+---
+
+## Historischer M04 → M05 Handoff (nicht aktueller Stand)
+
 # M04 → M05: operativer Handoff
 
 **Kanonischer Status:** [STATE.md](STATE.md). **Feature-Branch:** `feature/vdesign-m04-card-styling`, [Draft #37](https://github.com/Justify87/Plume_Launcher/pull/37). **Baseline:** Plume `main@763869b8bf672f5955b1d0682a643f0565bca5fb` (M03 #36 merged); Nuvio `dev@be4b84a84e004a2d36405601683df000d8dc446a` nur lesen.
