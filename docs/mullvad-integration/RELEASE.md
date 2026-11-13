@@ -49,3 +49,7 @@ bash tools/mullvad/build-integrated.sh --no-configuration-cache --max-workers=2 
 - Bis zur Shield-Abnahme **M12: partial**, Leistungsdaten `not_measured`, reale Netzfunktionen `hardware_pending`.
 - Nur ARM64, keine Play-Billing-Flavour-Parität; Release derzeit unsigned; wechselnde CI-Debug-Signatur kann Daten-erhaltende Updates verhindern.
 - Original-M06-Repository bietet keinen bestätigten Rückstellaufruf auf automatischen Singlehop-Exit. QS-Tile/Dateiauswahl/Android-Locale je nach TV-Firmware offen.
+
+## M12 ABI-Packaging-Fix
+
+Die tatsächlich extrahierte M11-Baseline enthielt AndroidX-`.so` für ARM32 und x86, aber `libmullvad_jni.so` ausschließlich für ARM64. Das konnte Androids Native-Code-Kompatibilitätsanzeige irreführen. Der neue regenerierte Host setzt `ndk.abiFilters` auf **arm64-v8a**; beide Buildvarianten dürfen nur diesen ABI-Eintrag ausgeben. Neue Nicht-ARM64-Ziele benötigen zuerst einen vollständigen Original-JNI-/Rust-Build und eigene Gerätereviews; **kein** bloßes Freischalten eines ABI-Labels.
