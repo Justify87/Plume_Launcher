@@ -12,9 +12,9 @@ Die folgenden Statuswerte sind **beobachtete** Ergebnisse oder `not_run`; späte
 | Nuvio Channel IDs/Publisher-Felder | `TvChannelKind`, `TvChannelFeedBuilder`, `AndroidTvChannelManager` gelesen | **passed_source_review** | M00 |
 | Veraltete Mullvad-Doc-Pfade identifiziert | Repo-Baum, `docs/archive/legacy-features/mullvad-vpn/STATE.md` | **passed_source_review** | M00 |
 | UI-Featureinventar statt Blind-Löschung | `MainActivity`, XML, Media-/Focus-Klassen, Manifest/Gradle | **passed_source_review** | M00 |
-| Dokumentationsdiff / Dateirechte / Binärdiff | GitHub Branch/PR-Diff nach Commit überprüfen | **pending** | M00 |
+| Dokumentationsdiff / Dateirechte / Binärdiff | GitHub Compare `fbf2473...c8b0241`: genau 10 neue Textdateien `docs/v-design/*`, 0 andere Änderungen | **passed_source_review** (binary PNG weiterhin fehlt) | M00 |
 | Android/Gradle lokal | `./gradlew testDebugUnitTest lintDebug` | **not_run — Container ohne Netz/Repo-Checkout/Android SDK** | M00 |
-| Plume PR-CI | `pull_request`-Workflow erst nach PR; Link/Endstatus nachtragen | **not_run** | M00 |
+| Plume PR-CI | [Draft PR #32, Run 43505553469](https://github.com/Justify87/Plume_Launcher/actions/runs/43505553469), beim ersten Abruf `in_progress`, `conclusion=null` | **in_progress — kein Pass** | M00 |
 | Exakte drei Nuvio Channel Types | Provider-ID-Adaptertests | not_run | M01 |
 | Legacy-Kanal nicht als Available mischen | Mixed-Feed-Unit-Tests | not_run | M01 |
 | TV-Permission denied / Nuvio fehlt | Provider-/Emulator-/Shield-Test | not_run | M01–M07 |

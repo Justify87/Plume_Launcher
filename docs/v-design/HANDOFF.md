@@ -4,10 +4,10 @@
 
 - Ausgangscommit Plume `main`: `fbf2473711c50d03eb76afe8fd0a722af1faf136`.
 - Nuvio `dev`: `be4b84a84e004a2d36405601683df000d8dc446a`.
-- M00-Branch: `feature/vdesign-m00-bootstrap-contract`; PR-Status und genauer Commit in `STATE.md` prüfen, nie blind auf alten main wechseln.
+- M00-Branch: `feature/vdesign-m00-bootstrap-contract`; [Draft-PR #32](https://github.com/Justify87/Plume_Launcher/pull/32) offen; Implementierungscommit `c8b02415e8aa8a79bd9428db6e0b2737942d1c47`; aktuellen Branch-HEAD stets neu prüfen, nie blind auf alten main wechseln.
 - Quellprüfung: Nuvio 4-Kanalvertrag; Plume alte Classic/Overview/Home-Settings; Mullvad-M12-Status unter `docs/archive/legacy-features/mullvad-vpn/`.
 - ZIP-Original `REFERENCE.png` wirklich gelesen, 1536×864, SHA-256 `95af66ad04f462867b5d52825c7e1946ac68b5e40bed52c07f4e74c085218f25`; **Datei fehlt in GitHub**, GitHub-Connector hat keinen lokalen Binär-Datei-Upload. M00 `partial`.
-- Keine UI-Codeänderungen; keine realen Gradle-, Emulator- oder Shield-Tests. Ausgangs-CI des anderen Archiv-PR war zum Abfragezeitpunkt `in_progress`.
+- Keine UI-Codeänderungen; keine realen Gradle-, Emulator- oder Shield-Tests. M00-PR-CI [Run 43505553469](https://github.com/Justify87/Plume_Launcher/actions/runs/43505553469) war beim ersten Abruf `in_progress` und ist kein Pass.
 
 ## Pflicht vor M01
 
