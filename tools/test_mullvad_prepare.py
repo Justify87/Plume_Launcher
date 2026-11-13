@@ -308,6 +308,8 @@ class PreparationTests(unittest.TestCase):
                 self.assertIn('include(":plume-ui")', (generated / "settings.gradle.kts").read_text())
                 host = (generated / "app/build.gradle.kts").read_text()
                 self.assertIn("dev.plume.advanced", host)
+                self.assertIn('abiFilters += "arm64-v8a"', host)
+                self.assertNotIn("abiFilters", (upstream / "android/app/build.gradle.kts").read_text())
                 self.assertIn('implementation(project(":plume-ui"))', host)
                 self.assertIn('net.mullvad.mullvadvpn', (upstream / "android/app/build.gradle.kts").read_text())
                 self.assertTrue((generated / "plume-ui/src/main/AndroidManifest.xml").exists())
