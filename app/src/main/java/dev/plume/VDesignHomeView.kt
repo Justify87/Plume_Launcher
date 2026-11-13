@@ -59,17 +59,18 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
         mount(View(context).apply { setBackgroundColor(0x55454866) },
             VDesignCanvas.Box(217, 0, 1, 864))
 
-        heading("Weiterschauen", 263, 27, 27, R.drawable.ic_playback)
-        titleAvailable = heading("Neue Folgen verfügbar", 263, 357, 23, R.drawable.ic_shows)
-        titleUpcoming = heading("Demnächst", 263, 564, 23, R.drawable.ic_clock)
+        heading("Weiterschauen", 263, 27, 25, R.drawable.ic_playback)
+        titleAvailable = heading("Neue Folgen verfügbar", 263, 357, 23, R.drawable.vdesign_sparkle)
+        titleUpcoming = heading("Demnächst", 263, 564, 23, R.drawable.vdesign_calendar)
 
         // M03: 1 focused-sized hero + 2 standard; 3 equal wides; 4 x 2 compact.
         // No titles, 'Neu', countdown or fake artwork until M04 binds real provider items.
         cell(VDesignCanvas.Box(255, 74, 651, 262), hero = true)
         cell(VDesignCanvas.Box(919, 83, 287, 245))
         cell(VDesignCanvas.Box(1221, 83, 287, 245))
-        for (x in listOf(258, 679, 1100)) cell(VDesignCanvas.Box(x, 403, 410, 140))
-        for (y in listOf(612, 726)) for (x in listOf(258, 574, 890, 1206))
+        for ((x, width) in listOf(258 to 402, 679 to 403, 1102 to 407))
+            cell(VDesignCanvas.Box(x, 403, width, 140))
+        for (y in listOf(612, 727)) for (x in listOf(258, 576, 893, 1210))
             cell(VDesignCanvas.Box(x, y, 302, 102), compact = true)
     }
 
@@ -159,8 +160,8 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
             anchored.removeAll { it.first === view }
         }
         menu.clear()
-        val navY = listOf(175, 245, 315, 611, 741)
-        for ((index, item) in items.withIndex()) {
+        // Actual reference row tops: 94, 161, 223, 285 and 347 at 1536x864.
+        for (item in items) {
             val bar = LinearLayout(context).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER_VERTICAL
@@ -192,11 +193,11 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
                 label.setTextColor(if (focused) Color.WHITE else Palette.SOFT)
                 bar.background = if (focused) GradientDrawable().apply {
                     cornerRadius = 15 * scale()
-                    setColor(0x663B3159)
-                    setStroke((2 * scale()).toInt().coerceAtLeast(1), Palette.LAVENDER)
+                    setColor(0x88505268.toInt())
+                    setStroke((1 * scale()).toInt().coerceAtLeast(1), 0xFF77718E.toInt())
                 } else GradientDrawable().apply {
                     cornerRadius = 15 * scale()
-                    setColor(0x22202637)
+                    setColor(Color.TRANSPARENT)
                 }
             }
             style(false)
@@ -206,9 +207,12 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
             menu += bar
             // Slot indices preserve ordering if optional apps or VPN are unavailable.
             val y = when (item.key) {
-                SETTINGS -> 611
-                VPN -> 741
-                else -> navY[index.coerceAtMost(2)]
+                OVERVIEW -> 94
+                NUVIO -> 161
+                SMARTTUBE -> 223
+                SETTINGS -> 285
+                VPN -> 347
+                else -> 94
             }
             mount(bar, VDesignCanvas.Box(12, y, 194, 58))
         }
