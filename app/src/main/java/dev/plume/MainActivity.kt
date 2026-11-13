@@ -4137,6 +4137,11 @@ class MainActivity : Activity() {
     private fun setupVDesign() {
         val root = findViewById<FrameLayout>(R.id.root)
         vDesign = VDesignHomeView(this)
+        vDesign.bindMedia(
+            loadArtwork = { image, uri -> loadPoster(image, uri) },
+            sourceIcon = { pkg -> sourceIcon(pkg) },
+            onSelect = { item -> openVDesignMedia(item) },
+        )
         root.addView(vDesign, root.indexOfChild(allApps),
             FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT))
         findViewById<View>(R.id.content).visibility = View.INVISIBLE
@@ -4425,6 +4430,49 @@ class MainActivity : Activity() {
                 return
             } catch (e: Exception) {
                 android.util.Log.w("Plume", "TV media launch failed for $pkg", e)
+            }
+        }
+        toast(getString(R.string.tv_feed_unavailable))
+    }
+
+    /** Categorized Nuvio TV preview programs, never SmartTube or the legacy mixed channel. */
+    private fun openVDesignMedia(item: NuvioMediaItem) {
+        val pkg = item.sourcePackage.takeIf(AndroidTvMediaSource::isNuvioPackage)
+            ?: return toast(getString(R.string.tv_feed_unavailable))
+        val parsed = try {
+            item.intentUri?.takeIf { it.isNotBlank() }?.let {
+                Intent.parseUri(it, Intent.URI_INTENT_SCHEME)
+            }
+        } catch (_: Exception) { null }
+        // Nuvio writes an explicit MainActivity component. Do not launch arbitrary components,
+        // implicit web links, selectors or another application's intent from a TV provider.
+        val direct = parsed?.takeIf { intent ->
+            intent.component?.packageName == pkg &&
+                intent.component?.className == "com.nuvio.tv.MainActivity" &&
+                (intent.`package` == null || intent.`package` == pkg) &&
+                (intent.action == null || intent.action == Intent.ACTION_VIEW)
+        }?.apply {
+            setPackage(pkg)
+            action = Intent.ACTION_VIEW
+            selector = null
+            clipData = null
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            // UPCOMING is NEVER playable even if a malformed publisher says "stream".
+            if (item.section == NuvioSection.UPCOMING) {
+                putExtra("launchMode", "detail")
+                removeExtra("videoId")
+            }
+        }
+        val fallback = if (item.section == NuvioSection.UPCOMING) null else try {
+            packageManager.getLeanbackLaunchIntentForPackage(pkg)
+        } catch (_: Exception) { null }
+        for (target in listOfNotNull(direct, fallback)) {
+            try {
+                startApp(target, currentFocus)
+                prefs.edit().putLong("t_$pkg", System.currentTimeMillis()).apply()
+                return
+            } catch (e: Exception) {
+                android.util.Log.w("Plume", "V-Design Nuvio deep link failed: $pkg", e)
             }
         }
         toast(getString(R.string.tv_feed_unavailable))
@@ -6397,8 +6445,8 @@ class MainActivity : Activity() {
             } ?: return@execute
             posters.put(uri, bmp)
             ui.post {
-                if (!isDestroyed && v.tag == uri) {
-                    v.setImageBitmap(bmp)
+                if (!isDestroyed) {
+                    if (v.tag == uri) v.setImageBitmap(bmp)
                     // Another mounted card may have requested the same URL while its download was in flight.
                     // Fill only this URI: unrelated failed posters wait for the ordinary online retry.
                     for (i in 0 until watchRow.childCount) {
@@ -6407,6 +6455,7 @@ class MainActivity : Activity() {
                         if (image.tag == uri && image.drawable == null) image.setImageBitmap(bmp)
                     }
                     if (::homeOverview.isInitialized) homeOverview.artworkReady(uri, bmp)
+                    if (::vDesign.isInitialized) vDesign.artworkReady(uri, bmp)
                 }
             }
         }
