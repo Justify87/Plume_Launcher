@@ -23,8 +23,8 @@ internal object VDesignFocusNavigator {
         val at = keys.indexOf(key)
         if (at < 0) return Target.Stay
         return when (direction) {
-            Direction.UP -> keys.getOrNull(at - 1)?.let(Target::Sidebar) ?: Target.Stay
-            Direction.DOWN -> keys.getOrNull(at + 1)?.let(Target::Sidebar) ?: Target.Stay
+            Direction.UP -> keys.getOrNull(at - 1)?.let { Target.Sidebar(it) } ?: Target.Stay
+            Direction.DOWN -> keys.getOrNull(at + 1)?.let { Target.Sidebar(it) } ?: Target.Stay
             Direction.LEFT -> Target.Stay
             Direction.RIGHT -> preferred?.let { Target.Card(it.section, it.slot) } ?: Target.Stay
         }

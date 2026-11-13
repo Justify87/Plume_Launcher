@@ -26,39 +26,39 @@ class VDesignFocusNavigatorTest {
 
     @Test fun heroAndTwoNeighborsRespectWideGeometry() {
         val all = started + available + mini
-        assertEquals(at(NuvioSection.IN_PROGRESS, 1), move(started[0], all, n.Direction.RIGHT))
-        assertEquals(at(NuvioSection.IN_PROGRESS, 0), move(started[1], all, n.Direction.LEFT))
-        assertEquals(at(NuvioSection.AVAILABLE, 0), move(started[0], all, n.Direction.DOWN))
-        assertEquals(at(NuvioSection.AVAILABLE, 2), move(started[2], all, n.Direction.DOWN))
-        assertEquals(at(NuvioSection.IN_PROGRESS, 0), move(available[0], all, n.Direction.UP))
-        assertEquals(n.Target.Stay, move(started[0], all, n.Direction.UP))
+        assertEquals(at(NuvioSection.IN_PROGRESS, 1), move(started[0], all, VDesignFocusNavigator.Direction.RIGHT))
+        assertEquals(at(NuvioSection.IN_PROGRESS, 0), move(started[1], all, VDesignFocusNavigator.Direction.LEFT))
+        assertEquals(at(NuvioSection.AVAILABLE, 0), move(started[0], all, VDesignFocusNavigator.Direction.DOWN))
+        assertEquals(at(NuvioSection.AVAILABLE, 2), move(started[2], all, VDesignFocusNavigator.Direction.DOWN))
+        assertEquals(at(NuvioSection.IN_PROGRESS, 0), move(available[0], all, VDesignFocusNavigator.Direction.UP))
+        assertEquals(VDesignFocusNavigator.Target.Stay, move(started[0], all, VDesignFocusNavigator.Direction.UP))
     }
 
     @Test fun availableThreeAndFourByTwoMinisNeverWrapOrStrand() {
         val all = started + available + mini
-        assertEquals(at(NuvioSection.AVAILABLE, 1), move(available[0], all, n.Direction.RIGHT))
-        assertEquals(at(NuvioSection.UPCOMING, 0), move(available[0], all, n.Direction.DOWN))
-        assertEquals(at(NuvioSection.UPCOMING, 4), move(mini[0], all, n.Direction.DOWN))
-        assertEquals(at(NuvioSection.UPCOMING, 3), move(mini[7], all, n.Direction.UP))
-        assertEquals(n.Target.Stay, move(mini[7], all, n.Direction.DOWN))
-        assertEquals(n.Target.Stay, move(mini[3], all, n.Direction.RIGHT))
-        assertEquals(n.Target.Sidebar("vdesign:overview"), move(mini[4], all, n.Direction.LEFT))
+        assertEquals(at(NuvioSection.AVAILABLE, 1), move(available[0], all, VDesignFocusNavigator.Direction.RIGHT))
+        assertEquals(at(NuvioSection.UPCOMING, 0), move(available[0], all, VDesignFocusNavigator.Direction.DOWN))
+        assertEquals(at(NuvioSection.UPCOMING, 4), move(mini[0], all, VDesignFocusNavigator.Direction.DOWN))
+        assertEquals(at(NuvioSection.UPCOMING, 3), move(mini[7], all, VDesignFocusNavigator.Direction.UP))
+        assertEquals(VDesignFocusNavigator.Target.Stay, move(mini[7], all, VDesignFocusNavigator.Direction.DOWN))
+        assertEquals(VDesignFocusNavigator.Target.Stay, move(mini[3], all, VDesignFocusNavigator.Direction.RIGHT))
+        assertEquals(VDesignFocusNavigator.Target.Sidebar("vdesign:overview"), move(mini[4], all, VDesignFocusNavigator.Direction.LEFT))
     }
 
     @Test fun emptyBandsSkipToActualLiveCardsAndNoDeadEnd() {
         val all = listOf(started[0], mini[3], mini[4])
-        assertEquals(at(NuvioSection.UPCOMING, 3), move(started[0], all, n.Direction.DOWN))
-        assertEquals(at(NuvioSection.IN_PROGRESS, 0), move(mini[3], all, n.Direction.UP))
-        assertEquals(n.Target.Sidebar("vdesign:overview"), move(started[0], listOf(started[0]), n.Direction.LEFT))
-        assertEquals(n.Target.Stay, move(started[0], listOf(started[0]), n.Direction.RIGHT))
+        assertEquals(at(NuvioSection.UPCOMING, 3), move(started[0], all, VDesignFocusNavigator.Direction.DOWN))
+        assertEquals(at(NuvioSection.IN_PROGRESS, 0), move(mini[3], all, VDesignFocusNavigator.Direction.UP))
+        assertEquals(VDesignFocusNavigator.Target.Sidebar("vdesign:overview"), move(started[0], listOf(started[0]), VDesignFocusNavigator.Direction.LEFT))
+        assertEquals(VDesignFocusNavigator.Target.Stay, move(started[0], listOf(started[0]), VDesignFocusNavigator.Direction.RIGHT))
     }
 
     @Test fun sidebarVisibleItemsOnlyAndPreferredTarget() {
         val keys = listOf("vdesign:overview", "vdesign:settings", "vdesign:vpn")
-        assertEquals(n.Target.Sidebar("vdesign:settings"), n.fromSidebar(keys[0], keys, n.Direction.DOWN, started[0]))
-        assertEquals(n.Target.Stay, n.fromSidebar(keys.last(), keys, n.Direction.DOWN, started[0]))
-        assertEquals(n.Target.Stay, n.fromSidebar(keys[0], keys, n.Direction.RIGHT, null))
-        assertEquals(at(NuvioSection.IN_PROGRESS, 0), n.fromSidebar(keys[0], keys, n.Direction.RIGHT, started[0]))
-        assertEquals(n.Target.Stay, n.fromSidebar(keys[0], keys, n.Direction.LEFT, started[0]))
+        assertEquals(VDesignFocusNavigator.Target.Sidebar("vdesign:settings"), n.fromSidebar(keys[0], keys, VDesignFocusNavigator.Direction.DOWN, started[0]))
+        assertEquals(VDesignFocusNavigator.Target.Stay, n.fromSidebar(keys.last(), keys, VDesignFocusNavigator.Direction.DOWN, started[0]))
+        assertEquals(VDesignFocusNavigator.Target.Stay, n.fromSidebar(keys[0], keys, VDesignFocusNavigator.Direction.RIGHT, null))
+        assertEquals(at(NuvioSection.IN_PROGRESS, 0), n.fromSidebar(keys[0], keys, VDesignFocusNavigator.Direction.RIGHT, started[0]))
+        assertEquals(VDesignFocusNavigator.Target.Stay, n.fromSidebar(keys[0], keys, VDesignFocusNavigator.Direction.LEFT, started[0]))
     }
 }

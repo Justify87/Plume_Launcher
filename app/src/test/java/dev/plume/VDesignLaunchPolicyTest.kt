@@ -8,14 +8,14 @@ import org.junit.Test
 class VDesignLaunchPolicyTest {
     private val p = VDesignLaunchPolicy
     @Test fun episodePlaybackAndDetailFallback() {
-        assertEquals(p.Mode.STREAM, p.mode(NuvioSection.IN_PROGRESS, "show", "series", "vid1", "Show", "stream"))
-        assertEquals(p.Mode.STREAM, p.mode(NuvioSection.AVAILABLE, "show", "series", "vid2", "Show", "stream"))
-        assertEquals(p.Mode.DETAIL, p.mode(NuvioSection.AVAILABLE, "show", "series", "", "Show", "stream"))
-        assertEquals(p.Mode.DETAIL, p.mode(NuvioSection.IN_PROGRESS, "film", "movie", "vid", "Film", "detail"))
+        assertEquals(VDesignLaunchPolicy.Mode.STREAM, p.mode(NuvioSection.IN_PROGRESS, "show", "series", "vid1", "Show", "stream"))
+        assertEquals(VDesignLaunchPolicy.Mode.STREAM, p.mode(NuvioSection.AVAILABLE, "show", "series", "vid2", "Show", "stream"))
+        assertEquals(VDesignLaunchPolicy.Mode.DETAIL, p.mode(NuvioSection.AVAILABLE, "show", "series", "", "Show", "stream"))
+        assertEquals(VDesignLaunchPolicy.Mode.DETAIL, p.mode(NuvioSection.IN_PROGRESS, "film", "movie", "vid", "Film", "detail"))
     }
     @Test fun upcomingNeverAutoplays() {
-        assertEquals(p.Mode.DETAIL, p.mode(NuvioSection.UPCOMING, "show", "series", "video", "Show", "stream"))
-        assertEquals(p.Mode.UNAVAILABLE, p.mode(NuvioSection.UPCOMING, null, "series", "video", "Show", "stream"))
+        assertEquals(VDesignLaunchPolicy.Mode.DETAIL, p.mode(NuvioSection.UPCOMING, "show", "series", "video", "Show", "stream"))
+        assertEquals(VDesignLaunchPolicy.Mode.UNAVAILABLE, p.mode(NuvioSection.UPCOMING, null, "series", "video", "Show", "stream"))
     }
     @Test fun explicitComponentNoUntrustedSchemesOrSelectors() {
         fun safe(compPkg: String? = "com.nuvio.tv", cls: String? = "com.nuvio.tv.MainActivity",
