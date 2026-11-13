@@ -2,15 +2,15 @@
 
 ```yaml
 schema: plume-mullvad-handoff/v1
-milestone: M05
+milestone: M06
 status: partial
 checked_on: "2026-11-13"
-main_head_at_start: 81017e4de5f24660fdfa45ef2c4734914bb0a796
-predecessor_milestone: M04
-predecessor_pr: 19
+main_head_at_start: 2c518bc3427c99d72820559deee5d7258791cee9
+predecessor_milestone: M05
+predecessor_pr: 20
 predecessor_merged_into_main: true
 base_branch: main
-feature_branch: feature/m05-mullvad-accounts-tv
+feature_branch: feature/m06-mullvad-locations-tv
 upstream_tag: android/2026.12
 upstream_sha: aa47f606b1a159214c7279344128119fa91be5fd
 upstream_gitlink_unchanged: true
@@ -19,10 +19,16 @@ m04_integrated_ci: observed_ci_pass
 m04_ci_run: 43328844657
 m05_source: implemented
 m05_commit_first: 6a5d5c5dd9dbe834c738de8e450a3d237758ad13
-m05_ci: in_progress
+m05_ci: observed_ci_pass
+m05_ci_run: 43334096218
 m05_shield_test: not_run
 m05_live_account_test: not_run
 m05_pr: 20
+m06_code: implemented_pending_ci
+m06_pr: 21
+m06_ci: correcting_kotlin_compile_error_ci_43338169709
+m06_shield_test: not_run
+m06_status_reason: source_integrated_without_runtime_device_evidence
 ```
 
 ## M05 — tatsächliche Basis
@@ -61,3 +67,16 @@ M06 übernimmt genau diese `feature/m05-mullvad-accounts-tv`-Implementierung nac
 ### Review-Nachtrag: originaler UI-DI-Bootstrap
 
 Der Originalcode registriert `VoucherRepository` und `NewDeviceRepository` in `uiModule`, nicht in `appModule`; die Mullvad-Smartphone-`MainActivity` lädt `uiModule`/`paymentModule` in `onCreate`. Da Plume diese Activity nie startet, übernimmt die native `VpnActivity` exakt `loadKoinModules(listOf(uiModule, paymentModule))`, **vor** ihrer View-Erstellung. Ohne diese Anbindung würden Koin-Auflösungen der Original-Repositories erst zur Laufzeit fehlschlagen. Der neue Source-Staging-Test verlangt diese Modulinitialisierung; das Submodul bleibt unverändert.
+
+## M06 — aktiver Stand / Übergabe
+
+- **Basis:** tatsächlicher `main`-HEAD `2c518bc3427c99d72820559deee5d7258791cee9` (M05 PR #20 gemergt); keine offenen PRs beim Start. M05-Workflow [43334096218](https://github.com/Justify87/Plume_Launcher/actions/runs/43334096218) hat `success`, seine Shield-Kontoabnahme bleibt `not_run`.
+- **Pin:** `android/2026.12` / `aa47f606b1a159214c7279344128119fa91be5fd`, Gitlink unverändert. Ausgangs- und Relayauswahl im separaten `VpnLocationUi.kt` im temporären `ossProd`-Host; originale Kotlin/Rust/JNI-Dateien **nicht geändert**.
+- **Original-Datenfluss:** `RelayListRepository.relayList/selectedLocation/refreshRelayList`, `FilteredRelayListUseCase(RelayListType.Single)`, Mullvad `newFilterOnSearch`, `RelayListFilterRepository`, `ProviderToOwnershipsUseCase`, `RecentsUseCase`, `SettingsRepository.setRecentsEnabled`, `CustomListsRepository` und `CustomListsRelayItemUseCase`. Auswahl über `SelectSinglehopUseCase`; kein erzwungener Reconnect entgegen dem Android-Upstream.
+- **TV:** Zwei unabhängig scrollbar/fokussierbare Spalten für Länder und ihre Städte/Server, Suche, Lade-/Offline-/Leermeldungen, Eigentümer-/Anbieter-Dialog, zuletzt verwendete Ziele, Custom-List-Erstellen/Umbenennen/Löschen/Standorte hinzufügen/entfernen und Auswahl einer Liste als Ziel. D-Pad links zurück zum Rail, rechts in Details; bei Flow-Updates Fokus und Scrollposition anhand stabiler Schlüssel wiederherstellen.
+- **Grenze:** Mullvad Android 2026.12 bietet in `RelayListRepository.updateSelectedRelayLocation` / `ManagementService.setRelayLocation` nur `RelayItemId` → `Constraint.Only`, **keine** öffentliche Singlehop-Ausgangswahl-zurück-auf-`Constraint.Any`-Operation. Der vorhandene `Any`-Zustand wird angezeigt; kein erfundener Reset-Button. Automatische Multihop-Einstiegswahl gehört zu M09; diese API nicht mit Exit verwechseln. „Favoriten“ werden über benutzerdefinierte Listen organisiert, da kein separates Favorites-Repository besteht.
+- **Offen für M07:** Nach CI den echten Shield-Test (Login, Relayliste/Offline, Suche/Fokus, Filter, Create/Rename/Delete, Änderung während laufendem Tunnel und Exit-IP-Validierung) durchführen; zuvor keine vollständige M06-Parität behaupten. M07 implementiert anschließend die VPN-Einstellungen mit denselben Original-Repositories, ohne die M06-Tunnel-/Filterlogik nachzubauen.
+
+### M06 CI-Korrektur 1 (PR #21)
+
+- [CI 43338169709](https://github.com/Justify87/Plume_Launcher/actions/runs/43338169709): `check=success` einschließlich Staging-Tests/Plume-Unit/Lint; `mullvad-apk=fail` auf `:app:compileOssProdDebugKotlin` (fünf Fehler aus Toolbar-`action`-Aufrufen mit nachfolgendem Boolean-Parameter). Hilfsfunktionssignatur korrigiert (Click-Lambda als letzter Parameter), Renderer überprüft und D-Pad-Fokuskonflikt beim Auswählen eines linken Eintrags behoben. Nächster CI-Lauf muss den Fix nachweisen, nicht vorher `pass` setzen.

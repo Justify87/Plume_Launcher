@@ -90,3 +90,13 @@ Im ersten M03-Entwurf war der VPN-Eintrag als zusätzliche View außerhalb von `
 ### A-M05-Review — erforderlicher originaler UI-Module-Load
 
 Der Quellreview des **gepinnten** Upstreams ergab: `MullvadApplication.onCreate` lädt nur `appModule`; `Mullvad MainActivity.onCreate` lädt separat `uiModule` und `paymentModule`. Die Plume-`VpnActivity` ersetzt den Smartphone-Entry-Point, deshalb muss sie das gleiche originale `loadKoinModules(listOf(uiModule, paymentModule))` vor dem Aufbau von `VpnAccountUi` ausführen. `VoucherRepository` und `NewDeviceRepository` wären sonst nicht registriert. Bewusster minimaler Host-Lifecycle-Overlay, **keine** Änderung des Original-`AppModule`/`UiModule`, kein neuer DI-Container.
+
+## A-M06 — Standortansicht ohne Relay-Stack-Abzweig (13.11.2026)
+
+- Native View `VpnLocationUi` im `ossProd`-Host statt eigenes Relaymodell, Parser oder Compose-Navigation. `FilteredRelayListUseCase(RelayListType.Single)` respektiert die echten Constraints, einschließlich Mullvads Relay-Partitioning; Original-`newFilterOnSearch` liefert die Server-/Städte-/Ländersuche. Der TV-Renderer zeigt die hierarchischen Original-`RelayItem`-Werte.
+- `SelectSinglehopUseCase` als einzige Exit-Setter-Schnittstelle; analog Original-`SelectLocationViewModel` wird **nicht** zusätzlich `ConnectionProxy.reconnect()` ausgelöst. `ManagementService.tunnelState` bleibt einzige Quelle für den echten Exit, der in M04 dargestellt wird.
+- Anbieter und Eigentümer werden in `RelayListFilterRepository` als echte `Constraint`-Werte gespeichert; Filterziele in M06 ausschließlich `RelayHopType.EXIT`. Multihop-Entry-Constraints, DAITA usw. nicht vor M09 umstellen.
+- Original-`CustomListsRepository`, `CustomListsRelayItemUseCase`, `RecentsUseCase`, `SettingsRepository` übernehmen Persistenz; „Favoriten“ sind Custom Lists, keine eigene lokale Tabelle. Der Upstream hat keine `setSinglehopExitAutomatic`-Operation: `Constraint.Any` als bestehende Auswahl darstellen, aktives Reset ausdrücklich offen lassen und nicht als pass melden.
+- In `VpnActivity` ist `addLocationPanel` ausdrücklich **kein** weiterer `ScrollView`-Wrapper: nur zwei innere Scrollflächen bieten einen definierten Höhen-/Fokusbereich für lange Länder-/Serverlisten. Unberührte M04-/M05-/Launcher-Navigation und Submodul-Quellen behalten.
+
+**M06 UI-Review-Korrektur:** Links gewählte Länder/Listen behalten nach OK den linken Fokus; erst D-Pad-Rechts wechselt in die Detailspalte. Das vermeidet konkurrierende `post`-Fokusrestaurierung nach Neuzeichnen. Der CI-Kotlin-Fehler aus der falschen Position des `onClick`-Parameters wurde in der Plume-only-View behoben; originaler Mullvad-Code weiterhin unverändert.
