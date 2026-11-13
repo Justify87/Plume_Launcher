@@ -62,7 +62,8 @@ class NuvioProviderTest {
             record(classic, "not-started", position = null))
         val feeds = AndroidTvMediaSource.selectNuvio(listOf(classic),
             emptyList(), legacy, true)
-        assertTrue(feeds.inProgress.isEmpty()) // No label fallback for a localized classic.
+        assertEquals(listOf("started"), feeds.inProgress.map { it.program.item.contentId })
+        assertTrue(feeds.inProgress.single().legacyFallback) // Stable classic provider ID, not label.
         val watchNext = listOf(record(null, "started", position = 30_000L,
             watchNext = true, type = 0L))
         val fallback = AndroidTvMediaSource.selectNuvio(listOf(classic),
