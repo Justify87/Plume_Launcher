@@ -100,6 +100,9 @@ internal object AndroidTvMediaSource {
         }
         val progress = entries.filter { it.kind == NuvioChannelKind.IN_PROGRESS }.toMutableList()
         if (active.values.none { nuvioKind(it) == NuvioChannelKind.IN_PROGRESS }) {
+            // Prefer a real Watch Next record when it duplicates a Classic preview. Only
+            // identity + explicit episode numbers permit fallback dedupe; M02 owns full dedupe.
+            val seenFallback = HashSet<String>()
             progress += legacyPrograms.filter { p ->
                 isNuvioPackage(p.item.sourcePackage) &&
                     (p.item.playbackPositionMillis ?: 0L) >= 1_000L &&
@@ -107,6 +110,13 @@ internal object AndroidTvMediaSource {
                         (!p.watchNext && p.channelProviderId == p.item.sourcePackage) ||
                         (!p.watchNext && p.channelProviderId == null &&
                             p.channelName.equals("Continue Watching", ignoreCase = true)))
+            }.sortedByDescending { it.watchNext }.filter { p ->
+                val id = p.internalProviderId?.trim()?.removePrefix("wn_")?.takeIf { it.isNotEmpty() }
+                val season = p.seasonNumber?.trim()?.takeIf { it.isNotEmpty() }
+                val episode = p.episodeNumber?.trim()?.takeIf { it.isNotEmpty() }
+                if (id == null || season == null || episode == null) true
+                else seenFallback.add(listOf(p.item.sourcePackage, id, season, episode)
+                    .joinToString("\u0000"))
             }.map { NuvioFeedEntry(it, NuvioChannelKind.IN_PROGRESS, legacyFallback = true) }
         }
         return NuvioProviderFeeds(progress.toList(),
@@ -185,8 +195,11 @@ internal object AndroidTvMediaSource {
             program.seriesTitle?.trim()?.takeIf { it.isNotEmpty() },
             // Some providers put the series name in title and the episode in episode_title.
             program.item.title.takeIf {
-                (!program.episodeTitle.isNullOrBlank() && it != program.episodeTitle) ||
-                    (isNuvioPackage(pkg) && season != null && episode != null && it.isNotBlank())
+                // When the publisher identifies a series explicitly, a shared episode title
+                // ("Pilot") cannot be used as a second series key across unrelated shows.
+                program.seriesId.isNullOrBlank() && program.seriesTitle.isNullOrBlank() &&
+                    ((!program.episodeTitle.isNullOrBlank() && it != program.episodeTitle) ||
+                        (isNuvioPackage(pkg) && season != null && episode != null && it.isNotBlank()))
             },
         ).distinct()
         program.internalProviderId?.trim()?.takeIf { it.isNotEmpty() }?.let { rawId ->
