@@ -122,7 +122,10 @@ internal object NuvioMediaProjector {
         // 100000 can also be a real duration; hiding remaining time is conservative.
         val actualDuration = duration?.takeUnless { it == 100_000L }
         val actualPosition = position?.takeIf { actualDuration != null && it <= actualDuration }
-        val percent = p.item.progressPercent?.takeIf { it in 1..100 }
+        // The TV parser can clamp an impossible position > duration to 100%.
+        // That derived "percent" is not trustworthy, even when already populated.
+        val plausibleTiming = duration == null || position == null || position <= duration
+        val percent = if (!plausibleTiming) null else p.item.progressPercent?.takeIf { it in 1..100 }
             ?: if (duration != null && position != null && position <= duration)
                 ((position.toDouble() * 100.0) / duration.toDouble()).toInt().coerceIn(0, 100)
                     .takeIf { it > 0 } else null
