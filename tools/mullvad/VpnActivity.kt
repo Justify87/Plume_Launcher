@@ -239,6 +239,7 @@ class VpnActivity : ComponentActivity() {
                 settingsUi.onDaemonReady(daemonReady)
                 splitTunnelingUi.onDaemonReady(daemonReady)
                 advancedUi.onDaemonReady(daemonReady)
+                advancedUi.onTunnelState(if (daemonReady) latestTunnel else null)
                 grpcLine.text = "Mullvad-Dienst: " + if (daemonReady) "bereit" else state.toString()
                 diagnosticLine.text = grpcLine.text
                 renderTunnel()
@@ -500,7 +501,17 @@ class VpnActivity : ComponentActivity() {
             }
             tab.setOnFocusChangeListener { _, focused ->
                 paint(tab, focused, page == index)
-                if (focused) showPage(index)
+                if (focused) {
+                    // Switching to a different rail destination must not leave the
+                    // M06 browser stuck in the temporary advanced entry/exit mode.
+                    if (index != 1 && returnFromAdvanced) {
+                        returnFromAdvanced = false
+                        locationUi.showFor(RelayListType.Single)
+                    } else if (index == 1 && !returnFromAdvanced) {
+                        locationUi.showFor(RelayListType.Single)
+                    }
+                    showPage(index)
+                }
             }
             tab.setOnKeyListener { _, key, event ->
                 if (event.action == KeyEvent.ACTION_DOWN && key == KeyEvent.KEYCODE_DPAD_RIGHT) {
