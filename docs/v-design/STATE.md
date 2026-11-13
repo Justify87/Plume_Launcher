@@ -5,42 +5,44 @@ schema: plume-v-design-handoff/v1
 checked_on: "2026-11-13"
 repository: Justify87/Plume_Launcher
 base_branch: main
-main_head_observed: 78666326d97c5692eaa49f652da77c9a16e5433c
+main_head_observed: 59c7988d4b019c12647550095e24f8cf62aece33
 nuvio_branch: dev
 nuvio_head_observed: be4b84a84e004a2d36405601683df000d8dc446a
-active_milestone: M00
-active_status: partial_pending_pr_ci
-predecessor_milestone: null
-predecessor_pr: null
-predecessor_merged: not_applicable
-completed_bootstrap_pr: 32
-completed_bootstrap_merged: true
-completed_bootstrap_merge_sha: 78666326d97c5692eaa49f652da77c9a16e5433c
-work_branch: feature/vdesign-m00-reference-completion
-reference_commit_observed: e1c13b2783aa632c2cbf391b10eb923426f8fc81
-work_head_sha_observed: 28a2acc8aefb5b1e9610a49ea12b62baf970bc35
-work_head_note: "Last observed documentation commit before PR metadata update; actual live HEAD is in PR #33"
-current_pr: 33
-current_pr_state: open_draft
-local_tests: passed_sha256_header_dimensions_and_git_blob_identity
-android_build: not_run_no_local_android_sdk_or_checkout
-ci: pending_final_pr_head_checks
-ci_first_run_id: 43509467207
-ci_first_run_initial_status: in_progress_not_success
-ci_first_run_url: https://github.com/Justify87/Plume_Launcher/actions/runs/43509467207
-ci_previous_m00_first_run: "43505553469 cancelled"
-ci_previous_m00_final_run: "43507886182 success (check=success, mullvad-apk=skipped; image gate absent then)"
-shield: hardware_pending
-visual_comparison: not_run_no_launcher_screenshot
+active_milestone: M01
+active_status: partial_hardware_pending
+predecessor_milestone: M00
+predecessor_pr: 33
+predecessor_merged: true
+predecessor_merge_sha: 59c7988d4b019c12647550095e24f8cf62aece33
+m00_final_ci_run: 43509990732
+m00_final_ci_result: check_success_mullvad_apk_skipped
+work_branch: feature/vdesign-m01-nuvio-provider
+work_head_sha_at_documentation: 30084ee9fd630c805e799e4c2bec20416310bb05
+current_pr: 34
+current_pr_state: open_draft_not_merged
+m01_local_unit_test: not_run_no_checkout_or_android_sdk
+m01_test_code: passed_ci_unit_tests_and_lint_43513105647
+m01_android_build: ci_debug_and_release_built_43513105647_local_not_run
+m01_ci: success_check_43513105647_code_head_30084ee9
+m01_ci_job: 132188191911
+m01_first_failed_run: 43512433898
+m01_first_failure: two_unit_tests_fixed_in_30084ee9
+m01_final_docs_head_ci: pending_new_run
+m01_release_apk_before_bytes: 529422
+m01_release_apk_after_bytes: 532270
+m01_release_apk_delta_bytes: 2848
+m01_shield: hardware_pending
 reference_sha256: 95af66ad04f462867b5d52825c7e1946ac68b5e40bed52c07f4e74c085218f25
 reference_git_blob_sha: d1b14c00a6478cb3b49fcbbd637e0aa71db5df18
-reference_present_in_repo: true
-reference_path: docs/v-design/REFERENCE.png
-reference_encoding: JPEG_JFIF_under_original_png_filename
-next_milestone: M01_after_M00_CI_review
+reference_dimensions: "1536x864"
+reference_bytes: 249663
+reference_format: JPEG_JFIF_under_png_extension
+reference_verified_in_m01: true
+nuvio_feeds_snapshot: isolated_not_rendered
+next_milestone: M02_after_M01_review_and_CI
 blockers:
-  - "PR #33 CI on final commit not yet confirmed successful"
-  - "No local Android SDK/checkout or Shield runtime evidence; Shield acceptance belongs to M08"
+  - "CI for final documentation-only commit not yet observed; preceding code commit 30084ee9 check succeeded"
+  - "Physical Shield TV provider/approval/permission integration not tested"
 ```
 
 ## Baseline / tatsächliche Repository-Geschichte
@@ -62,3 +64,19 @@ blockers:
 - **[Draft-PR #33](https://github.com/Justify87/Plume_Launcher/pull/33)** wurde tatsächlich erstellt (Basis `main@78666326…`, erster geprüfter PR-HEAD `28a2acc8…`); erster [PR-CI-Run 43509467207](https://github.com/Justify87/Plume_Launcher/actions/runs/43509467207) war beim Abruf `in_progress`, kein Pass. Der Metadaten-Nachtrag erzeugt einen neuen HEAD: finale CI für den tatsächlichen PR-HEAD erneut prüfen. Status bis dahin **`partial_pending_pr_ci`**.
 - **M01**: Nuvio `IN_PROGRESS` / `AVAILABLE` / `UPCOMING` anhand Channel-`internal_provider_id` anbinden, Installationspaket/Provider-Berechtigungen real prüfen; keine SmartTube-Medien und keine Mischkanal-Aufteilung.
 - Keine Merge-Aktion ohne neue ausdrückliche Nutzerfreigabe.
+
+
+## Aktueller Meilenstein M01 — 13.11.2026
+
+**M01 implementiert auf dem echten gemergten M00-main** `9480a9417ec6` als zuletzt geprüfter Code-HEAD (vor diesem Dokumentationscommit), Branch `feature/vdesign-m01-nuvio-provider`, [Draft-PR #34](https://github.com/Justify87/Plume_Launcher/pull/34); **kein Merge**. M00 #33 wurde am 13.11.2026 gemergt; M00-finaler [CI-Run 43509990732](https://github.com/Justify87/Plume_Launcher/actions/runs/43509990732) war `completed/success`, Job [check](https://github.com/Justify87/Plume_Launcher/actions/runs/43509990732/job/132177567483) `success`, Mullvad-Job `skipped` nach Branch-Bedingung. Frühere M00-Statuszeilen oben sind historische Erstbeobachtungen, **nicht** der aktuelle Gate-Stand.
+
+Der reale Referenzblob wurde erneut aus GitHub-Base64 dekodiert, unabhängig SHA-256 berechnet (`95af66ad04f462867b5d52825c7e1946ac68b5e40bed52c07f4e74c085218f25` = Referenzdatei), JPEG/JFIF-Signatur und 1536×864 verifiziert. Nuvio `dev@be4b84a` nur gelesen. Provider-IDs/Opt-in werden nun im vorhandenen TV-IO-Pfad getrennt gelesen; noch keine V-Design-Kacheln. `NuvioProviderFeeds` wird atomar auf die drei Gruppen aktualisiert, bei fehlender Permission geleert. Nur ausdrücklich browsable Channels werden gelesen. Für klassisches Watch Next bleibt ein In-Progress-Rückgriff mit positiver Position, **niemals** für Available/Upcoming. Alte Classic-/SmartTube-Anzeige ist in M01 weiter vorhanden und wird erst in späteren Meilensteinen visuell ersetzt.
+
+**Noch nicht abgenommen:** CI auf dem endgültigen M01-PR-HEAD, Android TV 11 Provider-Opt-in in Laufzeit, Shield Pro 2019, visuelles Live-Screenshot- und Mullvad-Geräteverhalten. Keine realen Hardware-Erfolge behauptet. M02 darf nur auf dem realen M01-HEAD fortsetzen und übernimmt fachliche Datenqualität/Sortierung/Verknüpfung.
+
+
+## M01 — finaler Code-CI-Nachtrag (13.11.2026)
+
+- [PR #34](https://github.com/Justify87/Plume_Launcher/pull/34) (Draft, ungemergt). Erster [Run 43512433898](https://github.com/Justify87/Plume_Launcher/actions/runs/43512433898) auf `9480a941...` endete `failure` mit **2 fehlgeschlagenen Tests von 213**: `differentShowsWithSameEpisodeTitleAndGenericIntentRemainDistinct` und `classicMixedEntriesDoNotBecomeAvailableOrUpcoming`. Es handelte sich um echte M01-Dedupe-/Fallback-Regressionsbefunde, keine Gradle-Infrastrukturfehler. Code-Fix [30084ee9](https://github.com/Justify87/Plume_Launcher/commit/30084ee9fd630c805e799e4c2bec20416310bb05) vermeidet Serien-Kollision bei expliziten Serien-IDs und doppelte Legacy-Fallback-Sätze.
+- [Korrigierter Run 43513105647](https://github.com/Justify87/Plume_Launcher/actions/runs/43513105647) auf Code-SHA `30084ee9fd630c805e799e4c2bec20416310bb05`: **completed/success**. [Job check 132188191911](https://github.com/Justify87/Plume_Launcher/actions/runs/43513105647/job/132188191911): `testDebugUnitTest lintDebug` **success**, `assembleDebug assembleRelease` **success**, APK-Größenvergleich **success**. Release-APK: **529422 → 532270 Bytes (+2848 Bytes)**. `mullvad-apk` in diesem PR nach Branch-Regel **skipped**, das ist **kein** ausgeführter Mullvad-Integrationstest. Lokale Gradle-/Hardware-Abnahme weiterhin `not_run`.
+- Nach diesem Dokumentationscommit entsteht ein neuer PR-HEAD, dessen CI unabhängig zu prüfen ist; daher noch keine vorweggenommene finale CI-Behauptung. **M01 bleibt `partial_hardware_pending`** bis echter Android-TV-11-/Shield-Test des Package-/Provider-/Browsable-Pfads. Kein Merge erteilt. Nächster technischer Meilenstein **M02**.

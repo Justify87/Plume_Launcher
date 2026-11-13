@@ -15,16 +15,114 @@ internal data class AndroidTvProgram(
     val episodeTitle: String? = null,
     val seasonNumber: String? = null,
     val episodeNumber: String? = null,
+    val channelId: Long? = null,
+    val channelProviderId: String? = null,
+    val releaseDate: String? = null,
 )
 
+/** Channel ID, real package, localized label, provider key, and approved visibility. */
+internal data class TvPreviewChannel(
+    val id: Long,
+    val packageName: String,
+    val displayName: String,
+    val channelProviderId: String?,
+    val browsable: Boolean?,
+) {
+    // Keep old Triple-style settings and wallpaper callers intact.
+    val first: Long get() = id
+    val second: String get() = packageName
+    val third: String get() = displayName
+}
+internal enum class NuvioChannelKind { LEGACY, IN_PROGRESS, AVAILABLE, UPCOMING }
+internal data class NuvioFeedEntry(
+    val program: AndroidTvProgram,
+    val kind: NuvioChannelKind,
+    val legacyFallback: Boolean = false,
+)
+internal data class NuvioProviderFeeds(
+    val inProgress: List<NuvioFeedEntry>,
+    val available: List<NuvioFeedEntry>,
+    val upcoming: List<NuvioFeedEntry>,
+) {
+    companion object { val EMPTY = NuvioProviderFeeds(emptyList(), emptyList(), emptyList()) }
+}
+
 internal object AndroidTvMediaSource {
+    val categorizedNuvioKinds = setOf(NuvioChannelKind.IN_PROGRESS,
+        NuvioChannelKind.AVAILABLE, NuvioChannelKind.UPCOMING)
     /** Actual application IDs of this Nuvio fork, including its debug and Play Store variants. */
+    /** Current actual full/Play Store/debug/benchmark IDs plus historical fork installations. */
     fun isNuvioPackage(pkg: String?): Boolean = pkg in setOf(
+        "com.nuvio.tv", "com.nuviodebug.com", "com.nuvio.app", "com.nuvio.appdebug",
+        "com.nuvio.tv.debug", "com.nuvio.app.debug",
+    ) || isLegacyNuvioPackage(pkg)
+
+    fun isLegacyNuvioPackage(pkg: String?): Boolean = pkg in setOf(
         "com.justify87.nuviotv.wireguard",
         "com.justify87.nuviotv.wireguard.debug",
         "com.justify87.nuviotv.wireguard.playstore",
         "com.justify87.nuviotv.wireguard.playstore.debug",
     )
+
+    /** Based solely on exact TvChannelKind provider key and the real owning package. */
+    fun nuvioKind(channel: TvPreviewChannel): NuvioChannelKind? {
+        val pkg = channel.packageName
+        if (channel.id <= 0L || !isNuvioPackage(pkg)) return null
+        return when (channel.channelProviderId) {
+            pkg -> NuvioChannelKind.LEGACY
+            "$pkg:in-progress" -> NuvioChannelKind.IN_PROGRESS
+            "$pkg:available" -> NuvioChannelKind.AVAILABLE
+            "$pkg:upcoming" -> NuvioChannelKind.UPCOMING
+            else -> null
+        }
+    }
+
+    /**
+     * A separate M01 snapshot, not rendered by the existing Classic/Overview.
+     * Unknown/unapproved channels never contribute; fallback contains only started legacy
+     * Watch Next or classic mixed-channel entries, never supposed 'available' episodes.
+     */
+    fun selectNuvio(
+        channels: List<TvPreviewChannel>,
+        programs: List<AndroidTvProgram>,
+        legacyPrograms: List<AndroidTvProgram>,
+        permissionGranted: Boolean,
+    ): NuvioProviderFeeds {
+        if (!permissionGranted) return NuvioProviderFeeds.EMPTY
+        val active = channels.filter { it.browsable == true &&
+            nuvioKind(it) in categorizedNuvioKinds }.associateBy { it.id }
+        val entries = programs.mapNotNull { program ->
+            val channel = active[program.channelId] ?: return@mapNotNull null
+            val kind = nuvioKind(channel) ?: return@mapNotNull null
+            if (program.watchNext || program.item.sourcePackage != channel.packageName ||
+                program.channelProviderId != channel.channelProviderId) return@mapNotNull null
+            NuvioFeedEntry(program, kind)
+        }
+        val progress = entries.filter { it.kind == NuvioChannelKind.IN_PROGRESS }.toMutableList()
+        if (active.values.none { nuvioKind(it) == NuvioChannelKind.IN_PROGRESS }) {
+            // Prefer a real Watch Next record when it duplicates a Classic preview. Only
+            // identity + explicit episode numbers permit fallback dedupe; M02 owns full dedupe.
+            val seenFallback = HashSet<String>()
+            progress += legacyPrograms.filter { p ->
+                isNuvioPackage(p.item.sourcePackage) &&
+                    (p.item.playbackPositionMillis ?: 0L) >= 1_000L &&
+                    ((p.watchNext && p.watchNextType == 0L) ||
+                        (!p.watchNext && p.channelProviderId == p.item.sourcePackage) ||
+                        (!p.watchNext && p.channelProviderId == null &&
+                            p.channelName.equals("Continue Watching", ignoreCase = true)))
+            }.sortedByDescending { it.watchNext }.filter { p ->
+                val id = p.internalProviderId?.trim()?.removePrefix("wn_")?.takeIf { it.isNotEmpty() }
+                val season = p.seasonNumber?.trim()?.takeIf { it.isNotEmpty() }
+                val episode = p.episodeNumber?.trim()?.takeIf { it.isNotEmpty() }
+                if (id == null || season == null || episode == null) true
+                else seenFallback.add(listOf(p.item.sourcePackage, id, season, episode)
+                    .joinToString("\u0000"))
+            }.map { NuvioFeedEntry(it, NuvioChannelKind.IN_PROGRESS, legacyFallback = true) }
+        }
+        return NuvioProviderFeeds(progress.toList(),
+            entries.filter { it.kind == NuvioChannelKind.AVAILABLE },
+            entries.filter { it.kind == NuvioChannelKind.UPCOMING })
+    }
 
     /**
      * Nuvio's legacy Watch Next and Continue Watching channel mix in unstarted Next Up
@@ -41,6 +139,14 @@ internal object AndroidTvMediaSource {
             val nuvio = isNuvioPackage(program.item.sourcePackage)
             val started = (program.item.playbackPositionMillis ?: 0L) >= 1000L
             val category = when {
+                !program.watchNext && nuvio && program.channelProviderId in setOf(
+                    "${program.item.sourcePackage}:in-progress",
+                    "${program.item.sourcePackage}:available",
+                    "${program.item.sourcePackage}:upcoming",
+                ) -> null
+                !program.watchNext && nuvio &&
+                    program.channelProviderId == program.item.sourcePackage ->
+                    if (started) MediaCategory.CONTINUE else null
                 program.watchNext && program.watchNextType == 0L ->
                     if (!nuvio || started) MediaCategory.CONTINUE else null
                 !program.watchNext && program.channelName.equals("Continue Watching", ignoreCase = true) ->
@@ -89,8 +195,11 @@ internal object AndroidTvMediaSource {
             program.seriesTitle?.trim()?.takeIf { it.isNotEmpty() },
             // Some providers put the series name in title and the episode in episode_title.
             program.item.title.takeIf {
-                (!program.episodeTitle.isNullOrBlank() && it != program.episodeTitle) ||
-                    (isNuvioPackage(pkg) && season != null && episode != null && it.isNotBlank())
+                // When the publisher identifies a series explicitly, a shared episode title
+                // ("Pilot") cannot be used as a second series key across unrelated shows.
+                program.seriesId.isNullOrBlank() && program.seriesTitle.isNullOrBlank() &&
+                    ((!program.episodeTitle.isNullOrBlank() && it != program.episodeTitle) ||
+                        (isNuvioPackage(pkg) && season != null && episode != null && it.isNotBlank()))
             },
         ).distinct()
         program.internalProviderId?.trim()?.takeIf { it.isNotEmpty() }?.let { rawId ->

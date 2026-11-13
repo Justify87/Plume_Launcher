@@ -230,7 +230,7 @@ class AndroidTvMediaSourceTest {
         assertTrue(AndroidTvMediaSource.isNuvioPackage(nuvio))
         assertTrue(AndroidTvMediaSource.isNuvioPackage(nuvio + ".debug"))
         assertTrue(AndroidTvMediaSource.isNuvioPackage(nuvio + ".playstore"))
-        assertTrue(!AndroidTvMediaSource.isNuvioPackage("com.nuvio.tv"))
+        assertTrue(AndroidTvMediaSource.isNuvioPackage("com.nuvio.tv"))
         assertTrue(!AndroidTvMediaSource.isNuvioPackage("com.justify87.nuviotv.wireguard.fake"))
     }
     @Test fun smartTubeOnlyPublishesVerifiedSubscriptionVideosAsNew() {
