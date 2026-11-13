@@ -299,8 +299,14 @@ bash tools/mullvad/build-integrated.sh
 python3 tools/mullvad/check_apk.py <APK>
 adb devices -l
 adb install -r <APK>
-adb shell am start -n dev.plume.advanced/net.mullvad.mullvadvpn.app.VpnActivity
+adb shell monkey -p dev.plume.advanced -c android.intent.category.LEANBACK_LAUNCHER 1
+# Anschließend per D-Pad in Plume den sichtbaren VPN-Zugang öffnen; die VPN-Activity ist absichtlich nicht exportiert.
 adb logcat -d -s AndroidRuntime MullvadVpnService MullvadDaemon
 ```
 
 **Abnahme:** Quelle/Integration bis CI = `partial`; Singlehop-Exit-Any-Reset = `partial` wegen fehlender Upstream-Mutations-API; echte VPN-/D-Pad-/Relay-/Filter-/Listen-Prüfung = `not_run`. Der Stand ist erst dann `pass`, wenn APK-CI **und** physische Shield-Prüfung gegen Mullvads Originaldienst protokolliert sind.
+
+### M06 CI-Review: erste Korrektur
+
+- [Run 43338169709](https://github.com/Justify87/Plume_Launcher/actions/runs/43338169709): `check=success` (Plume-Regeln, Installer, Spotify-Probe, Mullvad-Prepare-Python-Tests, Plume-Unit/Lint); `mullvad-apk=fail`, fünf Kotlin-Compilerfehler `VpnLocationUi.kt:145–149`, fehlendes `onClick` und Boolean/Lambda-Typkonflikt. Ursache ist allein die Parameterreihenfolge der `action`-View-Fabrik mit Trailing Lambda; Signatur/Argumente korrigiert, erneuter Build nötig. Kein Rust-/gRPC-/Mullvad-Sourcefehler beobachtet.
+- ADB-Abnahmekommando auf exportierte Plume-Leanback-Start-Activity geändert; direkte `am start`-Anforderung an die nicht exportierte `VpnActivity` war unzulässig.

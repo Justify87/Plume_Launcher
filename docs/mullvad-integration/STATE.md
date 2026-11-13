@@ -25,8 +25,8 @@ m05_shield_test: not_run
 m05_live_account_test: not_run
 m05_pr: 20
 m06_code: implemented_pending_ci
-m06_pr: pending
-m06_ci: not_run
+m06_pr: 21
+m06_ci: correcting_kotlin_compile_error_ci_43338169709
 m06_shield_test: not_run
 m06_status_reason: source_integrated_without_runtime_device_evidence
 ```
@@ -76,3 +76,7 @@ Der Originalcode registriert `VoucherRepository` und `NewDeviceRepository` in `u
 - **TV:** Zwei unabhängig scrollbar/fokussierbare Spalten für Länder und ihre Städte/Server, Suche, Lade-/Offline-/Leermeldungen, Eigentümer-/Anbieter-Dialog, zuletzt verwendete Ziele, Custom-List-Erstellen/Umbenennen/Löschen/Standorte hinzufügen/entfernen und Auswahl einer Liste als Ziel. D-Pad links zurück zum Rail, rechts in Details; bei Flow-Updates Fokus und Scrollposition anhand stabiler Schlüssel wiederherstellen.
 - **Grenze:** Mullvad Android 2026.12 bietet in `RelayListRepository.updateSelectedRelayLocation` / `ManagementService.setRelayLocation` nur `RelayItemId` → `Constraint.Only`, **keine** öffentliche Singlehop-Ausgangswahl-zurück-auf-`Constraint.Any`-Operation. Der vorhandene `Any`-Zustand wird angezeigt; kein erfundener Reset-Button. Automatische Multihop-Einstiegswahl gehört zu M09; diese API nicht mit Exit verwechseln. „Favoriten“ werden über benutzerdefinierte Listen organisiert, da kein separates Favorites-Repository besteht.
 - **Offen für M07:** Nach CI den echten Shield-Test (Login, Relayliste/Offline, Suche/Fokus, Filter, Create/Rename/Delete, Änderung während laufendem Tunnel und Exit-IP-Validierung) durchführen; zuvor keine vollständige M06-Parität behaupten. M07 implementiert anschließend die VPN-Einstellungen mit denselben Original-Repositories, ohne die M06-Tunnel-/Filterlogik nachzubauen.
+
+### M06 CI-Korrektur 1 (PR #21)
+
+- [CI 43338169709](https://github.com/Justify87/Plume_Launcher/actions/runs/43338169709): `check=success` einschließlich Staging-Tests/Plume-Unit/Lint; `mullvad-apk=fail` auf `:app:compileOssProdDebugKotlin` (fünf Fehler aus Toolbar-`action`-Aufrufen mit nachfolgendem Boolean-Parameter). Hilfsfunktionssignatur korrigiert (Click-Lambda als letzter Parameter), Renderer überprüft und D-Pad-Fokuskonflikt beim Auswählen eines linken Eintrags behoben. Nächster CI-Lauf muss den Fix nachweisen, nicht vorher `pass` setzen.

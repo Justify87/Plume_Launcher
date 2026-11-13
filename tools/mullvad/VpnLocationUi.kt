@@ -283,7 +283,6 @@ internal class VpnLocationUi(
                 chosenList = item.id
                 chosenCity = null
                 repaint(true)
-                firstRight?.requestFocus()
             }
         }
         leftRows.addView(label("Länder", 16f, true))
@@ -294,7 +293,6 @@ internal class VpnLocationUi(
                 chosenCountry = country.id
                 chosenCity = null
                 repaint(true)
-                firstRight?.requestFocus()
             }
         }
         if (countryRows.isEmpty()) leftRows.addView(label("Keine Länder in der Auswahl.", 14f))
@@ -556,13 +554,13 @@ internal class VpnLocationUi(
     }
 
     private fun addLeft(key: String, text: String, onClick: () -> Unit) {
-        val control = action(text, key, onClick, true)
+        val control = action(text, key, true, onClick)
         leftRows.addView(control)
         if (lastLeft == null) lastLeft = control
     }
 
     private fun addRight(key: String, text: String, enabled: Boolean, onClick: () -> Unit) {
-        val control = action(text, key, onClick, false).apply {
+        val control = action(text, key, false, onClick).apply {
             isEnabled = enabled && daemonReady
             alpha = if (isEnabled) 1f else 0.52f
         }
@@ -571,7 +569,7 @@ internal class VpnLocationUi(
     }
 
     private fun action(
-        title: String, key: String, onClick: () -> Unit, left: Boolean = false
+        title: String, key: String, left: Boolean = false, onClick: () -> Unit
     ) = Button(activity).apply {
         text = title
         tag = key
