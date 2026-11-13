@@ -148,3 +148,16 @@ Der frühere failed-Lint-Run 43516551245 bleibt als historische Evidenz erhalten
 | Native Mullvad/JNI/VpnService | Source-/Gitlink-Diff unverändert, branch-conditioned native job | **skipped; runtime pending**, keine integrierte APK-Abnahme |
 | Lokale Builds/JVM/Emulator/Shield | Kein Android SDK/Checkout oder angeschlossenes Gerät | **not_run/hardware_pending** |
 | Exakter endgültiger PR-HEAD nach Docs | Run nach Commit separat beobachten, ggf. PR-Kommentar mit immutable Evidence | **pending** |
+
+
+### M03 – CI nach dem vollständigen Code- und Dokumentationscommit
+
+| Test/Gate | Unveränderlicher Nachweis | Beobachtetes Ergebnis |
+| --- | --- | --- |
+| PR-CI auf HEAD `8160f2bf...` | [Run 43521292243](https://github.com/Justify87/Plume_Launcher/actions/runs/43521292243), [check 132215945300](https://github.com/Justify87/Plume_Launcher/actions/runs/43521292243/job/132215945300) | **completed/success** |
+| JVM inkl. M03-Canvas-Tests und Android-Lint | `./gradlew testDebugUnitTest lintDebug` im Check-Log; BUILD SUCCESSFUL | **passed_ci**; 114 Warnungen, bekannte Baseline-Filter nicht geändert |
+| Debug-/Release-APK-Builds | `./gradlew assembleDebug assembleRelease`; BUILD SUCCESSFUL | **passed_ci** |
+| Release-APK-Differenz | Check-Log `APK: 535462 -> 540870 bytes (5408)` | **+5408 Bytes**, attributed to M03 shell/icons |
+| Repo-Regeln/Installer/Offline-Regressionen | Check-Log: 44 Checks/0 fail; 10+12+6 Python unit tests | **passed_ci** |
+| Native Original-Mullvad/Rust/JNI/echter Tunnel | `mullvad-apk` [Job 132215947446](https://github.com/Justify87/Plume_Launcher/actions/runs/43521292243/job/132215947446) | **skipped_branch_condition; runtime_hardware_pending** |
+| Neuer Evidence-only-Docs-HEAD | nach diesem Commit neuen Run wirklich nachlesen | **pending_new_ci**, kein erfundener Pass |

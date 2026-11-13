@@ -16,7 +16,7 @@ predecessor_merge_sha: 3f77ba552b47152349d28aae15b02a865b367649
 nuvio_branch: dev
 nuvio_sha_observed: be4b84a84e004a2d36405601683df000d8dc446a
 milestone: M03
-status: source_implemented_ci_pending_emulator_not_run_shield_pending
+status: code_docs_ci_success_hardware_pending
 work_branch: feature/vdesign-m03-layout-sidebar
 work_code_head_pre_docs: 71f5e80c09d004185cb09f7226d9ac66e66eeae1
 draft_pr: 36
@@ -34,8 +34,16 @@ ci_first_code_result: cancelled_after_new_commit
 ci_second_code_run: 43520288284
 ci_second_code_result: cancelled_after_new_commit
 ci_current_source_run: 43520674555
-ci_current_source_result_at_docs: in_progress_not_success
+ci_current_source_result_at_docs: cancelled_on_next_docs_commit
 ci_current_source_check_job: 132213947427
+m03_code_docs_ci_run: 43521292243
+m03_code_docs_ci_job: 132215945300
+m03_code_docs_ci_sha: 8160f2bf05df335b52c9735c675b12a8dbda57b0
+m03_code_docs_ci_result: completed_success
+m03_release_apk_before_bytes: 535462
+m03_release_apk_after_bytes: 540870
+m03_release_apk_delta_bytes: 5408
+m03_followup_evidence_docs_ci: pending_new_run
 ci_mullvad_native: skipped_branch_filter
 m03_local_gradle: not_run_no_android_sdk_checkout
 m03_emulator_screenshot: not_run
@@ -57,8 +65,8 @@ blockers:
 - **Sichtbar:** Ein programmatischer, klassischer Android-View-Host über den alten Home-Views, unter All-Apps-/Settings-Overlays; tiefer statischer Farbverlauf; 14 unfokussierbare Leer-Slots (Hero+2, 3, 4×2). Rechte Kachelgeometrie folgt `DESIGN_CONTRACT.md` und der Referenz; 5 feste Sidebar-Schlüssel, Ziele nach Installation gefiltert, VPN nur bei resolvierbarer interner Activity. Kein App-/Fake-Serienmaterial, keine SmartTube-Kachel.
 - **Daten/Lebenszyklus:** M02-`NuvioDashboardFeed` bindet die vollständigen deduplizierten Zähler; Count-Refresh nach TV-Query/Resume und nur ein lokaler, DST-sicherer Tageswechsel-Callback während Resume. Release-Daten-Kacheltexte entstehen erst M04. Bestehender `GlassLayer` bleibt auf Root-Index 2, Wallpaper/Video unberührt. Direct Boot beendet `onCreate` vor Initialisierung des neuen Hosts/Persistenzzugriff.
 - **Temporäre Navigation:** Übersicht langes OK → vorhandenes All-Apps; Einstellungen → vorhandenes Settings-Panel, langes OK → bestehende Sources/HDMI-Auswahl; VPN → originale integrierte Activity. Altes `home_layout_mode` wird in M03 bewusst **nicht** gelöscht, aber als sichtbarer Startmodus von der neuen Shell überlagert; vollständige Einstellungs-/Pref-Migration gehört M06.
-- **Prüfgrenze:** JVM-Koordinatentests sind committed; Android SDK/Emulator/Shield in dieser Ausführung nicht verfügbar. Die bisher beobachteten CI-Run-IDs sind keine endgültigen Success-Belege; aktuelle PR-HEAD-Checks nach diesem Dokumentationscommit gesondert nachlesen. Mullvad-native-Job branchbedingt skipped.
-- **Review:** `REVIEWS.md#M03`; Teststatus `TEST_MATRIX.md#M03`. Ergebnis: **partial_pending_final_ci_and_hardware**. Keine Mergefreigabe.
+- **CI nachträglich tatsächlich abgeschlossen:** [Run 43521292243](https://github.com/Justify87/Plume_Launcher/actions/runs/43521292243) auf exakt `8160f2bf05df335b52c9735c675b12a8dbda57b0` ist **completed/success**; [check 132215945300](https://github.com/Justify87/Plume_Launcher/actions/runs/43521292243/job/132215945300) **success**. `./gradlew testDebugUnitTest lintDebug` (BUILD SUCCESSFUL) und `./gradlew assembleDebug assembleRelease` (BUILD SUCCESSFUL), 44/0 Installerchecks, 10/12/6 Offline-Python-Tests erfolgreich. Release-APK `535462 → 540870` Bytes (**+5408 Bytes**) für neue View-Shell/2 Vector-Icons und deren Klassen/Styles. `lintDebug` meldete 114 Warnungen und vorhandene Baseline-Funde, Build erfolgreich, Lint-Baseline unverändert. Mullvad-native-Job branchbedingt skipped, kein VPN-Runtime-Nachweis. Lokales Gradle/Android SDK/Emulator/Shield weiterhin nicht verfügbar. Dieser zusätzliche CI-Evidence-Nachtrag erzeugt einen neuen Docs-HEAD; sein CI muss gesondert geprüft werden.
+- **Review:** `REVIEWS.md#M03`; Teststatus `TEST_MATRIX.md#M03`. Ergebnis: **partial_hardware_pending** (Code-/Docs-CI auf `8160f2bf` nachweislich erfolgreich; Evidence-Docs-Follow-up-CI noch abzuwarten). Keine Mergefreigabe.
 
 ## Canvas- und Insets-Abbildung (M03)
 
