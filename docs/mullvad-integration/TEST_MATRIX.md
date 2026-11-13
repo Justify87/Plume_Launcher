@@ -310,3 +310,41 @@ adb logcat -d -s AndroidRuntime MullvadVpnService MullvadDaemon
 
 - [Run 43338169709](https://github.com/Justify87/Plume_Launcher/actions/runs/43338169709): `check=success` (Plume-Regeln, Installer, Spotify-Probe, Mullvad-Prepare-Python-Tests, Plume-Unit/Lint); `mullvad-apk=fail`, fünf Kotlin-Compilerfehler `VpnLocationUi.kt:145–149`, fehlendes `onClick` und Boolean/Lambda-Typkonflikt. Ursache ist allein die Parameterreihenfolge der `action`-View-Fabrik mit Trailing Lambda; Signatur/Argumente korrigiert, erneuter Build nötig. Kein Rust-/gRPC-/Mullvad-Sourcefehler beobachtet.
 - ADB-Abnahmekommando auf exportierte Plume-Leanback-Start-Activity geändert; direkte `am start`-Anforderung an die nicht exportierte `VpnActivity` war unzulässig.
+
+## M07 — DNS, LAN, Autoconnect, WireGuard-Basisoptionen (13.11.2026)
+
+Ausgang: `main` `73f50f59751f27021737bdf8a4c1b325eba9e146`, M06 PR #21 gemergt. [M06-CI 43339177759](https://github.com/Justify87/Plume_Launcher/actions/runs/43339177759) **success** für M06-Code; **keine** M07-/Shield-Testergebnisse daraus ableiten.
+
+| Testfall | Konkreter Nachweis | Status bei PR-Erstellung |
+| --- | --- | --- |
+| M07-01 Staging/Quellassertions | `python3 -m unittest discover -s tools -p test_mullvad_prepare.py -v` (M07-Original-API und generierte View) | `not_run` |
+| M07-02 Plume-Regression | `./gradlew testDebugUnitTest lintDebug assembleDebug`; `sh tools/plume-install-test/run.sh` | `not_run` |
+| M07-03 Kombinierte APK | `bash tools/mullvad/build-integrated.sh`, anschließend `python3 tools/mullvad/check_apk.py <APK>` | `not_run` |
+| M07-04 TV-Fokus | Classic/Overview: sichtbares VPN → VPN-Einstellungen → DNS-Unteransicht, links/rechts/OK/Back, EditText mit Bildschirmtastatur, lange DNS-Liste scrollen | `not_run` |
+| M07-05 DNS-Filter | sechs Filter einzeln + alle setzen und zurücksetzen; VPN-DNS-Abfragen/Blockverhalten; Wechsel zu Custom DNS und zurück | `not_run` |
+| M07-06 DNS-Adressen | IPv4/IPv6 neu/ändern/löschen; fehlerhafte Eingabe und Duplikat; letzte Adresse entfernen; App/Service neustarten und persistierten Zustand abgleichen | `not_run` |
+| M07-07 LAN/IPv6 | LAN-Freigabe Ein/Aus mit tatsächlichem lokalen Ziel; IPv6 Ein/Aus; Warnung bei lokalen/IPv6-DNS-Servern prüfen | `not_run` |
+| M07-08 MTU/WireGuard | MTU 1280/1420, außerhalb des Bereichs abweisen, Standard; IPv4/IPv6/Auto; Post-Quanten-Ein/Aus, Fehlermeldungen bei widersprüchlichen Constraints | `not_run` |
+| M07-09 Boot & Android OS | Boot-Toggle Ein/Aus, echtes Gerät neustarten; bei erteilter/nicht erteilter VPN-Freigabe; Always-on/Lockdown in Android-OS-UI prüfen, nie falschen Toggle-Wert anzeigen | `not_run` |
+| M07-10 Netzwerk/Service-Rebind | Netzwerk wechseln, fremde App öffnen, Home/Back, VPN-Service-Rebind; Einstellungen und Tunnelstatus erneut lesen | `not_run` |
+
+```bash
+git switch feature/m07-mullvad-vpn-settings-tv
+git submodule update --init --recursive
+test "$(git -C third_party/mullvadvpn-app rev-parse HEAD)" = aa47f606b1a159214c7279344128119fa91be5fd
+python3 -m unittest discover -s tools -p test_mullvad_prepare.py -v
+./gradlew testDebugUnitTest lintDebug assembleDebug
+sh tools/plume-install-test/run.sh
+bash tools/mullvad/build-integrated.sh
+python3 tools/mullvad/check_apk.py <APK>
+adb devices -l
+adb shell getprop ro.product.cpu.abilist
+adb install -r <APK>
+adb shell monkey -p dev.plume.advanced -c android.intent.category.LEANBACK_LAUNCHER 1
+# D-Pad in Classic + Overview: VPN → VPN-Einstellungen / DNS
+# Alle Testfälle M07-04..10 mit Testkonto und echten Netzwerkzielen durchführen.
+adb logcat -d -s AndroidRuntime MullvadVpnService MullvadDaemon
+adb shell dumpsys connectivity
+```
+
+Ohne angeschlossene NVIDIA Shield und gültige Kontoevidenz bleiben M07-04–10 `not_run`, selbst wenn CI grün wird. GitHub-CI muss separat im PR beobachtet und hier nachgetragen werden.

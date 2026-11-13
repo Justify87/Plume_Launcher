@@ -2,33 +2,28 @@
 
 ```yaml
 schema: plume-mullvad-handoff/v1
-milestone: M06
+milestone: M07
 status: partial
 checked_on: "2026-11-13"
-main_head_at_start: 2c518bc3427c99d72820559deee5d7258791cee9
-predecessor_milestone: M05
-predecessor_pr: 20
+main_head_at_start: 73f50f59751f27021737bdf8a4c1b325eba9e146
+predecessor_milestone: M06
+predecessor_pr: 21
 predecessor_merged_into_main: true
 base_branch: main
-feature_branch: feature/m06-mullvad-locations-tv
+feature_branch: feature/m07-mullvad-vpn-settings-tv
 upstream_tag: android/2026.12
 upstream_sha: aa47f606b1a159214c7279344128119fa91be5fd
 upstream_gitlink_unchanged: true
 single_apk_application_id: dev.plume.advanced
-m04_integrated_ci: observed_ci_pass
-m04_ci_run: 43328844657
-m05_source: implemented
-m05_commit_first: 6a5d5c5dd9dbe834c738de8e450a3d237758ad13
-m05_ci: observed_ci_pass
-m05_ci_run: 43334096218
-m05_shield_test: not_run
-m05_live_account_test: not_run
-m05_pr: 20
-m06_code: implemented_pending_ci
-m06_pr: 21
-m06_ci: correcting_kotlin_compile_error_ci_43338169709
+m06_ci: observed_ci_pass
+m06_ci_run: 43339177759
 m06_shield_test: not_run
-m06_status_reason: source_integrated_without_runtime_device_evidence
+m07_code: implemented_pending_ci
+m07_pr: pending
+m07_commit: pending
+m07_ci: not_run
+m07_shield_test: not_run
+m07_status_reason: pending_integrated_build_and_runtime_hardware_evidence
 ```
 
 ## M05 — tatsächliche Basis
@@ -80,3 +75,13 @@ Der Originalcode registriert `VoucherRepository` und `NewDeviceRepository` in `u
 ### M06 CI-Korrektur 1 (PR #21)
 
 - [CI 43338169709](https://github.com/Justify87/Plume_Launcher/actions/runs/43338169709): `check=success` einschließlich Staging-Tests/Plume-Unit/Lint; `mullvad-apk=fail` auf `:app:compileOssProdDebugKotlin` (fünf Fehler aus Toolbar-`action`-Aufrufen mit nachfolgendem Boolean-Parameter). Hilfsfunktionssignatur korrigiert (Click-Lambda als letzter Parameter), Renderer überprüft und D-Pad-Fokuskonflikt beim Auswählen eines linken Eintrags behoben. Nächster CI-Lauf muss den Fix nachweisen, nicht vorher `pass` setzen.
+
+## M07 — aktuelle Übergabe (13.11.2026)
+
+- **Ausgang:** `main` `73f50f59751f27021737bdf8a4c1b325eba9e146`, M06 PR #21 am 13.11.2026 gemergt. M06-PR-CI [43339177759](https://github.com/Justify87/Plume_Launcher/actions/runs/43339177759) `success`; Shield-Funktionstests von M06 weiterhin `not_run`. Kein gestapelter PR nötig.
+- **Upstream:** stabiler Tag `android/2026.12` erneut verifiziert; Gitlink `aa47f606b1a159214c7279344128119fa91be5fd` eingefroren. Alle neuen Änderungen sind ausschließlich Plume-eigene Staging-Overlays. Original-Quellen/Daemon/JNI werden nicht geändert.
+- **M07-Code:** `tools/mullvad/VpnSettingsUi.kt` wird als native View in die originale Mullvad-Host-APK gestaged. `VpnActivity` zeigt `VPN-Einstellungen` mit DNS-Unterseite statt Platzhalter und bindet originale `SettingsRepository`, `WireguardConstraintsRepository`, `AutoStartAndConnectOnBootRepository`, `DeleteCustomDnsUseCase`, `SystemVpnSettingsAvailableUseCase` (Koin `uiModule` bereits M05).
+- **API & Persistenz:** `settingsUpdates` und `wireguardConstraints` sowie Boot-Komponenten-StateFlow sind die einzige Wahrheit. DNS-Filter, eigene IPv4/IPv6-DNS-Server mit Original-Validierungsbibliothek, LAN, IPv6, Quantumschutz, Geräte-IP-Version, MTU/Reset und Boot-Autoconnect sind mit realen Settern verdrahtet. Kein künstliches Konfigurations-Cache.
+- **Android-Grenze:** `android.net.vpn.SETTINGS` öffnet bei Verfügbarkeit den OS-Bildschirm; Always-on/Lockdown werden **nicht** als von Plume ausles- oder setzbare Toggles vorgetäuscht. Mullvads Boot-Receiver benötigt vorhandene System-VPN-Erlaubnis und Android-Startbedingungen. `setCustomWireguardPort` steuert den **Obfuskationsport** und bleibt M10, nicht falsch als allgemeiner WireGuard-Port beschriften.
+- **Tests:** Quell-/Staging-Assertions geschrieben; bei Erstellung weder lokaler Android-/Rust-Build noch Shield/ADB möglich. CI erst nach PR prüfen. Kein `pass` für reale DNS-/LAN-/Boot-/Tunnel-/TV-Funktion ohne Geräteevidenz.
+- **M08:** baut ab exakt diesem Feature-Branch nach Merge auf `main`, andernfalls als Stack. Original-Split-Tunneling-Repository und reale App-Liste verwenden; die M07-Settings-Seite erhalten, bestehende `SystemVpnSettingsAvailableUseCase`-Grenze respektieren.
