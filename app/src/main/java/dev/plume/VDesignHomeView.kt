@@ -2,23 +2,24 @@ package dev.plume
 
 import android.content.Context
 import android.graphics.Color
+import android.graphics.Bitmap
 import android.graphics.Typeface
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import android.util.TypedValue
 import android.view.Gravity
+import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
+import java.time.Instant
+import java.time.ZoneId
+import java.util.Locale
 
-/**
- * M03 single-screen host. The old XML hosts remain mounted but invisible through M06.
- * M04 owns real artwork, focusable media cards and verified Nuvio deep links: all M03
- * media cells are deliberately inert geometry, NEVER synthetic show records.
- */
+/** Reference-anchored single visible V-Design home host. Legacy XML stays hidden until M06. */
 internal class VDesignHomeView(context: Context) : FrameLayout(context) {
     companion object {
         const val OVERVIEW = "vdesign:overview"
@@ -43,6 +44,17 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
     private val titleUpcoming: TextView
     private var open: (String) -> Unit = {}
     private var allApps: () -> Unit = {}
+    private var onMediaOpen: (NuvioMediaItem) -> Unit = {}
+    private var artworkLoader: (ImageView, String?) -> Unit = { _, _ -> }
+    private var mediaSourceIcon: (String) -> Drawable? = { null }
+    private val progressCards = mutableListOf<VDesignCardView>()
+    private val availableCards = mutableListOf<VDesignCardView>()
+    private val upcomingCards = mutableListOf<VDesignCardView>()
+    private var latestFeed = NuvioDashboardFeed.EMPTY
+    private var lastNow: Instant = Instant.EPOCH
+    private var lastZone: ZoneId = ZoneId.systemDefault()
+    private var lastLocale: Locale = Locale.getDefault()
+    private var upcomingOffset = 0
 
     init {
         isFocusable = false
@@ -63,15 +75,13 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
         titleAvailable = heading("Neue Folgen verfügbar", 263, 357, 23, R.drawable.vdesign_sparkle)
         titleUpcoming = heading("Demnächst", 263, 564, 23, R.drawable.vdesign_calendar)
 
-        // M03: 1 focused-sized hero + 2 standard; 3 equal wides; 4 x 2 compact.
-        // No titles, 'Neu', countdown or fake artwork until M04 binds real provider items.
-        cell(VDesignCanvas.Box(255, 74, 651, 262), hero = true)
-        cell(VDesignCanvas.Box(919, 83, 287, 245))
-        cell(VDesignCanvas.Box(1221, 83, 287, 245))
+        card(VDesignCanvas.Box(255, 74, 651, 262), VDesignCardView.Kind.HERO, progressCards)
+        card(VDesignCanvas.Box(919, 83, 287, 245), VDesignCardView.Kind.STANDARD, progressCards)
+        card(VDesignCanvas.Box(1221, 83, 287, 245), VDesignCardView.Kind.STANDARD, progressCards)
         for ((x, width) in listOf(258 to 402, 679 to 403, 1102 to 407))
-            cell(VDesignCanvas.Box(x, 403, width, 140))
+            card(VDesignCanvas.Box(x, 403, width, 140), VDesignCardView.Kind.AVAILABLE, availableCards)
         for (y in listOf(612, 727)) for (x in listOf(258, 576, 893, 1210))
-            cell(VDesignCanvas.Box(x, y, 302, 102), compact = true)
+            card(VDesignCanvas.Box(x, y, 302, 102), VDesignCardView.Kind.COMPACT, upcomingCards)
     }
 
     private fun scale(): Float = kotlin.math.min(
@@ -110,20 +120,31 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
         return text
     }
 
-    private fun cell(box: VDesignCanvas.Box, hero: Boolean = false, compact: Boolean = false) {
-        val placeholder = View(context).apply {
-            tag = if (hero) "vdesign:hero-slot" else "vdesign:media-slot"
-            isFocusable = false
-            isClickable = false
-            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
-            background = GradientDrawable(GradientDrawable.Orientation.TL_BR,
-                if (hero) intArrayOf(0x9B292B42.toInt(), 0xB01A1B30.toInt())
-                else intArrayOf(0x8C303148.toInt(), 0xB0181C30.toInt())).apply {
-                cornerRadius = (if (compact) 15 else 19) * scale()
-                setStroke((1 * scale()).toInt().coerceAtLeast(1), Palette.EMPTY_EDGE)
+    private fun card(box: VDesignCanvas.Box, kind: VDesignCardView.Kind,
+        into: MutableList<VDesignCardView>) {
+        val view = VDesignCardView(context, kind,
+            loadArtwork = { image, uri -> artworkLoader(image, uri) },
+            sourceMark = { pkg -> mediaSourceIcon(pkg) })
+        view.onSelect = { onMediaOpen(it) }
+        if (kind == VDesignCardView.Kind.COMPACT) {
+            val slot = upcomingCards.size
+            view.setOnKeyListener { _, key, event ->
+                if (event.action != KeyEvent.ACTION_DOWN) return@setOnKeyListener false
+                val direction = when (key) {
+                    KeyEvent.KEYCODE_DPAD_DOWN -> 1
+                    KeyEvent.KEYCODE_DPAD_UP -> -1
+                    else -> 0
+                }
+                val next = VDesignCardSlots.nextUpcomingOffset(
+                    latestFeed.upcoming.size, upcomingOffset, slot, direction)
+                if (next == upcomingOffset) return@setOnKeyListener false
+                upcomingOffset = next
+                bindUpcoming()
+                true // same focused physical card, newly exposed logical row
             }
         }
-        mount(placeholder, box)
+        mount(view, box)
+        into += view
     }
 
     private fun mount(view: View, box: VDesignCanvas.Box) {
@@ -145,10 +166,57 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
         for ((view, box) in anchored) position(view, box)
     }
 
-    /** Full provider counts from M02, not the 3/8 visible slots. */
+    /** Immutable M02 snapshot plus callbacks from the existing shared poster cache and TV launcher. */
+    fun bindMedia(loadArtwork: (ImageView, String?) -> Unit,
+        sourceIcon: (String) -> Drawable?, onSelect: (NuvioMediaItem) -> Unit) {
+        artworkLoader = loadArtwork
+        mediaSourceIcon = sourceIcon
+        onMediaOpen = onSelect
+    }
+
+    /** Reuse the 14 slots across provider refreshes and local-midnight invalidation. */
     fun bindFeed(feed: NuvioDashboardFeed) {
+        val focusedId = (progressCards + availableCards + upcomingCards)
+            .firstOrNull { it.isFocused }?.media?.stableId
+        latestFeed = feed
+        lastNow = Instant.now()
+        lastZone = ZoneId.systemDefault()
+        lastLocale = resources.configuration.locales[0] ?: Locale.getDefault()
         titleAvailable.text = "Neue Folgen verfügbar  ·  ${feed.available.size}"
         titleUpcoming.text = "Demnächst  ·  ${feed.upcoming.size}"
+        progressCards.forEachIndexed { index, card ->
+            card.bind(VDesignCardSlots.media(feed, NuvioSection.IN_PROGRESS, index),
+                lastNow, lastZone, lastLocale)
+        }
+        availableCards.forEachIndexed { index, card ->
+            card.bind(VDesignCardSlots.media(feed, NuvioSection.AVAILABLE, index),
+                lastNow, lastZone, lastLocale)
+        }
+        // Retain the focused upcoming identity even if provider ordering changed.
+        if (focusedId != null) {
+            val index = feed.upcoming.indexOfFirst { it.stableId == focusedId }
+            if (index >= 0 && index !in upcomingOffset until upcomingOffset + 8)
+                upcomingOffset = (index / 4 * 4).coerceAtMost((feed.upcoming.size - 8).coerceAtLeast(0))
+        }
+        upcomingOffset = upcomingOffset.coerceAtMost((feed.upcoming.size - 8).coerceAtLeast(0))
+        bindUpcoming()
+        if (focusedId != null) {
+            val cards = progressCards + availableCards + upcomingCards
+            val restored = cards.firstOrNull { it.media?.stableId == focusedId }
+                ?: cards.firstOrNull { it.isFocusable }
+            if (restored == null) focusOverview() else restored.requestFocus()
+        }
+    }
+
+    private fun bindUpcoming() {
+        upcomingCards.forEachIndexed { index, card ->
+            card.bind(VDesignCardSlots.media(latestFeed, NuvioSection.UPCOMING,
+                index, upcomingOffset), lastNow, lastZone, lastLocale)
+        }
+    }
+
+    fun artworkReady(uri: String, bitmap: Bitmap) {
+        (progressCards + availableCards + upcomingCards).forEach { it.artworkReady(uri, bitmap) }
     }
 
     fun bindNavigation(items: List<Navigation>, onOpen: (String) -> Unit, onAllApps: () -> Unit) {

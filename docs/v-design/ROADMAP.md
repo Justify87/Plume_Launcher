@@ -7,8 +7,8 @@
 | M00 | Plume baseline; #32 + #33 merged | Originalreferenz, Verträge, Baseline, Inventar | **source/reference+CI passed; hardware not applicable** | [#32](https://github.com/Justify87/Plume_Launcher/pull/32) + [#33](https://github.com/Justify87/Plume_Launcher/pull/33) merged; [CI success 43509990732](https://github.com/Justify87/Plume_Launcher/actions/runs/43509990732) | `REVIEWS.md#M00` |
 | M01 | M00 merged `59c7988` | Exakte Nuvio-Provider-/Paket-/Opt-in-Zuordnung, separate ungerenderte Daten | **merged into main `3d4abbdf`; final CI success, hardware pending** | [#34](https://github.com/Justify87/Plume_Launcher/pull/34) merged; [run 43514084610](https://github.com/Justify87/Plume_Launcher/actions/runs/43514084610) success | `REVIEWS.md#M01` |
 | M02 | M01 merged `3d4abbdf` | Drei Datenkategorien, Episode-Dedupe, Prozent vs. Dauer, civil date/Countdown | **merged `main@3f77ba55`; code CI success, Shield pending** | [#35](https://github.com/Justify87/Plume_Launcher/pull/35) merged; [run 43517654027](https://github.com/Justify87/Plume_Launcher/actions/runs/43517654027) success on code HEAD | `REVIEWS.md#M02` |
-| M03 | M02 merged `3f77ba55` | Ein sichtbarer V-Home-Host, 14 neutrale Geometrieplätze, fünf definierte Sidebar-Ziele und echter Nuvio-Count | **Code+Docs CI success on `8160f2bf`; evidence-only CI pending; Shield pending** | [Draft #36](https://github.com/Justify87/Plume_Launcher/pull/36), `feature/vdesign-m03-layout-sidebar` | `REVIEWS.md#M03` |
-| M04 | M03 | echte Hero-/Standard-/Mini-Poster + typografische Overlays/Focus | not_started | — | pending |
+| M03 | M02 merged `3f77ba55` | Ein sichtbarer V-Home-Host, 14 neutrale Geometrieplätze, fünf Sidebar-Ziele und echter Nuvio-Count | **merged `main@763869b8`; code+docs CI success on `8160f2bf`; Shield pending** | [#36](https://github.com/Justify87/Plume_Launcher/pull/36) merged | `REVIEWS.md#M03` |
+| M04 | M03 merged `763869b8` | 14 echte Nuvio-Hero-/Standard-/Compact-Cards, Poster/Progress/Datum und Intents | **code committed, PR CI in progress, Shield pending** | [Draft #37](https://github.com/Justify87/Plume_Launcher/pull/37), `feature/vdesign-m04-card-styling` | `REVIEWS.md#M04` |
 | M05 | M04 | D-Pad, All Apps, Settings, HDMI, Back/HOME und Details-/Playback-Ziele | not_started | — | pending |
 | M06 | M05 | Classic/Overview + `home_layout_mode` **wirklich entfernen**, Pref-Migration, alte Settings-Pfade sichern | not_started | — | pending |
 | M07 | M06 | Screenshotvergleich 16:9, Ressourcennutzung, Missing-Permissions, Test-/CI-Fixes | not_started | — | pending |
@@ -52,3 +52,18 @@
 - **Exakt nächster Meilenstein: M04** — reale Nuvio-Kacheln/Artworks/Progress/Release-Hinweise, sichere Player-/Detail-Intents und DPAD-Fokus.
 
 **M03 nachträglicher CI-Abschluss:** [Run 43521292243](https://github.com/Justify87/Plume_Launcher/actions/runs/43521292243), [check 132215945300](https://github.com/Justify87/Plume_Launcher/actions/runs/43521292243/job/132215945300), Code+Docs-SHA `8160f2bf05df335b52c9735c675b12a8dbda57b0`: `completed/success`. Unit-Tests, Lint, Debug+Release, Größenvergleich bestanden, Release-APK **535462 → 540870 Bytes (+5408)**. Dieser Evidence-Commit erzeugt einen neuen SHA, dessen CI nicht vorweggenommen wird. Shield/visuelle Abnahme bleibt offen.
+
+
+## M04 (aktueller Schritt, 2026-11-14 Europe/Berlin)
+
+- M03 ist über #36 tatsächlich gemergt, nicht mehr Draft. Verbindliche Quelle für den aktuellen M04-Status: [STATE.md](STATE.md), keine alten M03-Handoff-Zwischenstände.
+- 14 Nuvio-Karten nach Originalgeometrie gebunden; echte Provider-Counts statt Montageslots; SmartTube nur Sidebar. Keine neuen Berechtigungen, kein Mullvad-Submodul-Diff.
+- Quelle der Daten M01/M02; M04 übernimmt ausdrücklich keine Erfindung eines `Neu`-Flags oder synthetischer Minuten.
+- JVM-Testquellen committed; [PR #37](https://github.com/Justify87/Plume_Launcher/pull/37) CI-Status nur mit geprüftem Run; Emulator/Shield/Pixel-Overlay offen.
+- **M05 ist exakt als Nächstes dran**: D-Pad-Übergänge zwischen Sidebar/Hero/Standard/Compact, Back/HOME, Alle Apps, Settings, HDMI, VPN, Intent-Laufzeit und Fokusrestauration.
+
+
+**M04 Korrektur vor CI-Abnahme:** [13988ae](https://github.com/Justify87/Plume_Launcher/commit/13988ae216feecd33c39f5e3b491294b9fff6c22) verbessert Fokus-Fallback und URI-Authority-Validierung mit Tests; finaler Docs+Code-HEAD-CI ist weiter nicht als bestanden gewertet. M05 unverändert der nächste Meilenstein.
+
+
+**M04 Testbarkeit:** Der gezielte JVM-Binder `VDesignCardSlots` (Commit `3516fb`) prüft 3+3+8-Slot-Zuordnung und Upcoming-Paging ohne Android-UI-Simulator. Reale Layout-/Bildprüfung bleibt M07/M08. Erster finaler CI-Gate ist weiterhin abzuwarten; M05 folgt.

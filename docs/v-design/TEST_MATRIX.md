@@ -161,3 +161,43 @@ Der frühere failed-Lint-Run 43516551245 bleibt als historische Evidenz erhalten
 | Repo-Regeln/Installer/Offline-Regressionen | Check-Log: 44 Checks/0 fail; 10+12+6 Python unit tests | **passed_ci** |
 | Native Original-Mullvad/Rust/JNI/echter Tunnel | `mullvad-apk` [Job 132215947446](https://github.com/Justify87/Plume_Launcher/actions/runs/43521292243/job/132215947446) | **skipped_branch_condition; runtime_hardware_pending** |
 | Neuer Evidence-only-Docs-HEAD | nach diesem Commit neuen Run wirklich nachlesen | **pending_new_ci**, kein erfundener Pass |
+
+
+## M04 — Prüfevidenz (2026-11-14; Quellenstand 66cf0da2843c334a9686f2d61499a13f09a9d762)
+
+| Gate | Geprüfte Evidenz | Status |
+| --- | --- | --- |
+| M03 wirklicher Merge/Baseline | GitHub #36 merged, `main@763869b8bf672f5955b1d0682a643f0565bca5fb`; Nuvio `dev@be4b84a84e004a2d36405601683df000d8dc446a` | **passed_source_review** |
+| SHA Referenz + visuell angesehen | GitHub-JFIF-Bytes 249663, 1536×864; SHA256 `95af66ad...`, Blob `d1b14c...` | **passed_binary_visual_reference**; kein Live-Screenshot |
+| Hero/Standard/Available/Compact source-bound | `VDesignHomeView` 14 fixe Slots, `VDesignCardView` Focus/Progress/Art, `VDesignCardText` | **passed_source_review**, Emulator **not_run** |
+| Long title/episode/films null | `VDesignCardTextTest.episodeLabelsOmitUnknownSeasonAndNeverInventFilmEpisodes`, TextView ellipse/maxLines | **test_committed_not_yet_run**; screenshot **not_run** |
+| Echte vs synthetische Restdauer | `remainingIsShownOnlyWithRealDuration` + M02 null duration contract | **test_committed_not_yet_run** |
+| Leere/falsche Bild-URI, stale recycling, gleiche URI in-flight | `artworkSelectionRejectsFileSchemesAndUsesPosterFallback`, ImageView.tag and shared LruCache callbacks | **test_committed_not_yet_run**, Runtime **not_run** |
+| Lokalisierte ISO Daten, lokale Mitternacht, keine Fake-Countdowns | `civilReleaseDateAndMissingCountdownAreHonest` | **test_committed_not_yet_run** |
+| Badge/SmartTube/Classic | `NuvioMediaItem.showNewBadge=false`; ausschließlich M02 drei Nuvio-Listen | **passed_source_review**, Device **not_run** |
+| Fokusrahmen/Kachelüberlauf/Fonts/Blur-GPU | Kein Scale/Blur in VDesign-Card, referenzgebundene Positionen | **passed_source_review**, Pixel-/GPU-/Device **not_run** |
+| Upcoming >8 / D-Pad / intent return | Viererschritte UP/DOWN, strict details mode; umfassende Navigation M05 | **passed_source_review**, Device **not_run** |
+| JVM-Unit, lintDebug, assembleDebug/Release | [CI 43523928137](https://github.com/Justify87/Plume_Launcher/actions/runs/43523928137) / [check 132224852062](https://github.com/Justify87/Plume_Launcher/actions/runs/43523928137/job/132224852062) | **in_progress_at_docs**, result not inferred |
+| Mullvad original Rust/JNI/VpnService/gitlink | M04-Dateidiff nur Plume UI + JVM tests/docs, keine Mullvad-/Gradle-/Manifest-Änderung | **passed_scope_review**; native workflow skipped |
+| Lokaler Build/Emulator/Shield 2019/Screenshot/Physik/Leistung | Keine lokale Android SDK- und Git-Klon-Umgebung; kein Shield verbunden | **not_run/hardware_pending** |
+
+**Wichtig:** Ein laufender Vorgänger-CI-Run beweist noch keine Buildqualität. Nach Docs-Commit finalen SHA und Workflow/Jobs prüfen; M05 ist nächster Schritt, niemals Merge ohne Freigabe.
+
+
+### M04 Code-Review-Nachtrag vor finalem CI
+| Gate | Prüfung | Stand |
+| --- | --- | --- |
+| Fokus nach entfernter Episode | `VDesignHomeView.bindFeed` Ersatzziel nach Stable-ID-Verlust in `13988ae` | source_review_only, emulator not_run |
+| URL mit leerem Host / HTTP-Userinfo / content ohne Authority | zusätzliche Assertions in `VDesignCardTextTest.kt` plus `java.net.URI`-Validierung | test_added_not_run_at_commit |
+| erster PR-Run `66cf0da` | [Run 43523928137](https://github.com/Justify87/Plume_Launcher/actions/runs/43523928137) | **completed/cancelled** nach neuerem Docs-Commit, Unit+lint success vor Abbruch |
+| Docs-Run vor Source-Fix | [Run 43524298952](https://github.com/Justify87/Plume_Launcher/actions/runs/43524298952) | **in_progress** zuletzt beobachtet; durch Folge-Commit eventuell cancelled, kein Erfolg behauptet |
+| finaler HEAD-Run | noch nach dieser Docs-Aktualisierung prüfen | pending |
+
+
+### M04 zusätzliche bindbare Regressionstests
+| Gate | Nachweis | Status vor finalem CI |
+| --- | --- | --- |
+| 3+3+8-Binder, fehlende Titel/Serien, keine Dummies/Cross-Kategorien | `VDesignCardSlotsTest.partialOrEmptySectionsNeverReceiveDummiesOrCrossFeedContent` | **committed_not_yet_run** |
+| UPCOMING 13 Einträge, mehr als 8 reale Vorschauen | `eightVisibleUpcomingCardsAreAWindowAndAllCountsSurvive` | **committed_not_yet_run** |
+| UP/DOWN-Paging, letzte unvollständige Reihe, Clamp | `pagingNeverSkipsTheLastEntryOrEscapesTheSection` | **committed_not_yet_run** |
+| realer View-Renderer/GPU/Emulator/Shield | kein UI-/Hardware-Lauf im Container | **not_run/hardware_pending** |

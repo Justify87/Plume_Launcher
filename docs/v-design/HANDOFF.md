@@ -1,3 +1,27 @@
+# M04 → M05: operativer Handoff
+
+**Kanonischer Status:** [STATE.md](STATE.md). **Feature-Branch:** `feature/vdesign-m04-card-styling`, [Draft #37](https://github.com/Justify87/Plume_Launcher/pull/37). **Baseline:** Plume `main@763869b8bf672f5955b1d0682a643f0565bca5fb` (M03 #36 merged); Nuvio `dev@be4b84a84e004a2d36405601683df000d8dc446a` nur lesen.
+
+## M04-Änderungen / konkrete Einstiegspunkte
+
+1. `VDesignHomeView.kt` erstellt exakt 14 echte `VDesignCardView`-Slots an den M03-Referenzankern. `bindMedia` verbindet Artwork, Quellensymbol, Klicks; `bindFeed` übernimmt echte IN_PROGRESS/AVAILABLE/UPCOMING-Listen und vollständige Counts. Acht UPCOMING-Zellen zeigen jeweils einen Viererschritt-Ausschnitt; up/down kann weiterblättern. Keine synthetischen Titel.
+2. `VDesignCardView.kt` rendert Varianten HERO, STANDARD, AVAILABLE und COMPACT: echter visueller Fokus-Rand ohne Transform, statischer Gradient, Bild, Quelle, Titel/Staffel/Folge, Fortschritt/Restzeit bei echten Werten, ISO-LocalDate als lokaler Text/Countdown. `VDesignCardText.kt` ist reine JVM-Formatlogik, `VDesignCardTextTest.kt` ihr Regressionstest.
+3. `MainActivity.setupVDesign()` verdrahtet den bestehenden `loadPoster` und `sourceIcon`. `loadPoster` verteilt das Ergebnis auch an die anderen zeitgleich wartenden Karten mit identischer URL. `openVDesignMedia` lässt nur explizit an die echte Nuvio-MainActivity adressierte Intents durch und erzwingt Upcoming-Details statt Playback.
+4. Alte Android-Views bleiben bis M06 nur unsichtbar als Migrationsbasis; `GlassLayer`/Wallpaper/Video, Mullvad-Rust/JNI/VpnService/gitlink wurden nicht umgebaut. Bestehende Nuvio-App-Channel-Quelle und klassischer Mischkanal unangetastet.
+5. Original `REFERENCE.png`: 1536×864 JPEG/JFIF unter PNG-Suffix, **SHA-256 geprüft** `95af66ad04f462867b5d52825c7e1946ac68b5e40bed52c07f4e74c085218f25`. Bild real angesehen, **kein realer Launcher-Screenshot** gemessen.
+
+## M05 Pflicht / offene Risiken
+
+- D-Pad: eindeutige Navigation zwischen Sidebar, Hero, Standard, verfügbaren und 4×2 Upcoming-Karten; bei >8 Einträgen Pages, diagonale Geometrie, Fokusrestauration bei Bind/Resume, Intent-Return/Back/HOME. M04 besitzt nur die schlanke vertikale UPCOMING-Paginierung.
+- System-Pfade: Long-OK Übersicht=Alle Apps, Settings/Sources/HDMI, VPN, Direct Boot, Overlay-Fokus, Wallpaper und app-row Legacy-Migration. Keine feste sechste Sidebar-Aktion.
+- Laufzeit: reale Nuvio-Categorized-Provider-Opt-in, mehrere Episoden, opt-out/Permission-denied, Bilder/Cache, Offline, langsame Downloads, fehlende Logos und Metadaten, korrektes Details-Opening für UPCOMING, ausbleibende Serien/Folgen-IDs. Verhindern, dass D-Pad oder Overlay hinter die Settings rutscht.
+- Hardware/Pixel: mit Android-TV-Emulator und NVIDIA Shield Pro 2019 16:9 Screenshots inklusive Focus; Referenz-Overlay und GPU/Bitmap-Profilergebnisse wirklich messen oder `not_run` lassen.
+- CI: PR [#37](https://github.com/Justify87/Plume_Launcher/pull/37), ersten Run [43523928137](https://github.com/Justify87/Plume_Launcher/actions/runs/43523928137) zum Beginn der Dokumentation `in_progress`. **Nach finalem Docs-Commit auf finalem SHA neu prüfen**, Ergebnisse nur auf zugehörigem SHA dokumentieren. Native Mullvad-APK-Job `skipped`; keine Runtime-Aussage.
+
+**Kein Merge ohne Nutzerfreigabe. Nächster Meilenstein ausschließlich M05.**
+
+## Historischer M03 → M04 Handoff (nur als Rückblick)
+
 # M03 → M04: operativer V-Design-Handoff
 
 **Stand:** 2026-11-13 · **Quelle des aktuellen Zustands:** [STATE.md](STATE.md). Frühere M02-Handoff-Absätze sind historisch und werden nicht als aktuelle Abhängigkeit verwendet.
@@ -32,3 +56,11 @@ M03-Code-Run [43520674555](https://github.com/Justify87/Plume_Launcher/actions/r
 ## M03 CI-Nachtrag – bestätigter Quellcode-/Dokumentationscheck
 
 [Run 43521292243](https://github.com/Justify87/Plume_Launcher/actions/runs/43521292243) auf `8160f2bf05df335b52c9735c675b12a8dbda57b0` **completed/success**; [check-Job 132215945300](https://github.com/Justify87/Plume_Launcher/actions/runs/43521292243/job/132215945300) **success**. Echte Gradle-Unit-/Lint-Checks, Debug-/Release-APK, Größenvergleich: Release `535462→540870` (+5408 Bytes); 44 Installer-Checks, 10 Spotify-, 12 Mullvad-Staging-, 6 Mullvad-APK-Validator-Offline-Tests erfolgreich. Native Mullvad-APK `skipped`; lokale SDK-/Emulator-/Shield-Tests `not_run`. Ein neuer Dokumentations-Evidence-Commit erzeugt einen anderen PR-HEAD, dessen CI wiederum nachzuweisen ist; dieser Erfolg wird **nur** dem konkreten SHA zugeordnet. M04 bleibt exakt nächster Schritt, kein Merge erteilt.
+
+
+### Korrektur nach Code-Review
+[Commit 13988ae](https://github.com/Justify87/Plume_Launcher/commit/13988ae216feecd33c39f5e3b491294b9fff6c22) behandelt entferntes fokussiertes Medium mit Fallback auf die nächste echte Karte/Sidebar; validiert `java.net.URI`-Authorities und lehnt URL-Userinfo ab. Zusätzliche JVM-Assertions committed. Finaler CI-Run für dokumentierten HEAD bleibt offen; kein Emulator-/Hardwarepass behauptet.
+
+
+### M04 Binder-/Paging-Regression ergänzend
+`VDesignCardSlots.media(feed, section, slot, offset)` und `nextUpcomingOffset(total,current,slot,direction)` sind die kleine reine Binding-Schnittstelle. [3516fb](https://github.com/Justify87/Plume_Launcher/commit/3516fb0463747a72b84604e3b6b9490b0ceb33f8) ersetzt die lokalen manuellen Indizes in `VDesignHomeView`, Unit-Tests für 3+3+8, echte Empty States und Scroll-Grenzen ergänzt. CI auf diesem Commit plus finalem Docs-HEAD separat auswerten. **Nächster Schritt M05.**

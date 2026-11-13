@@ -100,3 +100,37 @@ Das erneute systematische Zeitdaten-Review fand, dass `MainActivity` im Classic-
 ### M03 — nachträgliche konkrete CI-Belege (2026-11-13)
 
 [Run 43521292243](https://github.com/Justify87/Plume_Launcher/actions/runs/43521292243) auf **Code+Docs-HEAD `8160f2bf05df335b52c9735c675b12a8dbda57b0`** ist tatsächlich **completed/success**. [check-Job 132215945300](https://github.com/Justify87/Plume_Launcher/actions/runs/43521292243/job/132215945300): Plume-Regeln; 44 Installerchecks/0 failed; 10 Spotify-, 12 Mullvad-Staging- und 6 APK-Validator-Offline-Tests; `./gradlew testDebugUnitTest lintDebug` (**BUILD SUCCESSFUL**); `./gradlew assembleDebug assembleRelease` (**BUILD SUCCESSFUL**), Release-APK **535462→540870 Bytes (+5408)**. Lint gab **114 Warnungen** aus und meldete 10 Fehler/23 Warnungen als in bestehender Baseline gefiltert; die Baseline wurde nicht verändert, keine Neubewertung dieser historischen Funde als neue M03-Fehler. `mullvad-apk` branchbedingt **skipped**, kein nativer Runtime-/VPN-Test. Der frühere Code-Run 43520674555 war wegen dieses Docs-Commits **cancelled** nach erfolgreichen JVM-/Lint-/APK-Schritten, nicht als kompletter Run erfolgreich. M03-Review jetzt **source+CI_passed_hardware_pending**; echte Referenz-Screenshots, D-Pad/Shield und Mullvad-Integration bleiben offen. Dieser CI-Evidence-Nachtrag erzeugt wiederum einen neuen SHA, dessen CI separat überprüft wird. Kein Merge.
+
+
+## M04 — vollständiger Implementierungsreview (2026-11-14, Europe/Berlin)
+
+**Scope/Baseline:** GitHub Plume `main@763869b8bf672f5955b1d0682a643f0565bca5fb`, M03 [PR #36](https://github.com/Justify87/Plume_Launcher/pull/36) merged; Nuvio `dev@be4b84a84e004a2d36405601683df000d8dc446a` readonly; M04 [Draft PR #37](https://github.com/Justify87/Plume_Launcher/pull/37), Code-HEAD vor Docs `66cf0da2843c334a9686f2d61499a13f09a9d762`. Fünf Quellcode-/Testdateien im fokussierten PR, kein Gitlink/Mullvad-/Manifest-/Berechtigungswechsel.
+
+**Hero:** 651×262 Referenzanker, große Titelüberlagerung unten mit sanftem statischem Schwarzgradient; Quelle oben links; echtes S/F/Episodentitel und Prozentbalken aus M02. Restzeit nur mit `remainingMillis` plus realer `durationMillis`, keine 100000-ms-Scheinlaufzeit. **Source-reviewed**, noch kein Pixel-Screenshot.
+
+**Standard:** Zwei 287×245 Karten, kleinerer Text, gleiche Bild- und Schattenlogik, echtes Progress und echte Restzeit. Fehlende Einträge bleiben neutral, keine Fake-Dummies. **Source-reviewed**, noch kein Emulator.
+
+**Available:** Drei 140px hohe breite Karten, reale Titel+Episode; `Neu`-Badge an echtes `showNewBadge` gebunden, aktuell wegen fehlenden Flags bewusst unsichtbar. SmartTube niemals als Kachel. **Source-reviewed**, visuell ungeprüft.
+
+**Compact/Mini:** Acht Zellen in zwei sichtbaren Viererspaltenreihen, echte Daten und lokalisierte Kalenderdaten; Countdown nur wenn der civil day ab heute gültig ist. Ab dem neunten Eintrag Vertikal-Paging via vier Einträge pro D-Pad-Schritt; bei fehlendem Release-Datum keine falsche Pill. **Source-reviewed**, Scroll-/D-Pad-Endgerätecheck noch offen M05.
+
+**Lange Titel/Locale/fehlendes Material:** TextViews ellipsieren, Hero maximal zwei Zeilen; kein reservierter Text außerhalb der Karte. Source-Art mit `https/http/content`-URI-Fallback, Datei-/Javascript-/FTP-Schemen ausgeschlossen; ImageView beim Bindingwechsel explizit geleert. Kein Bild-Mismatch nach Reuse beabsichtigt; geänderte URI wird durch ImageView.tag geprüft, in-flight-Ladeergebnis an alle gleich-URI-Karten gemeldet. Echte Bildqualität/locale-Font-Scale/Shield-Screenshot **not_run**.
+
+**Fokus/Überlauf:** Lavender `#B18AFF`, 3 Referenzpixel Stroke als Drawable-Foreground und temporär Elevation, **kein Scale/Relayout oder fortlaufender GPU-Blur**. 14 Slots werden nur einmal gemountet, daher reduzierter Allocation-Churn; reale GPU-/Memory-Messung **not_run**. Kreis-/Content-Clip im Emulator prüfen.
+
+**Deep Links/Sicherheit:** Nuvio-Komponente muss exaktes Quellpaket und `com.nuvio.tv.MainActivity` sein. `UPCOMING` erzwingt `launchMode=detail`, kein `videoId` oder ungeprüfter Fallback. `AVAILABLE` und `IN_PROGRESS` behalten Originalmodus und optional Start-App-Fallback. Reale Nuvio-Launch-Szenarien noch hardware_pending; keine direkten DB-Daten.
+
+**Tests/Evidenz:** `VDesignCardTextTest.kt` neu; statisches Quellreview durchgeführt. Lokal Android Gradle/SDK nicht vorhanden, daher Tests/Build `not_run`. Initialer [Workflow 43523928137](https://github.com/Justify87/Plume_Launcher/actions/runs/43523928137) und [Check 132224852062](https://github.com/Justify87/Plume_Launcher/actions/runs/43523928137/job/132224852062) zum Schreibzeitpunkt `in_progress`; Mullvad-native Job `skipped`. Letzten SHA extra prüfen. Kein Overlay, kein Shield-Test.
+
+**Reviewurteil:** `implementation_committed_pending_ci_visual_hardware`. Bekannte Risiken: ungetestete tatsächliche View-Inflation, Textclip bei großen Font-Scales, Focus-Transition/UPCOMING-Scroll, echte Provider-Image-URLs und Schutz bei Player-Return. **Exakt nächster Meilenstein M05. Kein Merge.**
+
+
+### M04 ergänzender kritischer Review-Fix (nach erster PR-Einreichung)
+- Fall: Fokussierte Episode verschwindet durch Provider-Refresh → zunächst kein expliziter Ersatzfokus; in `13988ae` fällt `VDesignHomeView.bindFeed` auf nächste bindbare Medienkarte, sonst Sidebar Übersicht zurück. **Source-reviewed**, realer DPAD-Device-Test weiterhin `not_run`.
+- Fall: URI startet mit `https://`, hat aber keinen Host oder enthält Userinfo → zuvor durch Prefix-Check akzeptiert. `VDesignCardText.supportedArtwork` prüft nun per `java.net.URI` (HTTP(S) Host und kein Userinfo, content-Authority). Negative Unit-Tests ergänzt; Android/CI-Resultat noch gesondert.
+- [Code-Fix 13988ae](https://github.com/Justify87/Plume_Launcher/commit/13988ae216feecd33c39f5e3b491294b9fff6c22); initialer [Run 43523928137](https://github.com/Justify87/Plume_Launcher/actions/runs/43523928137) nach Docs-Commit **cancelled** (Unit/Lint-Teilstufen success), kein Gesamt-Pass. Folge-HEAD-Run offen. M05 bleibt nächster Meilenstein.
+
+
+### M04 Binder-Zusatzreview: genau 3+3+8 ohne Dummy
+- `VDesignCardSlots` erlaubt nur die drei M02-Nuvio-Abschnitte mit tatsächlich vorhandenem Item; verfügbare Sichtplätze dürfen weder andere Kategorien noch erfundene Daten zeigen. Die Zähler stammen weiterhin aus den vollständigen Datenlisten.
+- Paginierung für 13 UPCOMING-Einträge endet beim echten letzten Element `offset=5`; bottom row down bzw. top row up muss innerhalb `0..max(total-8,0)` bleiben. Tests `VDesignCardSlotsTest.kt` für diesen Randfall und Leerstand committed in [3516fb](https://github.com/Justify87/Plume_Launcher/commit/3516fb0463747a72b84604e3b6b9490b0ceb33f8), Run-Status vor finaler CI nicht behauptet. Renderer source-reviewed, Screenshot/GPU/Shield `not_run`. **Handoff M05 unverändert.**
