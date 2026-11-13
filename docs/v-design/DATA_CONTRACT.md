@@ -62,3 +62,6 @@ Die Nuvio-Channelmanager-Implementierung kodiert einen expliziten `Intent(contex
 - **Geräte-/Sicherheitsgrenzen:** `intentUri` bleibt ungeprüfte Rohdatenquelle und darf nur über bisherige geprüfte Launchgrenze ausgeführt werden. Nuvio-`UPCOMING` in M03/M05 ausschließlich Details. Keine neuen Permissions oder Services. TV-11-/Shield-Browsability, tatsächliche Serienangebote und reale Deep Links `hardware_pending`.
 
 **Beleg:** neue `NuvioDashboardFeedTest` reine JUnit-Testfälle; [M02 PR #35](https://github.com/Justify87/Plume_Launcher/pull/35) CI zum Nachtragszeitpunkt noch nicht vollständig abgeschlossen. `REFERENCE.png` unverändert 1536×864, SHA-256 bestätigt.
+
+ 
+**M02 Datenvalidierungsnachtrag:** Nicht nur synthetische 100000-ms-Dauer, sondern auch `position > duration` ist unsichere Evidenz: selbst ein aus dem Classic-Parser übernommener geklemmter `progressPercent=100` wird im V-Feed zu `null` normalisiert (Commit `6b740628`, Test `1a057219`). Keine Änderung am alten Classic-UI vor M03–M06.

@@ -9,7 +9,7 @@ main_head_observed: 3d4abbdf4f3dbfb481e0a8a6bf95aea815a172bd
 nuvio_branch: dev
 nuvio_head_observed: be4b84a84e004a2d36405601683df000d8dc446a
 active_milestone: M02
-active_status: implementation_committed_ci_in_progress_hardware_pending
+active_status: implementation_committed_first_ci_failed_fixed_final_ci_pending_hardware_pending
 predecessor_milestone: M01
 predecessor_pr: 34
 predecessor_merged: true
@@ -17,14 +17,14 @@ predecessor_merge_sha: 3d4abbdf4f3dbfb481e0a8a6bf95aea815a172bd
 m01_final_ci_run: 43514084610
 m01_final_ci_result: completed_success_check_success_mullvad_job_skipped
 work_branch: feature/vdesign-m02-media-model
-work_head_sha_at_documentation: 9003878bf5289d201bbf1027c9b08805292d766b
+work_head_sha_at_documentation: 1a057219e8afb355fb2e1c6f7cda9c0227e587a0
 current_pr: 35
 current_pr_state: open_draft_not_merged
 m02_local_unit_test: not_run_no_checkout_or_android_sdk
 m02_android_build: not_run_locally
 m02_ci_run_first: 43516551245
 m02_ci_job_first: 132199847040
-m02_ci_observed: in_progress_first_run_after_code_commit
+m02_ci_observed: first_run_failed_lint_suspicious_indentation_corrected_final_ci_pending
 m02_mullvad_apk_job: skipped_by_workflow_branch_condition
 m02_shield: hardware_pending
 m02_visual_comparison: not_run_no_ui_in_m02
@@ -37,7 +37,7 @@ reference_verified_in_m02: true
 nuvio_feeds_snapshot: three_sorted_deduplicated_not_rendered
 next_milestone: M03_single_v_design_host_after_review
 blockers:
-  - "CI for final M02 head not yet observed as completed; no pass implied"
+  - "First PR run 43516551245 failed Android lint; fixed in 834ae544. Final head CI not yet observed as completed"
   - "Physical Shield TV provider/browsability, content intents and VPN runtime not tested"
   - "M03 must bind civil-day countdown refresh on resume/rebind/day boundary and replace old UI"
 ```
@@ -88,3 +88,10 @@ M02 implementiert `NuvioDashboardFeed.kt` (Android-freie, drei fixierte Reihen),
 Originaldatei `REFERENCE.png` wurde in M02 erneut als GitHub-Base64 gelesen und byteweise SHA-256-geprüft: **249663 Bytes, `95af66ad...`, JPEG/JFIF, 1536×864**, Ergebnis match. [Draft PR #35](https://github.com/Justify87/Plume_Launcher/pull/35), Code-HEAD zunächst `9003878bf5289d201bbf1027c9b08805292d766b`. Erster [CI-Run 43516551245](https://github.com/Justify87/Plume_Launcher/actions/runs/43516551245), [check-Job 132199847040](https://github.com/Justify87/Plume_Launcher/actions/runs/43516551245/job/132199847040), beim Review **in_progress**, kein CI-Pass behauptet. Lokale Gradle-/Android-Tests `not_run`, Shield `hardware_pending`. Die reale finale CI nach dem Dokumentationscommit separat abrufen. **Kein Merge erteilt.**
 
 Historische M00-/M01-Abschnitte unten dokumentieren damalige Zwischenstände und sind nicht der aktuelle Handoff. **Exakt nächster Schritt M03**, erst nach Abschlussreview von M02.
+
+ 
+### M02 erster echter CI-Fail und Follow-up
+
+[Run 43516551245](https://github.com/Justify87/Plume_Launcher/actions/runs/43516551245) auf `9003878...` **completed/failure** ([check 132199847040](https://github.com/Justify87/Plume_Launcher/actions/runs/43516551245/job/132199847040)): `testDebugUnitTest` führte aus, `lintDebug` brach mit **1 neuem SuspiciousIndentation-Fehler in `MainActivity.kt:5773`** ab. Kein Problem durch ignorierte Tests oder geänderte Lint-Baseline versteckt. **Fix-Commit [834ae544](https://github.com/Justify87/Plume_Launcher/commit/834ae544b3d24a8963842e19a9562d6ce6af07f5)** rückt die Exception-Pfad-Reset-Zeile korrekt ein. Zusätzliches Logikreview identifizierte, dass die Classic-Parser-Prozentberechnung eine unmögliche `position > duration` auf 100 % klemmen kann; [Fix 6b740628](https://github.com/Justify87/Plume_Launcher/commit/6b740628d10e05d92f9c065ff38f42e6371c2cef) unterdrückt diesen Wert im V-Feed, [Test 1a057219](https://github.com/Justify87/Plume_Launcher/commit/1a057219e8afb355fb2e1c6f7cda9c0227e587a0) ergänzt den Regressionfall.
+
+Die Folge-Runs `43517228539` und `43517300556` wurden durch das PR-Workflow-`cancel-in-progress` nach weiteren Commits **cancelled**, nicht als grün bewertet; der Run `43517409755` wurde ebenfalls durch den folgenden Testcommit abgebrochen. **CI für den endgültigen Commit nach diesem Dokumentationsnachtrag neu beobachten.** Gesamtstatus bleibt `partial_pending_final_ci_and_shield`.

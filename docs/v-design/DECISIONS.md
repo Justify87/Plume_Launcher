@@ -39,3 +39,8 @@ Neue Vorschau-Feeds werden nur gelesen, wenn `browsable == true` aus dem TV-Prov
 ## D-011 — Release-Evidenz, synthetische Dauer und lokaler Tag, 2026-11-13
 
 Kategorisierter Available-Channel bedeutet „verfügbar“, nicht „gerade neu“. Lokalisierte `short_description` inklusive „New Episode“ beweist nicht das interne `isReleaseAlert`-Flag. Daher in M02 `showNewBadge=false`, bis der TV-Provider echte maschinenlesbare Evidenz bietet. Nuvios 100000-ms-Fallback ist nicht von echter 100-s-Laufzeit unterscheidbar: Prozent anzeigen, **nie** echte Laufzeit/Restzeit aus diesen Werten. `release_date` ist streng parsebares `LocalDate`; kein ableitbarer Termin aus `last_engagement_time` oder Quellgewichtung. Tageszählung via `Instant+ZoneId`, neue UI muss beim Rebind/Resume und einmaligen lokalen Tageswechsel frisch auswerten, kein Dauerpolling.
+
+ 
+## D-012 — Widersprüchliche TV-Progress-Daten nicht als 100% darstellen, 2026-11-13
+
+Der vorhandene Classic-`Prog`-Parser clampte rechnerisch ungültige `playbackPositionMillis > durationMillis` auf 100 Prozent. Ein solcher Wert darf im neuen V-Dashboard keine Fortschrittsevidenz sein. Die M02-Projektion verwirft in diesem Fall sogar bereits befülltes `progressPercent`; die originale Classic-Laufzeitlogik bleibt wegen Meilenstein-Scope unangetastet. Regression mit explizit 100%-geklemmtem Eingabewert ergänzt.

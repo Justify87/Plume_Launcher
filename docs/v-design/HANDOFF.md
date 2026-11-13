@@ -3,7 +3,7 @@
 ## Vertrauenswürdiger Einstieg
 
 - Plume letzter vor Beginn von M02 geprüfter **gemergter Main-HEAD**: `3d4abbdf4f3dbfb481e0a8a6bf95aea815a172bd`. M00 #32/#33 und M01 [#34](https://github.com/Justify87/Plume_Launcher/pull/34) **sind gemergt**. [M01-finaler CI-Run 43514084610](https://github.com/Justify87/Plume_Launcher/actions/runs/43514084610) `completed/success`.
-- **M02** Branch `feature/vdesign-m02-media-model`, [Draft-PR #35](https://github.com/Justify87/Plume_Launcher/pull/35), Code-HEAD bei Dokumentation `9003878bf5289d201bbf1027c9b08805292d766b`; nach Docs-Commit tatsächlichen aktuellen Branch/PR-HEAD und dessen CI erneut prüfen. **Nicht gemergt**.
+- **M02** Branch `feature/vdesign-m02-media-model`, [Draft-PR #35](https://github.com/Justify87/Plume_Launcher/pull/35), Code-HEAD bei Dokumentation `1a057219e8afb355fb2e1c6f7cda9c0227e587a0`; nach Docs-Commit tatsächlichen aktuellen Branch/PR-HEAD und dessen CI erneut prüfen. **Nicht gemergt**.
 - Nuvio `Justify87/NuvioTV dev@be4b84a84e004a2d36405601683df000d8dc446a` nur gelesen. Dokumente der abgeschlossenen Mullvad-Funktion befinden sich unter `docs/archive/legacy-features/mullvad-vpn/`; kein Submodul/JNI/Rust/VpnService geändert.
 - Normative `docs/v-design/REFERENCE.png`: aus Original-GitHub-Base64 erneut SHA-256-bestätigt `95af66ad04f462867b5d52825c7e1946ac68b5e40bed52c07f4e74c085218f25`, 249663 Bytes, **1536×864**. JPEG/JFIF-Bytes unter historischer PNG-Endung bleiben unverändert.
 
@@ -24,3 +24,8 @@
 4. Sichere Deep-Link-Grenze `MainActivity` weiter beachten; UPCOMING immer Details. Testen auf Emulator/Shield erst wenn wirklich möglich; kein Screenshot-/VPN-Hardware-Pass behaupten.
 
 **Kein Merge ohne explizite Freigabe.** Historische M01-Draft-Angaben in älteren Review-Abschnitten sind durch den verifizierten Merge #34 überholt.
+
+ 
+## Nachtrag CI-Review vor finalem Docs-Commit
+
+Erster [Run 43516551245](https://github.com/Justify87/Plume_Launcher/actions/runs/43516551245) endete `failure` trotz ausgeführter JVM-Tests: `lintDebug` fand neue fehlerhafte Einrückung im M02-Reset-Catch. Fehler kausal in [834ae544](https://github.com/Justify87/Plume_Launcher/commit/834ae544b3d24a8963842e19a9562d6ce6af07f5) behoben, Lint nicht deaktiviert. Zusätzlich [6b740628](https://github.com/Justify87/Plume_Launcher/commit/6b740628d10e05d92f9c065ff38f42e6371c2cef) und [1a057219](https://github.com/Justify87/Plume_Launcher/commit/1a057219e8afb355fb2e1c6f7cda9c0227e587a0): unmögliche `position > duration` darf nicht als 100%-Progress erscheinen; Test nachgezogen. Zwischen-Runs wurden durch neue Commits teils `cancelled`. **Letzten CI-Run ausschließlich für den endgültigen Branch-/PR-HEAD prüfen**; bei fehlendem Abschluss keinen Pass eintragen.

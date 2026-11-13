@@ -101,3 +101,14 @@ Nur GitHub-Lauf mit zugehörigem finalen Commit nachträglich als CI-Pass werten
 | UI-Screenshot/D-Pad/Shield Pro 2019/echte Provider-Permission | Keine Emulator-/physische Geräteverbindung | **not_run / hardware_pending** |
 
 **Nach CI:** Jede spätere Testaussage muss exakt den neuesten M02-PR-Code-/Dokumentations-HEAD und den beobachteten Run/Job referenzieren. Alte M01-Tabellen sind historisch.
+
+ 
+### M02 CI-Nachtrag: erster Fehl-Lint und Folgefehler-Fix
+
+| Gate | Realer Nachweis | Befund |
+| --- | --- | --- |
+| Erster Code-HEAD `9003878...` | [Run 43516551245](https://github.com/Justify87/Plume_Launcher/actions/runs/43516551245), [check 132199847040](https://github.com/Justify87/Plume_Launcher/actions/runs/43516551245/job/132199847040) | **failed**: `testDebugUnitTest` ausgeführt, `lintDebug` SuspiciousIndentation M02-Reset-Catch, exit 1 |
+| Fehlerbehebung | [834ae544](https://github.com/Justify87/Plume_Launcher/commit/834ae544b3d24a8963842e19a9562d6ce6af07f5) | **committed**, keine Disable-/Baseline-Änderung |
+| Folgefehler in Datenvalidierung | [6b740628](https://github.com/Justify87/Plume_Launcher/commit/6b740628d10e05d92f9c065ff38f42e6371c2cef), [1a057219](https://github.com/Justify87/Plume_Launcher/commit/1a057219e8afb355fb2e1c6f7cda9c0227e587a0) | **fix + test committed**: `position > duration` trotz Parser-Clamp kein 100% |
+| Weitere Workflow-Läufe | 43517228539, 43517300556, 43517409755 | **cancelled** wegen späterer Commits; kein Pass |
+| Letzter Dokumentations-HEAD CI | nach finalem Dokumentationscommit URL/Status erneut lesen | **pending, nicht als bestanden gewertet** |
