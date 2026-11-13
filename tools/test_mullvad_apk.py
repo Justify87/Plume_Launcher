@@ -60,6 +60,12 @@ class IntegratedApkStructureTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "ARM64 ELF"):
             checker.check_apk(str(self.path))
 
+    def test_other_native_abi_without_jni_is_rejected(self):
+        self.entries["lib/x86/libdatastore_shared_counter.so"] = arm64_elf(62)
+        self.write()
+        with self.assertRaisesRegex(ValueError, "advertises ABI"):
+            checker.check_apk(str(self.path))
+
     def test_invalid_relay_asset(self):
         self.entries["assets/relays.json"] = b"{"
         self.write()
