@@ -147,3 +147,6 @@ Original `SplitTunnelingRepository` bleibt alleiniger Schreibpfad zu Daemon/gRPC
 - Mullvad-Original-Release bleibt `signingConfig=null`; unsigned Paket nur zur Build-/R8-Abnahme, später extern mit **gleichem** Plume-Key signieren; CI-Debug-Key nicht als beständiger Update-Key behaupten.
 - Keine reale Shield/ADB im aktuellen Umfeld; Netzwerk, App-Routen, UX und RAM bleiben offen. `VpnActivity` nicht exported: D-Pad-Abnahme über sichtbaren Classic-/Overview-VPN-Zugang.
 
+### A-M12 ABI-Review-Fix: keine false-positive Plattformkompatibilität
+
+Das echte M11-Artefakt enthält ausschließlich ARM64-Mullvad-JNI, aber AndroidX-Bibliotheken in vier ABI-Familien. Android könnte die APK deshalb auf inkompatiblen Geräten installieren. Im generierten Host-Gradle wird `ndk.abiFilters` gezielt auf `arm64-v8a` gesetzt; originaler Mullvad-Gitlink und Core bleiben unverändert. Positiv-/Negativtests und `aapt native-code` werden Release-Gates. Andere Architekturen erst nach vollständigem Original-Rust/JNI-Build unterstützen, nicht durch irreführende Abhängigkeitseinträge.
