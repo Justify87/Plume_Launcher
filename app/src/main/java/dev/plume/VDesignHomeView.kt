@@ -200,8 +200,10 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
         upcomingOffset = upcomingOffset.coerceAtMost((feed.upcoming.size - 8).coerceAtLeast(0))
         bindUpcoming()
         if (focusedId != null) {
-            (progressCards + availableCards + upcomingCards)
-                .firstOrNull { it.media?.stableId == focusedId }?.requestFocus()
+            val cards = progressCards + availableCards + upcomingCards
+            val restored = cards.firstOrNull { it.media?.stableId == focusedId }
+                ?: cards.firstOrNull { it.isFocusable }
+            if (restored == null) focusOverview() else restored.requestFocus()
         }
     }
 

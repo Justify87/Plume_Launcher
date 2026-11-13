@@ -35,11 +35,14 @@ internal object VDesignCardText {
         }
     }
 
-    /** Only content:// and ordinary network images; do not resolve arbitrary file:// from TV providers. */
-    fun supportedArtwork(uri: String?): String? = uri?.trim()?.takeIf {
-        it.startsWith("https://", ignoreCase = true) ||
-            it.startsWith("http://", ignoreCase = true) ||
-            it.startsWith("content://", ignoreCase = true)
+    /** Only valid content:// or HTTP(S) authorities, never arbitrary file URLs or URI userinfo. */
+    fun supportedArtwork(uri: String?): String? = uri?.trim()?.takeIf { value ->
+        val parsed = runCatching { java.net.URI(value) }.getOrNull()
+        when (parsed?.scheme?.lowercase(Locale.ROOT)) {
+            "http", "https" -> !parsed.host.isNullOrBlank() && parsed.userInfo == null
+            "content" -> !parsed.authority.isNullOrBlank() && parsed.userInfo == null
+            else -> false
+        }
     }
 
     fun artwork(item: NuvioMediaItem): String? =

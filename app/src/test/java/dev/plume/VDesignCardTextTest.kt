@@ -59,5 +59,8 @@ class VDesignCardTextTest {
         assertEquals("content://provider/logo",
             VDesignCardText.artwork(item(artwork = "javascript:alert(1)", logo = "content://provider/logo")))
         assertNull(VDesignCardText.artwork(item(artwork = "file:///sdcard/private", poster = "ftp://bad")))
+        assertNull(VDesignCardText.supportedArtwork("https:///missing-host.jpg"))
+        assertNull(VDesignCardText.supportedArtwork("https://user:pass@host.example/image.jpg"))
+        assertNull(VDesignCardText.supportedArtwork("content:///missing-authority"))
     }
 }
