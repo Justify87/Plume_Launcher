@@ -19,7 +19,7 @@
 **2026-11-13.** Nuvio publiziert aus Fortschrittsprozent mitunter synthetische `100000ms` Duration; ohne zusätzliche Gewissheit darf Plume daraus **keine 100-s-Laufzeit oder Restminuten** zeigen. Prozent kann zulässig sein. M02 implementiert Testfälle.
 
 ## D-007 — M00-Gate nach verfrühtem Merge schließen
-**2026-11-13.** [PR #32](https://github.com/Justify87/Plume_Launcher/pull/32) wurde tatsächlich gemergt, obwohl die Bilddatei darin fehlte. Ein separater, nicht gemergter `feature/vdesign-m00-reference-completion`-PR behebt ausschließlich Bildpfad und Dokumentations-Evidenz auf dem aktuellen `main`-HEAD; kein Reset und keine implizite Mergefreigabe. CI des alten PRs endete `cancelled`, also kein `passed`. M01 bleibt bis zum nachgeholten M00-Abnahmecheck zurückgestellt.
+**2026-11-13.** [PR #32](https://github.com/Justify87/Plume_Launcher/pull/32) wurde tatsächlich gemergt, obwohl die Bilddatei darin fehlte. Ein separater, nicht gemergter `feature/vdesign-m00-reference-completion`-PR behebt ausschließlich Bildpfad und Dokumentations-Evidenz auf dem aktuellen `main`-HEAD; kein Reset und keine implizite Mergefreigabe. Der erste CI-Run des alten PRs endete `cancelled`, **der spätere finale Run 43507886182 war `success`**. Dennoch war das Referenz-Gate noch offen; also kein vollständiges M00-`passed` vor Ergänzung und deren CI. M01 bleibt bis zum nachgeholten M00-Abnahmecheck zurückgestellt.
 
 ## Weitere Entscheidungen
 Fortlaufende ID, Datum, Problem, verworfene Alternativen, Beschluss, Folgen/Abweichung und Testbeleg eintragen. Änderungen am Design nicht stillschweigend vornehmen.

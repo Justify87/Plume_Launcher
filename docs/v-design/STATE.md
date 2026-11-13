@@ -28,7 +28,8 @@ ci: pending_final_pr_head_checks
 ci_first_run_id: 43509467207
 ci_first_run_initial_status: in_progress_not_success
 ci_first_run_url: https://github.com/Justify87/Plume_Launcher/actions/runs/43509467207
-ci_previous_m00_run: "43505553469 cancelled; no success claim"
+ci_previous_m00_first_run: "43505553469 cancelled"
+ci_previous_m00_final_run: "43507886182 success (check=success, mullvad-apk=skipped; image gate absent then)"
 shield: hardware_pending
 visual_comparison: not_run_no_launcher_screenshot
 reference_sha256: 95af66ad04f462867b5d52825c7e1946ac68b5e40bed52c07f4e74c085218f25
@@ -57,7 +58,7 @@ blockers:
 
 ## CI / Handoff
 
-- Historischer [PR-#32-CI-Run 43505553469](https://github.com/Justify87/Plume_Launcher/actions/runs/43505553469) endete **`cancelled`**, nicht `success`. Main Combined-Status lieferte `statuses: []`.
+- **PR #32 CI korrekt eingeordnet:** Der [erste Run 43505553469](https://github.com/Justify87/Plume_Launcher/actions/runs/43505553469) wurde `cancelled`, aber der **[spätere Run 43507886182](https://github.com/Justify87/Plume_Launcher/actions/runs/43507886182)** auf dem PR-HEAD `b5d5cca75e250b32390b85ba7b30960973ea7b2d` ist `completed/success` (`check=success`, `mullvad-apk=skipped`). Das prüfte **nicht** die damals fehlende Referenz. Main Combined-Status lieferte `statuses: []`.
 - **[Draft-PR #33](https://github.com/Justify87/Plume_Launcher/pull/33)** wurde tatsächlich erstellt (Basis `main@78666326…`, erster geprüfter PR-HEAD `28a2acc8…`); erster [PR-CI-Run 43509467207](https://github.com/Justify87/Plume_Launcher/actions/runs/43509467207) war beim Abruf `in_progress`, kein Pass. Der Metadaten-Nachtrag erzeugt einen neuen HEAD: finale CI für den tatsächlichen PR-HEAD erneut prüfen. Status bis dahin **`partial_pending_pr_ci`**.
 - **M01**: Nuvio `IN_PROGRESS` / `AVAILABLE` / `UPCOMING` anhand Channel-`internal_provider_id` anbinden, Installationspaket/Provider-Berechtigungen real prüfen; keine SmartTube-Medien und keine Mischkanal-Aufteilung.
 - Keine Merge-Aktion ohne neue ausdrückliche Nutzerfreigabe.

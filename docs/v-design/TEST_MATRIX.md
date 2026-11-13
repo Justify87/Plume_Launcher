@@ -14,7 +14,7 @@ Die folgenden Statuswerte sind **beobachtete** Ergebnisse oder `not_run`; späte
 | UI-Featureinventar statt Blind-Löschung | `MainActivity`, XML, Media-/Focus-Klassen, Manifest/Gradle | **passed_source_review** | M00 |
 | Dokumentationsdiff / Dateirechte / Binärdiff | GitHub Compare `fbf2473...c8b0241`: genau 10 neue Textdateien `docs/v-design/*`, 0 andere Änderungen | **passed_source_review** (binary PNG weiterhin fehlt) | M00 |
 | Android/Gradle lokal | `./gradlew testDebugUnitTest lintDebug` | **not_run — Container ohne Netz/Repo-Checkout/Android SDK** | M00 |
-| Plume M00-CI | Historischer [PR-#32-Run 43505553469](https://github.com/Justify87/Plume_Launcher/actions/runs/43505553469): `cancelled`; neuer Referenz-PR noch nicht gelaufen | **pending_new_pr_ci — kein Pass** | M00 |
+| Plume M00-CI | PR #32: früher [Run 43505553469](https://github.com/Justify87/Plume_Launcher/actions/runs/43505553469) `cancelled`, späterer [Run 43507886182](https://github.com/Justify87/Plume_Launcher/actions/runs/43507886182) `check=success`; Referenz fehlte damals. PR #33 CI final ausstehend | **old_pr_ci_passed / new_pr_ci_pending — kein vollständiges M00-Pass** | M00 |
 | Exakte drei Nuvio Channel Types | Provider-ID-Adaptertests | not_run | M01 |
 | Legacy-Kanal nicht als Available mischen | Mixed-Feed-Unit-Tests | not_run | M01 |
 | TV-Permission denied / Nuvio fehlt | Provider-/Emulator-/Shield-Test | not_run | M01–M07 |
@@ -42,7 +42,7 @@ Die folgenden Statuswerte sind **beobachtete** Ergebnisse oder `not_run`; späte
 | Prüfsummenberechnung über echte GitHub-Originalbytes | Base64-Dekodierung des GitHub-Blobs, SHA-256 `95af66ad04f462867b5d52825c7e1946ac68b5e40bed52c07f4e74c085218f25`; Testvektoren `abc` und leerer String stimmen | passed |
 | Containerkennung und Pixelgröße | JPEG/JFIF-Signatur `FF D8 FF E0`; SOF0-Header 1536×864 (die originale `.png`-Endung täuscht PNG vor) | passed_identified_mislabeled_jpeg |
 | Binärkopie in kanonischen Gitpfad | Git-Tree referenziert alten unveränderten Git-Blob `d1b14c00a6478cb3b49fcbbd637e0aa71db5df18` als `docs/v-design/REFERENCE.png` im Commit `e1c13b2783aa632c2cbf391b10eb923426f8fc81` | passed_blob_identity; nach PR-Commit nochmals read-back |
-| Historische PR-#32-CI | [Run 43505553469](https://github.com/Justify87/Plume_Launcher/actions/runs/43505553469) abgeschlossen `cancelled` | cancelled, kein Erfolg |
+| Historische PR-#32-CI | [Run 43505553469](https://github.com/Justify87/Plume_Launcher/actions/runs/43505553469) zuerst `cancelled`; später [Run 43507886182](https://github.com/Justify87/Plume_Launcher/actions/runs/43507886182), `check=success`, `mullvad-apk=skipped` | letzter alter PR-Run `success`, damaliges Bild-Gate fehlte |
 | Neuer M00-Ergänzungs-PR-CI | Nach PR-Erstellung mit Run-/Job-URL und Endstatus nachtragen | pending |
 | Android-Gradle lokal, Screenshot-Vergleich, Shield Pro 2019 | Keine lokale SDK-/Checkout-/Geräteumgebung; Bild ist Referenz und keine App-Screenshot-Evidenz | not_run / hardware_pending |
 
