@@ -128,6 +128,19 @@ def debug_variant_manifest() -> str:
 '''
 
 
+def route_original_notifications_to_tv(source: str) -> str:
+    """Only the staged host: reuse original PendingIntent / QS Tile, open TV Activity.
+
+    The upstream constant targets Mullvad MainActivity (phone Compose UI). This
+    single redirect preserves all original notification and VPN service logic.
+    """
+    original = 'const val MAIN_ACTIVITY_CLASS = "$MULLVAD_PACKAGE_NAME.app.MainActivity"'
+    replacement = 'const val MAIN_ACTIVITY_CLASS = "$MULLVAD_PACKAGE_NAME.app.VpnActivity"'
+    if source.count(original) != 1:
+        raise RuntimeError("Pinned Mullvad MAIN_ACTIVITY_CLASS changed; review the routing")
+    return source.replace(original, replacement)
+
+
 ANDROID_NS = "{http://schemas.android.com/apk/res/android}"
 
 
@@ -224,6 +237,18 @@ def prepare(output: Path) -> Path:
     shutil.copy2(Path(__file__).with_name("VpnSplitTunnelingUi.kt"), vpn_activity.with_name("VpnSplitTunnelingUi.kt"))
     shutil.copy2(Path(__file__).with_name("VpnAdvancedUi.kt"), vpn_activity.with_name("VpnAdvancedUi.kt"))
     shutil.copy2(Path(__file__).with_name("VpnNetworkUi.kt"), vpn_activity.with_name("VpnNetworkUi.kt"))
+    shutil.copy2(Path(__file__).with_name("VpnDiagnosticsUi.kt"), vpn_activity.with_name("VpnDiagnosticsUi.kt"))
+    # The original QS tile + account/tunnel notifications use this one constant
+    # for their launch PendingIntent. Route them to the native TV Activity in the
+    # *disposable staging tree only*, never edit the pinned original submodule.
+    class_names = android / ("lib/common/src/main/kotlin/net/mullvad/mullvadvpn/"
+        "lib/common/constant/ClassNames.kt")
+    if not class_names.is_file():
+        raise RuntimeError("Pinned Mullvad ClassNames.kt not found in staged host")
+    class_names.write_text(
+        route_original_notifications_to_tv(class_names.read_text(encoding="utf-8")),
+        encoding="utf-8",
+    )
     name_res = android / "app/src/ossProd/res/values/plume_integration.xml"
     name_res.parent.mkdir(parents=True, exist_ok=True)
     name_res.write_text(

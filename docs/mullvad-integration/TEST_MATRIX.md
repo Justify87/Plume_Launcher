@@ -490,3 +490,44 @@ adb shell dumpsys connectivity
 | M10 Re-Run / ARM64-APK / Shield | [Run 43423552657](https://github.com/Justify87/Plume_Launcher/actions/runs/43423552657) `success`, Artifact `Plume-Mullvad-ARM64-Debug-84`; Shield und echter Tunnel `hardware_pending` |
 
 **Aktuelles CI-Gate:** [Run 43423552657](https://github.com/Justify87/Plume_Launcher/actions/runs/43423552657) für Commit `f938114fb80b3ae38ea068dc1904ca67b216ce1f`: Plume `check=success`, integriertes `mullvad-apk=success`, originaler Android-Build `BUILD SUCCESSFUL in 11m 42s`, APK-Prüfer `APK structure OK (839 entries; Rust/JNI and relay assets present)`; Artifact `Plume-Mullvad-ARM64-Debug-84`. Der finale Handoff-Dokumentationscommit ändert keine ausführbaren Dateien; diese CI-Evidenz gilt für den geprüften Codecommit. Shield bleibt ausdrücklich `hardware_pending`.
+
+## M11 — Diagnose, Notifications, Abdeckung (13.11.2026)
+
+Basis: `main` = `056b1c5245982ee8fddfe581ee859735511aae14` (M10 PR #27 bereits gemergt), keine offenen PRs. Gepinnter Mullvad-Commit bleibt `aa47f606b1a159214c7279344128119fa91be5fd`. **Keine ADB-/Shield-Verbindung und kein vollständiger SDK/Rust-Checkout hier**, GitHub-CI muss neue Builds erst beweisen; M10-Beleg ist keine M11-Code-Kompilation.
+
+| Test | Reproduktion | Status |
+| --- | --- | --- |
+| M11-01 Original-Repository-Verträge | `ProblemReportRepository`, `InAppNotificationController`, `UserPreferencesRepository`, `AppVersionInfoRepository`, `ChangelogRepository` und gepinntes `ClassNames.kt` gegen M11-Overlay | `reviewed_source` (kein Compilerpass) |
+| M11-02 lokaler Generator/Quelltest | `python3 -m unittest discover -s tools -p test_mullvad_prepare.py -v` | `not_run` bis CI/vollständigem Checkout |
+| M11-03 Launcherregression | `./gradlew testDebugUnitTest lintDebug`, `sh tools/plume-install-test/run.sh`, `python3 -m unittest discover -s tools -p test_spotify_podcast_probe.py -v` | `not_run` bis CI |
+| M11-04 ARM64-APK / 1 App | `bash tools/mullvad/build-integrated.sh --no-configuration-cache --max-workers=2`; `python3 tools/mullvad/check_apk.py <APK>` | `not_run` bis M11-CI |
+| M11-05 TV D-Pad und Back | Classic und Overview → VPN → alle 8 Seiten, Fokus, Back, lange Logs/Listen und Tastatur | `hardware_pending` |
+| M11-06 Original-Notifications | Echt ausgelöster Tunnel-Offline-Fehler, Reconnect, ablaufendes Konto, Device-Revoked/NewDevice, Bannerreihenfolge, Systemmeldungen + Tap → native TV-Activity | `hardware_pending` |
+| M11-07 Location-Notification | Toggle Ein/Aus; gespeicherter `UserPreferencesRepository`-Status nach Neustart; Android-System-Notifications erlaubt/verweigert | `hardware_pending` |
+| M11-08 Logs + Export | Original-`collectLogs/readLogs`; Preview 160 letzte Zeilen; SAF-Export vollständig, Abbruch, fehlender DocumentProvider, Logging offline, keine Automatik | `hardware_pending` |
+| M11-09 Problembericht | Mit/ohne E-Mail, mit/ohne Konto-ID, leere Beschreibung, Abbruch, Offline-Fehler, erfolgreiche Sendung nur mit Testkonto und Freigabe | `hardware_pending` |
+| M11-10 Version/Changelog/Sprache | Upstream-Version, unsupported/Changelog, gelesen, Android-11-vs-13-Locale, gemeinsamer Plume-Kontext | `hardware_pending` |
+| M11-11 Quick Settings | Falls Shield QS-Tile besitzt: originaler Service, Toggle, ohne Berechtigung direkte Plume-VpnActivity statt Compose-Screen | `hardware_pending` / Feature OS-abhängig |
+| M11-12 Kernregressionen | VPN über Home/Back bestehen lassen, Boot, Split-Tunneling, Standort, DNS, DAITA, Obfuscation, API-Zugang, Offline, Revoke | `hardware_pending` |
+
+```bash
+git switch feature/m11-mullvad-diagnostics-tv
+git submodule update --init --recursive
+test "$(git -C third_party/mullvadvpn-app rev-parse HEAD)" = aa47f606b1a159214c7279344128119fa91be5fd
+python3 -m unittest discover -s tools -p test_mullvad_prepare.py -v
+./gradlew testDebugUnitTest lintDebug
+sh tools/plume-install-test/run.sh
+python3 -m unittest discover -s tools -p test_spotify_podcast_probe.py -v
+bash tools/mullvad/build-integrated.sh --no-configuration-cache --max-workers=2
+python3 tools/mullvad/check_apk.py <integrated-debug.apk>
+adb devices -l
+adb shell getprop ro.build.version.sdk
+adb install -r <integrated-debug.apk>
+adb shell am start -n dev.plume.advanced/net.mullvad.mullvadvpn.app.VpnActivity
+adb logcat -c
+# VPN-Status, Konto, Meldungen, Sprache, Logs, Export und Report kontrolliert abnehmen.
+adb logcat -d -s AndroidRuntime MullvadVpnService MullvadDaemon
+adb shell dumpsys connectivity
+```
+
+**Review M11:** neue Diagnose ausschließlich Original-Repositories; höchstens 160 Logzeilen im TV-Text, vollständiger Export nur explizit; Original-PendingIntents im generierten Host zur TV-Activity. Integrations- und Gerätescreenshots, echtes Senden, OS-Tile-Abnahme nicht vorhanden. Damit M11 bis CI + Shield nur `partial`, keinerlei Runtime-/Geräte-`pass`.
