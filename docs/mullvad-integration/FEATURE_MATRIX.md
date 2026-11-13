@@ -136,3 +136,15 @@ Alle `partial`-Angaben bedeuten Source-/UI-Einbindung und **nicht** erfüllte En
 | F24 | `SystemVpnSettingsAvailableUseCase`, `android.net.vpn.SETTINGS`; echter Android-Always-on-/Lockdown-Wert nur in OS-UI | `partial` (OS-Unterseite, keine vorgetäuschte App-API) |
 
 M07 liefert keine Anti-Zensur-`setCustomWireguardPort`-Funktion (M10), keine Split-Tunneling-App-Auswahl (M08), keine neue VPN-Engine. `pass` erfordert kompiliertes APK, D-Pad/UI und realen Gerätespeicher-/Tunnel-Nachweis gemäß `TEST_MATRIX.md`.
+
+
+## M08 — Split-Tunneling / App-Listing
+
+| Gruppe | Original-Anbindung und Plume-TV-UI | Status |
+| --- | --- | --- |
+| F22 | `SplitTunnelingRepository.splitTunnelingEnabled/excludedApps`, `enableSplitTunneling/excludeApp/includeApp` über den originalen Daemon; 6. Rail-Tab, D-Pad/OK/Back und sichtbare aktive/inaktive Regeln | `partial`: Quelle/UI umgesetzt; Routing/Persistenz auf Shield `hardware_pending` |
+| F22 App-Liste | `ApplicationsProvider.apps()`, `QUERY_ALL_PACKAGES` des Host-Manifests, Label/Paket-Suche, Icon, virtualisierte ListView, sortierte Ausschlüsse, Systemapp-Originalpräferenz | `partial`: Fokus/Großliste/Keyboard auf Shield `hardware_pending` |
+| F22 Paketwechsel | onResume + Android-Paketbroadcasts bei offener Activity, fehlende gespeicherte Ausnahmen über Original-Repository entfernbar | `partial`: Install-/Uninstall-Test `hardware_pending` |
+| F24 Sperrmodus | ehrlicher Warntext: Android-Lockdown kann Ausnahmen blockieren; kein unbewiesener Routing-/Sperrmodusstatus | `partial`: Lockdown-Netztest `hardware_pending` |
+
+Original `MigrateSplitTunneling` nicht verändert; die Device-Abnahme aus M01–M07 bleibt separat offen.

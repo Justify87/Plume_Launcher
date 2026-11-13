@@ -153,6 +153,32 @@ class PreparationTests(unittest.TestCase):
         self.assertNotIn("setCustomWireguardPort", ui)  # Obfuscation belongs to M10
         self.assertIn('with_name("VpnSettingsUi.kt")', (prepare.ROOT / "tools/mullvad/prepare.py").read_text())
 
+    def test_m08_original_split_tunneling_and_tv_package_list(self):
+        activity = (prepare.ROOT / "tools/mullvad/VpnActivity.kt").read_text()
+        ui = (prepare.ROOT / "tools/mullvad/VpnSplitTunnelingUi.kt").read_text()
+        for expression in (
+            '"Split Tunneling"', "splitTunnelingUi.start()",
+            "splitTunnelingUi.onDaemonReady(daemonReady)",
+            "splitTunnelingUi.onResume()", "splitTunnelingUi.onPause()",
+        ):
+            self.assertIn(expression, activity)
+        for expression in (
+            "applications.apps()", "repository.splitTunnelingEnabled.collect",
+            "repository.excludedApps.collect", "repository.enableSplitTunneling(",
+            "repository.excludeApp(", "repository.includeApp(",
+            "preferences.showSystemAppsSplitTunneling().collect",
+            "preferences.setShowSystemAppsSplitTunneling(",
+            "Intent.ACTION_PACKAGE_ADDED", "Intent.ACTION_PACKAGE_REMOVED",
+            "Intent.ACTION_PACKAGE_CHANGED", "Intent.ACTION_PACKAGE_REPLACED",
+            "ListView(activity)", "setOnItemClickListener", "EditText(activity)",
+            "getApplicationIcon(", "entry.missing",
+        ):
+            self.assertIn(expression, ui)
+        self.assertNotIn("SharedPreferences", ui)
+        self.assertNotIn("addDisallowedApplication(", ui)
+        self.assertIn('with_name("VpnSplitTunnelingUi.kt")',
+                      (prepare.ROOT / "tools/mullvad/prepare.py").read_text())
+
     def test_prepare_isolation_and_single_application(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -183,6 +209,7 @@ class PreparationTests(unittest.TestCase):
                 self.assertTrue((generated / "app/src/ossProd/kotlin/net/mullvad/mullvadvpn/app/VpnAccountUi.kt").exists())
                 self.assertTrue((generated / "app/src/ossProd/kotlin/net/mullvad/mullvadvpn/app/VpnLocationUi.kt").exists())
                 self.assertTrue((generated / "app/src/ossProd/kotlin/net/mullvad/mullvadvpn/app/VpnSettingsUi.kt").exists())
+                self.assertTrue((generated / "app/src/ossProd/kotlin/net/mullvad/mullvadvpn/app/VpnSplitTunnelingUi.kt").exists())
                 self.assertFalse((generated / "app/src/ossProdDebug/kotlin/net/mullvad/mullvadvpn/app/PlumeVpnDebugActivity.kt").exists())
                 self.assertIn("VpnActivity", (generated / "app/src/ossProd/AndroidManifest.xml").read_text())
                 staged_manifest = (generated / "plume-ui/src/main/AndroidManifest.xml").read_text()

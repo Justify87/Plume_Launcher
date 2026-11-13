@@ -52,6 +52,8 @@ import net.mullvad.mullvadvpn.lib.usecase.RecentsUseCase
 import net.mullvad.mullvadvpn.lib.usecase.SelectSinglehopUseCase
 import net.mullvad.mullvadvpn.lib.usecase.customlists.CustomListsRelayItemUseCase
 import net.mullvad.mullvadvpn.lib.repository.UserPreferencesRepository
+import net.mullvad.mullvadvpn.lib.repository.SplitTunnelingRepository
+import net.mullvad.mullvadvpn.feature.splittunneling.impl.applist.ApplicationsProvider
 import net.mullvad.mullvadvpn.serviceconnection.ServiceConnectionManager
 import org.koin.android.ext.android.getKoin
 import org.koin.core.context.loadKoinModules
@@ -102,10 +104,21 @@ class VpnActivity : ComponentActivity() {
             dark, ink, secondary, surface, accent,
         )
     }
+    private val splitTunnelingUi by lazy {
+        VpnSplitTunnelingUi(
+            this,
+            getKoin().get<SplitTunnelingRepository>(),
+            getKoin().get<ApplicationsProvider>(),
+            getKoin().get<UserPreferencesRepository>(),
+            ::withDaemon,
+            { tabs.getOrNull(4)?.requestFocus() },
+            ink, secondary, surface, accent,
+        )
+    }
     private val preferences by lazy { getKoin().get<UserPreferencesRepository>() }
     private val serviceBinding by lazy { ServiceConnectionManager(applicationContext) }
 
-    private val sections = listOf("Status", "Standorte", "Konto", "VPN-Einstellungen", "Diagnose")
+    private val sections = listOf("Status", "Standorte", "Konto", "VPN-Einstellungen", "Split Tunneling", "Diagnose")
     private val tabs = mutableListOf<Button>()
     private val panels = mutableListOf<View>()
     private val focusTargets = mutableListOf<View>()
@@ -161,6 +174,7 @@ class VpnActivity : ComponentActivity() {
         setContentView(buildScreen())
         locationUi.start()
         settingsUi.start()
+        splitTunnelingUi.start()
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 if (page == 3 && settingsUi.handleBack()) return
@@ -176,6 +190,7 @@ class VpnActivity : ComponentActivity() {
                 daemonReady = state == GrpcConnectivityState.Ready
                 locationUi.onDaemonReady(daemonReady)
                 settingsUi.onDaemonReady(daemonReady)
+                splitTunnelingUi.onDaemonReady(daemonReady)
                 grpcLine.text = "Mullvad-Dienst: " + if (daemonReady) "bereit" else state.toString()
                 diagnosticLine.text = grpcLine.text
                 renderTunnel()
@@ -216,7 +231,7 @@ class VpnActivity : ComponentActivity() {
                 message("Initialisierung fehlgeschlagen: " + error.safeMessage())
             }
         }
-        if (savedInstanceState != null) showPage(savedInstanceState.getInt("vpnPage", 0).coerceIn(0, 4))
+        if (savedInstanceState != null) showPage(savedInstanceState.getInt("vpnPage", 0).coerceIn(0, 5))
         else tabs[0].requestFocus()
     }
 
@@ -224,6 +239,7 @@ class VpnActivity : ComponentActivity() {
         super.onResume()
         if (bound && daemonReady) accountUi.refresh()
         settingsUi.onResume()
+        splitTunnelingUi.onResume()
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -394,6 +410,9 @@ class VpnActivity : ComponentActivity() {
         addPanel(detail, vpnSettings)
         focusTargets += settingsUi.primaryFocus
 
+        addLocationPanel(detail, splitTunnelingUi.build())
+        focusTargets += splitTunnelingUi.primaryFocus
+
         val diagnosis = panel()
         diagnosis.addView(text("Diagnose", 25f, true))
         diagnosticLine = text("Mullvad-Dienst: wird geprüft", 17f)
@@ -410,6 +429,7 @@ class VpnActivity : ComponentActivity() {
                 if (index == 2) accountUi.requestPrimaryFocus()
                 else if (index == 1) locationUi.requestPrimaryFocus()
                 else if (index == 3) settingsUi.requestPrimaryFocus()
+                else if (index == 4) splitTunnelingUi.requestPrimaryFocus()
                 else focusTargets[index].requestFocus()
             }
             tab.setOnFocusChangeListener { _, focused ->
@@ -422,6 +442,7 @@ class VpnActivity : ComponentActivity() {
                     if (index == 2) accountUi.requestPrimaryFocus()
                     else if (index == 1) locationUi.requestPrimaryFocus()
                     else if (index == 3) settingsUi.requestPrimaryFocus()
+                    else if (index == 4) splitTunnelingUi.requestPrimaryFocus()
                     else focusTargets[index].requestFocus()
                     true
                 } else false
@@ -508,6 +529,11 @@ class VpnActivity : ComponentActivity() {
 
     private fun Throwable.safeMessage() = message ?: javaClass.simpleName
     private fun dp(value: Int) = (value * resources.displayMetrics.density).toInt()
+
+    override fun onPause() {
+        splitTunnelingUi.onPause()
+        super.onPause()
+    }
 
     override fun onDestroy() {
         if (bound) {

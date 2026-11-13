@@ -2,19 +2,25 @@
 
 ```yaml
 schema: plume-mullvad-handoff/v1
-milestone: M07
+milestone: M08
 status: partial
 checked_on: "2026-11-13"
-main_head_at_start: 73f50f59751f27021737bdf8a4c1b325eba9e146
-predecessor_milestone: M06
-predecessor_pr: 21
+main_head_at_start: 03d0ef3462743c50d3f0e00bde229917141da8dd
+predecessor_milestone: M07
+predecessor_pr: 22
 predecessor_merged_into_main: true
 base_branch: main
-feature_branch: feature/m07-mullvad-vpn-settings-tv
+feature_branch: feature/m08-mullvad-split-tunneling-tv
 upstream_tag: android/2026.12
 upstream_sha: aa47f606b1a159214c7279344128119fa91be5fd
 upstream_gitlink_unchanged: true
 single_apk_application_id: dev.plume.advanced
+m08_pr: 23
+m08_initial_commit: 0e64a56f35fdfa860e1a5e25f7fcb01af633562b
+m08_initial_ci: observed_ci_pass
+m08_initial_ci_run: 43402989685
+m08_final_ci: pending
+m08_shield_test: hardware_pending
 m06_ci: observed_ci_pass
 m06_ci_run: 43339177759
 m06_shield_test: not_run
@@ -93,3 +99,19 @@ Der Originalcode registriert `VoucherRepository` und `NewDeviceRepository` in `u
 - **CI:** [Run 43343996225](https://github.com/Justify87/Plume_Launcher/actions/runs/43343996225), vollständiger Status `success`. `check` hat Staging-Python-Tests, Plume-Unit-Tests/Lint, Launcher-Installer-Regressionen und Projektregeln bestanden. `mullvad-apk` hat den originalen Container-/Kotlin-/Rust-/JNI-Integrationsbuild bestanden (`BUILD SUCCESSFUL in 10m 10s`), die APK geprüft (`APK structure OK (839 entries; Rust/JNI and relay assets present)`) und das ARM64-Debug-Artifact hochgeladen. Dies ist **kein** echter VPN-/Hardware-Nachweis.
 - **Review-Korrekturen im selben PR:** `d2855c8` trennt DNS-Feldverfügbarkeit von Offline-/Default-DNS-State und initialisiert die Filterknöpfe; `f0409b2` entfernt eine irrtümliche zusätzliche `dns.apply`-Layout-Verschachtelung vor erfolgreichem Kotlin-CI. Alt-Läufe `43343229823`/`43343427456` wurden wegen neuer PR-Commits automatisch abgebrochen; **nicht** als Buildfehler zählen.
 - **Grenzen:** Tunnel-DNS-Effekt, D-Pad auf Shield, Persistenz nach Neustart, LAN-Effekt, Auto-Boot und Android-System-Always-on weiterhin `not_run` (keine Shield vorhanden). M07 bleibt **`partial`** und wird **nicht** zum Hardware-`pass` erklärt. M08 folgt erst diesem Branch/PR nach Merge oder korrekt gestapelt auf seinem HEAD.
+
+
+## M08 — aktuelle Übergabe (13.11.2026)
+
+- Ausgangs-HEAD `main`: `03d0ef3462743c50d3f0e00bde229917141da8dd` (M07 PR #22 gemergt; keine offenen PRs). Branch `feature/m08-mullvad-split-tunneling-tv`.
+- Status: `partial` bis GitHub-CI und Shield-Hardwareabnahme. Pinnung unverändert: Mullvad `android/2026.12` / `aa47f606b1a159214c7279344128119fa91be5fd`; originale Quellmodule unverändert.
+- Neu: `tools/mullvad/VpnSplitTunnelingUi.kt` als `ossProd`-Staging-Overlay; sechster Rail-Tab in `VpnActivity`; `prepare.py` und Staging-Tests erweitert. Original `SplitTunnelingRepository`, `ApplicationsProvider`, `UserPreferencesRepository`; keine zweite Datenhaltung/VpnService-Filterung.
+- Bedienung: suchbare, virtualisierte D-Pad-App-Liste mit Icons und Paketnamen, Split-Tunneling-Toggle, ausgeschlossene/eingeschlossene Apps, System-/Hintergrundapps, dynamisches Refresh bei Paketwechsel/Resume, fehlende gespeicherte Pakete erkennbar und entfernbar. Ausschlüsse bleiben bei deaktiviertem Split Tunneling sichtbar, aber als inaktiv markiert. Android-Lockdown-Wirkung wird ausdrücklich nicht behauptet.
+- Lokale Kotlin-/Rust-/ADB-Tests mangels Repo-Clone-Netz/SDK nicht ausgeführt; PR-CI nach Erstellung bewerten. Shield-Persistenz, TV-Fokus und echte App-Routen: `hardware_pending`.
+- Handoff M09: nach Merge auf M08-`main` (sonst korrekt gestapelt) mit Multihop/DAITA fortfahren, keine eigene Tunnel- oder App-Regellogik hinzufügen; Shield-Abnahme M08 nachholen.
+
+### M08 CI und Review (PR #23)
+
+- Erstes integriertes CI auf `0e64a56f35fdfa860e1a5e25f7fcb01af633562b`: [Run 43402989685](https://github.com/Justify87/Plume_Launcher/actions/runs/43402989685) **success**. `check`: Original-Plume-Regeln, Staging-Assertions, Installer-Regressionen, Unit/Lint erfolgreich. `mullvad-apk`: gepinnter Original-Container, Kotlin/Rust/JNI-Build `BUILD SUCCESSFUL in 12m 34s`, APK-Struktur `839` Einträge mit Native-/Relay-Assets, ein Paket `dev.plume.advanced`; ARM64-Debug-Artifact `Plume-Mullvad-ARM64-Debug-74`. Keine reale Shield-Verbindung geprüft.
+- Review-Nachtrag: `STATE.md`-YAML-Metadaten auf M08 aktualisiert; Markdown-Backtick-Escapes in den fünf Handoff-Dateien korrigiert. Suchfeld-Fokus erhält expliziten Rahmen (native TV-Ansicht). Diese Nachkorrekturen benötigen eigenen finalen PR-CI-Lauf; bis dahin bleibt der *neue* HEAD nicht als erneut gebaut behauptet.
+- M09 übernimmt M08 erst ab tatsächlichem gemergtem PR-/CI-Stand; keine externen Testgeräte oder Tunnelprüfungen vortäuschen.

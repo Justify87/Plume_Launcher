@@ -350,3 +350,40 @@ adb shell dumpsys connectivity
 **CI-Nachweis:** [GitHub Run 43343996225](https://github.com/Justify87/Plume_Launcher/actions/runs/43343996225), Commit `f0409b2d34bee5267afe19d25b121543f98658d4`, `check=success`, `mullvad-apk=success`, `BUILD SUCCESSFUL in 10m 10s`, `APK structure OK (839 entries; Rust/JNI and relay assets present)`. Die CI prüft Quellgenerator/Regression und Single-APK-Artefakt, **keine** realen DNS-Anfragen, Tunnel-Exit-IP, System-Permission, Boot/Always-on oder D-Pad. M07-04–10 bleiben ohne angeschlossenes Shield `not_run`, vollständige Geräteabnahme `partial`.
 
 **Review:** Erstes Layoutreview erkannte DNS-Button-Initialisierung/Offline-Einschränkung und beseitigte sie (`d2855c8`); zweites Review korrigierte versehentlich eingefügte zusätzliche `dns.apply`-Verschachtelung (`f0409b2`), deren CI vollständig erfolgreich war. Keine Original-Mullvad-Quelldatei verändert. Für den Handoff an M08 verbleibt der Original-Split-Tunneling-/App-Listen-Bereich; Boot-/DNS-Settings weiterverwenden.
+
+
+## M08 — Split Tunneling (13.11.2026)
+
+| Test | Nachweis | Ergebnis bei Implementierung |
+| --- | --- | --- |
+| M08-01 Generator | `python3 -m unittest discover -s tools -p test_mullvad_prepare.py -v` | `observed_ci_pass`: [Run 43402989685](https://github.com/Justify87/Plume_Launcher/actions/runs/43402989685) |
+| M08-02 Plume-Regression | CI-Plume-Unit/Lint und Installer-Regression | `observed_ci_pass`: Run 43402989685; vollständiges separates `assembleDebug` lokal `not_run` |
+| M08-03 ARM64-Mullvad-APK | Original-Container-Integrationsbuild, `check_apk.py`, Manifest/Checksum | `observed_ci_pass`: Run 43402989685; `BUILD SUCCESSFUL in 12m 34s`, 839 APK-Einträge, Artifact `Plume-Mullvad-ARM64-Debug-74` |
+| M08-04 TV D-Pad | Classic/Overview VPN → Split Tunneling; OK/Back/Links, Tastatur-Suche, lange App-Liste | `hardware_pending` |
+| M08-05 Persistenz | Zwei **tatsächlich installierte** TV-Apps auswählen, Ein/Aus, Prozessneustart, Regeln gleich | `hardware_pending` |
+| M08-06 Routing | Mit und ohne VPN dieselbe Test-IP über **ausgeschlossene** und **eingeschlossene** App prüfen | `hardware_pending` |
+| M08-07 Android-Lockdown | Always-on/Sperrmodus an/aus, gleiche Apps mit echter Netzverbindung prüfen | `hardware_pending` |
+| M08-08 Paketänderung | TV-/Sideload-App install/uninstall, Refresh im offenen VPN-Menü und bei Resume; fehlende Regel entfernbar | `hardware_pending` |
+| M08-09 UI-Vollständigkeit | Systemapps Ein/Aus, Suche ohne Treffer, Icons, >100 Apps Scroll und Fokus | `hardware_pending` |
+
+```bash
+git switch feature/m08-mullvad-split-tunneling-tv
+git submodule update --init --recursive
+test "$(git -C third_party/mullvadvpn-app rev-parse HEAD)" = aa47f606b1a159214c7279344128119fa91be5fd
+python3 -m unittest discover -s tools -p test_mullvad_prepare.py -v
+./gradlew testDebugUnitTest lintDebug assembleDebug
+sh tools/plume-install-test/run.sh
+bash tools/mullvad/build-integrated.sh
+python3 tools/mullvad/check_apk.py <APK>
+adb devices -l
+adb shell pm list packages
+adb install -r <APK>
+adb shell monkey -p dev.plume.advanced -c android.intent.category.LEANBACK_LAUNCHER 1
+# Nur auf dem Gerät vorhandene Pakete auswählen; externe Exit-IP in beiden Apps vergleichen.
+# Android-VPN-Sperrmodus separat an/aus; Prozessneustart, Install/Uninstall und D-Pad prüfen.
+adb logcat -d -s AndroidRuntime MullvadVpnService MullvadDaemon
+```
+
+Geräteumgebung nicht verbunden. Keine Shield-/Routing-/Persistenz-Passes ohne Logs, Netzwerkbeleg und D-Pad-Prüfung.
+
+**Nachtrag:** Review korrigiert M08-Handoff-Markdown und ergänzt sichtbaren EditText-Fokusrahmen. Für den finalen PR-HEAD muss der erneut gestartete CI-Lauf getrennt geprüft werden. Shield-Fälle M08-04–09 bleiben unverändert `hardware_pending`.
