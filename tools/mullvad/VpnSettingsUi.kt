@@ -2,7 +2,6 @@ package net.mullvad.mullvadvpn.app
 
 import android.app.AlertDialog
 import android.content.Intent
-import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
@@ -75,6 +74,8 @@ internal class VpnSettingsUi(
     private lateinit var mtuButton: Button
     private lateinit var bootButton: Button
     private lateinit var dnsModeButton: Button
+    private lateinit var allFiltersButton: Button
+    private lateinit var addDnsButton: Button
     private lateinit var dnsWarnings: TextView
     private lateinit var dnsList: LinearLayout
 
@@ -128,7 +129,9 @@ internal class VpnSettingsUi(
                 "nicht von Plume erfunden. Die Verfügbarkeit hängt vom TV-Gerät ab.", 13f))
         addView(general)
 
-        dns = column().apply { visibility = View.GONE }
+        dns = column()
+        dns.visibility = View.GONE
+        dns.apply {
         dnsFirst = action("Zurück zu VPN-Einstellungen") { handleBack() }
         dns.addView(dnsFirst, rowParams())
         dns.addView(label("DNS und Inhaltsfilter", 23f, true))
@@ -146,11 +149,13 @@ internal class VpnSettingsUi(
             { it.copy(blockGambling = !it.blockGambling) })
         addFilter("Soziale Netzwerke", { it.blockSocialMedia },
             { it.copy(blockSocialMedia = !it.blockSocialMedia) })
-        dns.addView(action("Alle Filter umschalten") { toggleAllFilters() }, rowParams())
+        allFiltersButton = action("Alle Filter umschalten") { toggleAllFilters() }
+        dns.addView(allFiltersButton, rowParams())
         dns.addView(label("Eigene DNS-Server (IPv4 oder IPv6)", 20f, true))
         dnsWarnings = label("", 14f)
         dns.addView(dnsWarnings)
-        dns.addView(action("DNS-Server hinzufügen") { editDns(null) }, rowParams())
+        addDnsButton = action("DNS-Server hinzufügen") { editDns(null) }
+        dns.addView(addDnsButton, rowParams())
         dnsList = column()
         dns.addView(dnsList)
         addView(dns)
@@ -203,7 +208,7 @@ internal class VpnSettingsUi(
         lanButton.text = "Lokales Netzwerk erlauben: " + onOff(s?.allowLan)
         ipv6Button.text = "IPv6 im Tunnel: " + onOff(s?.tunnelOptions?.enableIpv6)
         quantumButton.text = "Post-Quanten-Schlüsselaustausch: " +
-            onOff(s?.tunnelOptions?.quantumResistant == QuantumResistantState.On)
+            onOff(s?.let { it.tunnelOptions.quantumResistant == QuantumResistantState.On })
         ipVersionButton.text = "WireGuard IP-Version: " + when (val value = latestWireguard?.ipVersion) {
             Constraint.Any -> "Automatisch"
             is Constraint.Only -> if (value.value == IpVersion.IPV4) "IPv4" else "IPv6"
@@ -213,16 +218,18 @@ internal class VpnSettingsUi(
             (s?.tunnelOptions?.mtu?.value?.toString() ?: "Automatisch")
         bootButton.text = "Bei Geräte-Neustart verbinden: " + onOff(bootEnabled)
         dnsModeButton.text = "Eigene DNS-Server verwenden: " +
-            onOff(s?.tunnelOptions?.dnsOptions?.state == DnsState.Custom)
+            onOff(s?.let { it.tunnelOptions.dnsOptions.state == DnsState.Custom })
         listOf(lanButton, ipv6Button, quantumButton, mtuButton, dnsModeButton).forEach {
             it.isEnabled = enabled
         }
         ipVersionButton.isEnabled = enabled && latestWireguard != null
         bootButton.isEnabled = true  // Android component state, not a daemon RPC
+        addDnsButton.isEnabled = enabled
 
         val options = s?.tunnelOptions?.dnsOptions
         val default = options?.defaultOptions ?: DefaultDnsOptions()
         val customMode = options?.state == DnsState.Custom
+        allFiltersButton.isEnabled = enabled && !customMode
         filterControls.forEach { control ->
             control.button.text = control.title + ": " + onOff(control.isOn(default))
             control.button.isEnabled = enabled && !customMode
