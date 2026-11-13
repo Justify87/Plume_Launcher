@@ -21,6 +21,16 @@ def check_apk(path: str) -> int:
         for name in sorted(REQUIRED):
             if archive.getinfo(name).file_size == 0:
                 raise ValueError(f"APK has an empty mandatory entry: {name}")
+        packaged_abis = {
+            name.split("/")[1]
+            for name in members
+            if name.startswith("lib/") and name.endswith(".so")
+        }
+        unsupported = packaged_abis - {"arm64-v8a"}
+        if unsupported:
+            raise ValueError(
+                f"APK advertises ABI(s) without the ARM64 Mullvad JNI: {sorted(unsupported)}"
+            )
         with archive.open("lib/arm64-v8a/libmullvad_jni.so") as native:
             header = native.read(20)
         # ELF64, little-endian, e_machine = EM_AARCH64 (183).
