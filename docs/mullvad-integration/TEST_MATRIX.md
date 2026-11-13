@@ -438,3 +438,55 @@ adb shell dumpsys connectivity
 **Post-Merge-Situation:** PR #24 wurde während der M09-Review-Arbeit nach `main` gemergt, bevor die nachträglichen UI-Korrekturen Teil des PRs waren. Deshalb werden diese isoliert auf `main` `0df3ead5749ad5a3f465029308c104e9babe67d1` als `feature/m09-mullvad-postmerge-ui-review` erneut getestet. `Run 43409181838` ist grün für den M09-Merge, **kein** finaler Buildbeleg für das Folge-Review.
 
 **CI-Branchkonvention:** `.github/workflows/pr.yml` startet den integrierten `mullvad-apk`-Job nur bei PR-Head-Refs mit `mullvad` im Namen. Der erste Post-Merge-Review-PR #25 wurde deshalb vor der finalen Abnahme durch einen identischen Review-Branch mit `mullvad` im Namen ersetzt; **der in PR #25 übersprungene APK-Job ist kein Testpass**. Der neu eröffnete Review-PR wird vollständig geprüft.
+
+## M10 — Netzwerkoptionen / nachzuweisende TV-Abnahme (13.11.2026)
+
+Basis `main` `0df3ead5749ad5a3f465029308c104e9babe67d1`, gepinnter Mullvad-SHA `aa47f606b1a159214c7279344128119fa91be5fd`. M09-PR #24 CI [43409181838](https://github.com/Justify87/Plume_Launcher/actions/runs/43409181838) abgeschlossen mit `success`. M10-Quellstand `f938114fb80b3ae38ea068dc1904ca67b216ce1f` hat nach Korrektur [CI 43423552657](https://github.com/Justify87/Plume_Launcher/actions/runs/43423552657) mit `success` bestanden. Geräteabnahme bleibt `hardware_pending`.
+
+| Testfall | Prüfschritte / Originalzustand | Stand |
+| --- | --- | --- |
+| Source-/Staging-Gates | `python3 -m unittest discover -s tools -p test_mullvad_prepare.py -v`; Host enthält VpnNetworkUi, keine Submodulmutation | `observed_ci_pass`: Run 43423552657 |
+| Plume Regressionen | `./gradlew testDebugUnitTest lintDebug`; `sh tools/plume-install-test/run.sh` | `observed_ci_pass`: Run 43423552657; eigenständige Launcher-assemble*-Jobs im Mullvad-PR bewusst übersprungen |
+| Integrierter APK-Build | `bash tools/mullvad/build-integrated.sh --no-configuration-cache --max-workers=2`; `python3 tools/mullvad/check_apk.py <APK>` | `observed_ci_pass`: Run 43423552657, Kotlin/Rust/JNI, APK-Struktur mit 839 Einträgen |
+| Obfuskation | Auf Shield alle sieben Modi Auto/Off/UDP→TCP/Shadowsocks/QUIC/LWO/WireguardPort schalten; `settingsUpdates`, Offline, Reconnect, Restart, Tunnelstatus/Fehler | `hardware_pending` |
+| Ports | Automatisch, 80/443/5001, 51820/53, zulässige/ungültige eigene Ports, Relayportbereiche, Persistenz, Verbindungswechsel | `hardware_pending` |
+| DAITA/Multihop-Konflikte | M09 ALWAYS/WHEN_NEEDED/NEVER, DAITA on/off kombinieren, Mullvad-Fehler/Relay-Effekt statt künstlichem Umschalten prüfen | `hardware_pending` |
+| API-Zugang | Direkt/Brücken/EncryptedDNS; aktive/inaktive Methode, Testen, erfolgreich/fehlerhaft Wechseln, Offline-Neustart | `hardware_pending` |
+| Eigene API-Methode | SOCKS5 mit/ohne Auth, Shadowsocks unterstützte Cipher, Add/Edit/Test/Enable/Disable/Delete; Name/IP/Port invalid, letzter aktiver Zugang | `hardware_pending` |
+| Server-IP | Gültiger/ungültiger JSON-Text- und Dateiimport, Liste, Neustart, Reset/Abbruch, tatsächlicher Relay-Effekt | `hardware_pending` |
+| TV/Launcher | Classic und Overview: sichtbarer VPN-Einstieg, Netzwerk-Unterseiten per D-Pad/OK/Back, Tastatur/Dateipicker, Home ohne Tunnelabbruch | `hardware_pending` |
+
+**Reproduzierbare Abnahme (NVIDIA Shield):**
+```bash
+git checkout feature/m10-mullvad-network-access-tv
+git submodule update --init --recursive
+test "$(git -C third_party/mullvadvpn-app rev-parse HEAD)" = aa47f606b1a159214c7279344128119fa91be5fd
+python3 -m unittest discover -s tools -p test_mullvad_prepare.py -v
+./gradlew testDebugUnitTest assembleDebug lintDebug assembleRelease
+sh tools/plume-install-test/run.sh
+bash tools/mullvad/build-integrated.sh
+python3 tools/mullvad/check_apk.py <integrated-debug.apk>
+adb devices -l
+adb shell getprop ro.build.version.sdk
+adb shell getprop ro.product.cpu.abilist
+adb install -r <integrated-debug.apk>
+adb shell am start -n dev.plume.advanced/dev.plume.MainActivity
+adb logcat -c
+# In Classic und Overview VPN > Netzwerk; Originalkonto/VPN-Zustimmung.
+# Alle obigen Szenarien durchspielen, reale IP/Relay-Wirkung separat belegen.
+adb logcat -d -s AndroidRuntime MullvadVpnService MullvadDaemon
+adb shell dumpsys connectivity
+```
+
+**Review:** Original Rust/JNI/Service unverändert, keine zweite Anwendung/Proxyengine, echte Repositories; kein reales Shield/ADB im Arbeitskontext. Ein grüner Build ohne Geräte-/Tunnelabnahme bleibt `partial`.
+
+### M10 CI-Nachprüfung nach dem letzten Fehler
+
+| Nachweis | Ergebnis / Ursache |
+| --- | --- |
+| [CI 43414769371](https://github.com/Justify87/Plume_Launcher/actions/runs/43414769371) auf `234d01739284` | `check=success`, `mullvad-apk=fail`; in `VpnActivity.kt:432` steht `ScrollView.LayoutParams` statt Androids `FrameLayout.LayoutParams` |
+| CI-Workflow `.github/workflows/pr.yml` / `debug-apk.yml` | Source-Staging erfolgreich, Originalimage und Rust-/Kotlin-Module bis Hostkompilierung erfolgreich; Workflow selbst korrekt fail-fast und deshalb für diesen Fehler unverändert |
+| M09-Basis seit PR #26 | Die auf `main` nachträglich gemergten D-Pad-/Offline-Korrekturen wurden mit M10 gemergt; M09-Runtimefunktion muss auf Shield trotzdem geprüft werden |
+| M10 Re-Run / ARM64-APK / Shield | [Run 43423552657](https://github.com/Justify87/Plume_Launcher/actions/runs/43423552657) `success`, Artifact `Plume-Mullvad-ARM64-Debug-84`; Shield und echter Tunnel `hardware_pending` |
+
+**Aktuelles CI-Gate:** [Run 43423552657](https://github.com/Justify87/Plume_Launcher/actions/runs/43423552657) für Commit `f938114fb80b3ae38ea068dc1904ca67b216ce1f`: Plume `check=success`, integriertes `mullvad-apk=success`, originaler Android-Build `BUILD SUCCESSFUL in 11m 42s`, APK-Prüfer `APK structure OK (839 entries; Rust/JNI and relay assets present)`; Artifact `Plume-Mullvad-ARM64-Debug-84`. Der finale Handoff-Dokumentationscommit ändert keine ausführbaren Dateien; diese CI-Evidenz gilt für den geprüften Codecommit. Shield bleibt ausdrücklich `hardware_pending`.

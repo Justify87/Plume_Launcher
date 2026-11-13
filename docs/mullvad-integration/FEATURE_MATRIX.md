@@ -162,3 +162,19 @@ Die ursprüngliche Inventartabelle oben beschreibt weiterhin die historische M01
 | F46 Verbindungspfad | `TunnelState.Connected.location.entryHostname/hostname`, `HopSelectionUseCase`; `ConnectionPathUseCase` ist geo-/kartenorientiert | getrennte Anzeige von konfigurierten Hops und tatsächlich bestätigter Entry-/Exit-Verbindung | `partial`, `hardware_pending` |
 
 **Keine Parität durch statische Ansicht allein:** `pass` erst nach GitHub-Kotlin/Rust/JNI-/APK-Build **und** realem TV-/VPN-Test. `WHEN_NEEDED` und DAITA können Entry-Verfügbarkeit einschränken; von Mullvad gelieferte Optionen nicht mit Plume-eigenen Regeln überschreiben. Nur zwei PQ-Zustände; keine zusätzliche Sicherheitseinstellung im Release.
+
+## M10 — Anti-Zensur, API-Zugang und Server-IP, tatsächlicher Ausbaustand
+
+Die historische Inventartabelle bleibt unverändert; diese Fortschreibung ist für F15–F17 maßgeblich. `partial` heißt Original-Repositories plus native TV-View sind angebunden; **kein** Geräte-`pass`.
+
+| ID | Gepinnte Originalschnittstelle | TV-Umsetzung / Originalgrenze | Status |
+| --- | --- | --- | --- |
+| F15 Obfuskation | `ObfuscationMode.Auto/Off/Udp2Tcp/Shadowsocks/Quic/Lwo/WireguardPort`, `SettingsRepository.setObfuscation`, `settingsUpdates` | Netzwerk → Verschleierung, sieben Modi, echter Status inkl. DAITA/Multihop | `partial`; Shield/Tunnel offen |
+| F15 Ports | `setCustomWireguardPort` (Obfuskationsport!), `setCustomUdp2TcpObfuscationPort`, `setCustomShadowsocksObfuscationPort`, `setCustomLwoObfuscationPort`; `RelayListRepository.portRanges` | Automatisch/Original-Presets, eigener zulässiger Port, backendbestätigte Werte; QUIC ohne Portoption | `partial`; CI/Gerät offen |
+| F16 API-Methoden | `ApiAccessRepository.accessMethods/currentAccessMethod`, `testApiAccessMethodById`, `setCurrentApiAccessMethod`, `setEnabledApiAccessMethod` | Liste mit aktivem Status, Test/Wechsel, Aktivierung/Deaktivierung, API-Fehler | `partial`; API-Erreichbarkeit offen |
+| F16 Eigene Zugänge | `addApiAccessMethod`, `updateApiAccessMethod`, `removeApiAccessMethod`, `testCustomApiAccessMethod`, `getShadowsocksCiphers` | SOCKS5-Remote/optional Auth und Shadowsocks, Textfelder, IP-/Port-/Cipher-Validierung, Löschbestätigung | `partial`; echte Proxyprüfung offen |
+| F17 Relay-Overrides | `RelayOverridesRepository.relayOverrides/applySettingsPatch/clearAllOverrides` | bestätigte Einträge, JSON-Text oder Dokument importieren und global zurücksetzen | `partial`; gültige/ungültige Imports offen |
+| F17 Einzelhost-Editor | Gepinnte Android-Originaloberfläche bietet Import/Reset, aber keinen direkten Einzelhost-Setter im Repository | Keine erfundene Einzel-IP-CRUD-UI; Änderungen nur durch Original-JSON-Patch | `not_applicable` als eigenständige Aktion |
+| F25 Quick Settings / Tarnungs-Icon | Android-OS-/Launcher-abhängig, nicht Teil der F15–F17-Original-Netzwerk-Repositories | Keine vorgetäuschten TV-Systemaktionen | `not_started`, M11 Geräteprüfung |
+
+**Weiter offen für M11:** F01–F24, F26–F33 und F43+ soweit laut vorigen Meilensteinen `partial`; F25, F34–F42 einschließlich Benachrichtigungen, Diagnose/Problembericht, App-Info, Locale, TV-Quick-Tile/-App-Icon-Äquivalent. Aktuelle Hardware-/CI-Lücken stehen in `TEST_MATRIX.md`.

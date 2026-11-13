@@ -40,6 +40,8 @@ import net.mullvad.mullvadvpn.lib.repository.AutoStartAndConnectOnBootRepository
 import net.mullvad.mullvadvpn.lib.repository.WireguardConstraintsRepository
 import net.mullvad.mullvadvpn.lib.usecase.DeleteCustomDnsUseCase
 import net.mullvad.mullvadvpn.lib.usecase.SystemVpnSettingsAvailableUseCase
+import net.mullvad.mullvadvpn.lib.repository.ApiAccessRepository
+import net.mullvad.mullvadvpn.lib.repository.RelayOverridesRepository
 import net.mullvad.mullvadvpn.lib.repository.AccountRepository
 import net.mullvad.mullvadvpn.lib.repository.DeviceRepository
 import net.mullvad.mullvadvpn.lib.repository.NewDeviceRepository
@@ -153,10 +155,23 @@ class VpnActivity : ComponentActivity() {
             ink, secondary, surface, accent,
         )
     }
+    private val networkUi by lazy {
+        VpnNetworkUi(
+            this,
+            getKoin().get<SettingsRepository>(),
+            getKoin().get<RelayListRepository>(),
+            getKoin().get<WireguardConstraintsRepository>(),
+            getKoin().get<ApiAccessRepository>(),
+            getKoin().get<RelayOverridesRepository>(),
+            ::withDaemon,
+            { tabs.getOrNull(6)?.requestFocus() },
+            ink, secondary, surface, accent,
+        )
+    }
     private val preferences by lazy { getKoin().get<UserPreferencesRepository>() }
     private val serviceBinding by lazy { ServiceConnectionManager(applicationContext) }
 
-    private val sections = listOf("Status", "Standorte", "Konto", "VPN-Einstellungen", "Split Tunneling", "Erweitert", "Diagnose")
+    private val sections = listOf("Status", "Standorte", "Konto", "VPN-Einstellungen", "Split Tunneling", "Erweitert", "Netzwerk", "Diagnose")
     private val tabs = mutableListOf<Button>()
     private val panels = mutableListOf<View>()
     private val focusTargets = mutableListOf<View>()
@@ -215,9 +230,11 @@ class VpnActivity : ComponentActivity() {
         settingsUi.start()
         splitTunnelingUi.start()
         advancedUi.start()
+        networkUi.start()
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 if (page == 3 && settingsUi.handleBack()) return
+                if (page == 6 && networkUi.handleBack()) return
                 if (page == 1 && returnFromAdvanced) {
                     returnFromAdvanced = false
                     locationUi.showFor(RelayListType.Single)
@@ -240,6 +257,7 @@ class VpnActivity : ComponentActivity() {
                 splitTunnelingUi.onDaemonReady(daemonReady)
                 advancedUi.onDaemonReady(daemonReady)
                 advancedUi.onTunnelState(if (daemonReady) latestTunnel else null)
+                networkUi.onDaemonReady(daemonReady)
                 grpcLine.text = "Mullvad-Dienst: " + if (daemonReady) "bereit" else state.toString()
                 diagnosticLine.text = grpcLine.text
                 renderTunnel()
@@ -281,7 +299,7 @@ class VpnActivity : ComponentActivity() {
                 message("Initialisierung fehlgeschlagen: " + error.safeMessage())
             }
         }
-        if (savedInstanceState != null) showPage(savedInstanceState.getInt("vpnPage", 0).coerceIn(0, 6))
+        if (savedInstanceState != null) showPage(savedInstanceState.getInt("vpnPage", 0).coerceIn(0, 7))
         else tabs[0].requestFocus()
     }
 
@@ -406,7 +424,15 @@ class VpnActivity : ComponentActivity() {
             clipToPadding = false
             clipChildren = false
         }
-        columns.addView(rail, LinearLayout.LayoutParams(dp(230), -1))
+        // Eight VPN pages exceed the available height on several 720p TV densities.
+        // Let Android scroll focused rail items into view when navigating via D-Pad.
+        val railScroll = ScrollView(this).apply {
+            isFillViewport = false
+            isVerticalScrollBarEnabled = false
+            clipToPadding = false
+            addView(rail, FrameLayout.LayoutParams(-1, -2))
+        }
+        columns.addView(railScroll, LinearLayout.LayoutParams(dp(230), -1))
         columns.addView(detail, LinearLayout.LayoutParams(0, -1, 1f))
         root.addView(columns, LinearLayout.LayoutParams(-1, 0, 1f))
         root.addView(text("D-Pad: auswählen · OK: öffnen · Back: zur Übersicht / Plume", 13f))
@@ -475,6 +501,9 @@ class VpnActivity : ComponentActivity() {
         addPanel(detail, advanced)
         focusTargets += advancedUi.primaryFocus
 
+        addLocationPanel(detail, networkUi.build())
+        focusTargets += networkUi.primaryFocus
+
         val diagnosis = panel()
         diagnosis.addView(text("Diagnose", 25f, true))
         diagnosticLine = text("Mullvad-Dienst: wird geprüft", 17f)
@@ -497,13 +526,14 @@ class VpnActivity : ComponentActivity() {
                 else if (index == 3) settingsUi.requestPrimaryFocus()
                 else if (index == 4) splitTunnelingUi.requestPrimaryFocus()
                 else if (index == 5) advancedUi.requestPrimaryFocus()
+                else if (index == 6) networkUi.requestPrimaryFocus()
                 else focusTargets[index].requestFocus()
             }
             tab.setOnFocusChangeListener { _, focused ->
                 paint(tab, focused, page == index)
                 if (focused) {
-                    // Switching to a different rail destination must not leave the
-                    // M06 browser stuck in the temporary advanced entry/exit mode.
+                    // Switching away from the temporary entry/exit browser restores
+                    // normal single-hop mode, including D-Pad focus-only tab changes.
                     if (index != 1 && returnFromAdvanced) {
                         returnFromAdvanced = false
                         locationUi.showFor(RelayListType.Single)
@@ -525,6 +555,7 @@ class VpnActivity : ComponentActivity() {
                     else if (index == 3) settingsUi.requestPrimaryFocus()
                     else if (index == 4) splitTunnelingUi.requestPrimaryFocus()
                     else if (index == 5) advancedUi.requestPrimaryFocus()
+                else if (index == 6) networkUi.requestPrimaryFocus()
                     else focusTargets[index].requestFocus()
                     true
                 } else false
