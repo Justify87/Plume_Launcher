@@ -322,8 +322,14 @@ class VpnActivity : ComponentActivity() {
                 message("Initialisierung fehlgeschlagen: " + error.safeMessage())
             }
         }
-        if (savedInstanceState != null) showPage(savedInstanceState.getInt("vpnPage", 0).coerceIn(0, 7))
-        else tabs[0].requestFocus()
+        if (savedInstanceState != null) {
+            val restoredPage = savedInstanceState.getInt("vpnPage", 0)
+                .coerceIn(0, sections.lastIndex)
+            showPage(restoredPage)
+            // Dynamically built buttons have no stable view IDs, so Android cannot
+            // restore their focus automatically after Activity recreation.
+            tabs[restoredPage].requestFocus()
+        } else tabs[0].requestFocus()
     }
 
     override fun onResume() {

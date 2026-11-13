@@ -239,6 +239,7 @@ class PreparationTests(unittest.TestCase):
         for forbidden in ("HttpURLConnection", "SharedPreferences", "VpnService.Builder",
                           "addDisallowedApplication(", "Socket("):
             self.assertNotIn(forbidden, ui)
+        self.assertIn('tabs[restoredPage].requestFocus()', activity)
         self.assertIn("val railScroll = ScrollView(this)", activity)
         self.assertIn("addView(rail, FrameLayout.LayoutParams(-1, -2))", activity)
         self.assertNotIn("ScrollView.LayoutParams", activity)

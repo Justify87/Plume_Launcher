@@ -531,3 +531,5 @@ adb shell dumpsys connectivity
 ```
 
 **Review M11:** neue Diagnose ausschließlich Original-Repositories; höchstens 160 Logzeilen im TV-Text, vollständiger Export nur explizit; Original-PendingIntents im generierten Host zur TV-Activity. Integrations- und Gerätescreenshots, echtes Senden, OS-Tile-Abnahme nicht vorhanden. Damit M11 bis CI + Shield nur `partial`, keinerlei Runtime-/Geräte-`pass`.
+
+**M11 Navigationsreview-Fix:** Android restauriert dynamisch erzeugte Fokusziele ohne View-ID nicht automatisch. `VpnActivity.onCreate(savedInstanceState)` setzt deshalb den Menüfokus nach `showPage(restoredPage)` explizit auf `tabs[restoredPage]`; `test_mullvad_prepare.py` verlangt diese Quellverdrahtung. Physisches D-Pad-Fokusrestore bleibt `hardware_pending`.
