@@ -128,7 +128,12 @@ internal class VpnDiagnosticsUi(
         primaryFocus = action("Mullvad-Logs sammeln und ansehen") { showLogs() }
         addView(primaryFocus)
         addView(action("Vollständige Mullvad-Logs exportieren") {
-            exportDocument.launch("mullvad-problem-report.txt")
+            try {
+                exportDocument.launch("mullvad-problem-report.txt")
+            } catch (error: Exception) {
+                // Some TV firmware ships without a document picker or usable SAF provider.
+                notice("Exportdialog nicht verfügbar: " + error.safeMessage())
+            }
         })
         logsPreview = label("Noch keine Logs gelesen. Es wird nichts automatisch exportiert.", 13f)
         logsPreview.setTextIsSelectable(true)

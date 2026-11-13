@@ -264,6 +264,7 @@ class PreparationTests(unittest.TestCase):
                          "version.versionInfo.collect", "changelog.getLastVersionChanges()",
                          "changelog.setDismissNewChangelogNotification()",
                          'ActivityResultContracts.CreateDocument("text/plain")',
+                         "Exportdialog nicht verfügbar:",
                          "NotificationManagerCompat.from(activity).areNotificationsEnabled()",
                          "Supportstatus unbekannt (Dienst nicht erreichbar)",
                          "renderVersion()"):
