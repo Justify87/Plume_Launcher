@@ -128,3 +128,23 @@ Nur GitHub-Lauf mit zugehörigem finalen Commit nachträglich als CI-Pass werten
 | Hardware-Shield, echte Opt-in/Intent-/VPN-Sessions | Kein Gerät oder Emulator angebunden | **hardware_pending** |
 
 Der frühere failed-Lint-Run 43516551245 bleibt als historische Evidenz erhalten. Die Testfalllisten in diesem Dokument wurden im erfolgreichen Lauf mit ausgeführt; keine Test-Suppression.
+
+
+## M03 — Referenz-Shell und Navigationsprüfung (2026-11-13)
+
+| Gate | Evidenz | Tatsächlicher Status |
+| --- | --- | --- |
+| M02 korrekt als Baseline | [Merged PR #35](https://github.com/Justify87/Plume_Launcher/pull/35), `main@3f77ba55...` | **verified_merged** |
+| Referenz-Binär-/Format-Gate | Alle GitHub-Base64-Bytes gelesen, unabhängiger SHA-256 = `95af66ad...`, 1536×864 JPEG/JFIF; Bild visuell überprüft | **passed_source_verification** |
+| Layout-Anker / mathematische Fit-Abbildung | `VDesignCanvasTest.referenceCanvasPreservesExactSidebarAndHeroAnchors`, `proportionalTvCanvasDoesNotAssumeDpEqualsReferencePixels`, `unusualInsetsOrAspectKeepCanvasUnstretched` | **tests_committed, execution only via PR CI** |
+| Ein sichtbarer Host / Altseiten nur intern | `MainActivity.setupVDesign`, neue programmatische Root-Z-Reihenfolge; `content` unsichtbar | **source_review_only**; Emulator nicht gemessen |
+| Fünf Sidebar-Targets / kein All-Apps-Permanentpunkt | `VDesignHomeView.bindNavigation` + install/resolvable package filtering | **source_review_only**, actual TV D-Pad pending |
+| Nuvio-Counts und No-Fake-Content | `bindFeed(nuvioDashboardFeed)`, 14 unfokussierbare Empty-Slots, keine SmartTube-Programmquelle | **source_review_only**, reale Programme werden erst M04 gerendert |
+| Lifecycle/Direct Boot/Glass-Layer | Early return on locked user, unveränderte `GlassLayer` root insertion at index 2; Callback onResume/onPause | **source_review_only**, runtime not_run |
+| All Apps/Settings/HDMI/VPN / Focus | Lang-OK Übersicht/Settings, existierende Launcher-/VPN-Ziele, Restore-Fokus | **source_review_only; emulator_not_run/hardware_pending** |
+| Erster PR-Run auf `a0ed625...` | [43520147382](https://github.com/Justify87/Plume_Launcher/actions/runs/43520147382) | **cancelled** durch späteren Commit |
+| Zweiter PR-Run auf `b0299f...` | [43520288284](https://github.com/Justify87/Plume_Launcher/actions/runs/43520288284) | **cancelled** durch späteren Commit |
+| Dritter Run auf Quell-HEAD `71f5e80...` | [43520674555](https://github.com/Justify87/Plume_Launcher/actions/runs/43520674555), [check 132213947427](https://github.com/Justify87/Plume_Launcher/actions/runs/43520674555/job/132213947427) | **in_progress at docs time**, no pass asserted |
+| Native Mullvad/JNI/VpnService | Source-/Gitlink-Diff unverändert, branch-conditioned native job | **skipped; runtime pending**, keine integrierte APK-Abnahme |
+| Lokale Builds/JVM/Emulator/Shield | Kein Android SDK/Checkout oder angeschlossenes Gerät | **not_run/hardware_pending** |
+| Exakter endgültiger PR-HEAD nach Docs | Run nach Commit separat beobachten, ggf. PR-Kommentar mit immutable Evidence | **pending** |

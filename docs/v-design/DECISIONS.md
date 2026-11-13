@@ -44,3 +44,12 @@ Kategorisierter Available-Channel bedeutet „verfügbar“, nicht „gerade neu
 ## D-012 — Widersprüchliche TV-Progress-Daten nicht als 100% darstellen, 2026-11-13
 
 Der vorhandene Classic-`Prog`-Parser clampte rechnerisch ungültige `playbackPositionMillis > durationMillis` auf 100 Prozent. Ein solcher Wert darf im neuen V-Dashboard keine Fortschrittsevidenz sein. Die M02-Projektion verwirft in diesem Fall sogar bereits befülltes `progressPercent`; die originale Classic-Laufzeitlogik bleibt wegen Meilenstein-Scope unangetastet. Regression mit explizit 100%-geklemmtem Eingabewert ergänzt.
+
+
+## D-013 — M03 als eingeblendete einzelne View-Shell, 2026-11-13
+
+Der existierende `activity_main.xml`-Host ist stark mit Classic-/Overview-/Topbar-/All-Apps-/Settings- und Wallpaper-Lebenszyklus verwoben. Ein vollständiger XML-Austausch in M03 hätte unbegründete systematische Regressionen verursacht. Deshalb liegt die **eine sichtbare** V-Design-Shell als leichte, klassische `FrameLayout`-View vor dem unsichtbaren Legacy-Home, jedoch unter bestehenden Overlays. Das Original-`GlassLayer` bleibt bei Root-Index 2; Direct-Boot-Guard führt noch vor der Host-Initialisierung zurück. Dies ist keine auswählbare zweite Oberfläche. Alt-Hosts/Pref `home_layout_mode` bleiben rein intern bis M06 und werden dann strukturiert entfernt. Kein Live-Blur, keine neue Bibliothek, kein Submodul-Eingriff.
+
+## D-014 — Referenzanker, Sidebar-Aktionsschutz und neutrale M03-Karten, 2026-11-13
+
+Das tatsächliche 1536×864-JPEG-Mockup wurde angesehen und SHA-geprüft: Sidebarbreite 218 (~14,2 %), sichtbare Menüanker y94/161/223/285/347, drei Medienreihen 1+2/3/4×2, gerundete Matte-Gradienten, dezente Labels, keine globale Topbar. `VDesignCanvas` passt proportional an die gegebene Host-Fläche; Android-dp ist nicht identisch mit Bildpixeln. Die 14 M03-Karten sind **inert und ohne Serien-/Poster-Fallback**; erst M04 verbindet echte `NuvioDashboardFeed`-Medien und sichere Aktionen. SmartTube ist ausschließlich Sidebar-App. Fehlende App-/VPN-Aktivitäten erscheinen nicht als fokussierbare Ziele. `Alle Apps` über langes OK auf Übersicht, HDMI/Sources vorläufig über langes OK auf Einstellungen, ohne erfundenen sechsten Menüpunkt. Real-App-Screenshot und vollständiger D-Pad-/Shield-Test bleiben offen.
