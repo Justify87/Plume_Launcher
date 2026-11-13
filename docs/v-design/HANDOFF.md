@@ -1,17 +1,23 @@
-# V-Design — nächste ausführbare Übergabe
+# V-Design — aktuelle Übergabe nach M01 (2026-11-13)
 
-## M00, überprüfter Stand (13.11.2026)
+## Verifizierter Einstieg
 
-Die ursprüngliche M00-Dokumentationsarbeit wurde mit [PR #32](https://github.com/Justify87/Plume_Launcher/pull/32) bereits in `main@78666326d97c5692eaa49f652da77c9a16e5433c` gemergt. **Der PR enthielt nicht die normative Referenzdatei.** Der Nachtrag beginnt daher korrekt auf diesem gemergten Commit und trägt den Branch `feature/vdesign-m00-reference-completion` (Image-Commit `e1c13b2783aa632c2cbf391b10eb923426f8fc81`, erster Dokumentationscommit `28a2acc8aefb5b1e9610a49ea12b62baf970bc35`, **[Draft-PR #33](https://github.com/Justify87/Plume_Launcher/pull/33)**).
+- Plume `main@59c7988d4b019c12647550095e24f8cf62aece33`; M00 [PR #32](https://github.com/Justify87/Plume_Launcher/pull/32) und [#33](https://github.com/Justify87/Plume_Launcher/pull/33) tatsächlich gemergt. Letzte M00-[CI 43509990732](https://github.com/Justify87/Plume_Launcher/actions/runs/43509990732): `completed/success`, `check=success`, `mullvad-apk=skipped`.
+- Aktiver **M01** [Draft-PR #34](https://github.com/Justify87/Plume_Launcher/pull/34), Branch `feature/vdesign-m01-nuvio-provider`, dokumentierter Code-HEAD `9480a9417ec62e95909547372510151d8f3c29dc`; nach diesem Dokumentationscommit muss die tatsächliche Branch-HEAD-SHA erneut ermittelt werden. Nicht gemergt ohne neue Nutzerfreigabe.
+- Nuvio `dev@be4b84a84e004a2d36405601683df000d8dc446a` nur gelesen, Originalkanal nicht verändert. Native Mullvad-Dokumente liegen unter `docs/archive/legacy-features/mullvad-vpn/`, originales Submodul unangetastet.
+- Normative Datei `docs/v-design/REFERENCE.png`: 249663 Bytes, 1536×864, SHA-256 `95af66ad04f462867b5d52825c7e1946ac68b5e40bed52c07f4e74c085218f25`; historisch JPEG-Bytes bei PNG-Endung. M01 erneut aus Original-Blob geprüft.
 
-Die ursprünglichen Bytes sind mittlerweile auf GitHub vorhanden gewesen, nur falsch benannt: `Plume_V_Design_REFERENCE_original.png`. Aus dem GitHub-Base64-Blob ausgelesen: 249663 Bytes, 1536×864, SHA-256 `95af66ad04f462867b5d52825c7e1946ac68b5e40bed52c07f4e74c085218f25`, Git-Blob `d1b14c00a6478cb3b49fcbbd637e0aa71db5df18`. Das originale Datei-Encoding ist tatsächlich **JPEG/JFIF trotz `.png`-Dateiname**. Der Nachtrag ordnet **denselben Blob ohne Konvertierung** unter `docs/v-design/REFERENCE.png` zu und entfernt den Alias. Originalidentität bleibt erhalten.
+## Tatsächliche technische Übergabe
 
-Nuvio `dev@be4b84a84e004a2d36405601683df000d8dc446a` und der alte `CONTINUE`-Kanal bleiben unverändert. Die letzte Mullvad-M12-Dokumentation liegt unter `docs/archive/legacy-features/mullvad-vpn/`, nicht mehr unter dem alten `docs/mullvad-integration/`-Pfad. Android-UI und VPN-Implementierung sind im M00 unangetastet.
+`TvPreviewChannel` erhält ID, Package, Display-Label, `channelProviderId` und `browsable` (tri-state). `AndroidTvMediaSource.nuvioKind` prüft exakt Paket + Provider-Suffix statt lokalisiertem Namen. In `MainActivity.queryWatchNext()` werden optional genehmigte Nuvio-Kanäle `:in-progress`, `:available`, `:upcoming` in derselben IO-Abfrage gelesen und als `nuvioProviderFeeds` gespeichert — noch **nicht** in alte Overview-/Classic-Tiles gerendert. Program-Provider-ID und Channel-Provider-ID sind getrennt. Release-Date wird unverändert mitgeführt; M02 übernimmt Datums-/Zeitinterpretation.
 
-## Erstes To-do für Folgeschritt
+Classic-Auswahl und Watch Next behalten ihre Vorfilter und vorhandene SmartTube-Logik; Nuvio-kategorisierte Preview-Kanäle gelangen nicht in die klassische Mischzeile. Wenn ein expliziter Nuvio-In-Progress-Kanal fehlt, können echte gestartete Legacy-/Watch-Next-Einträge ihn ersetzen, niemals mit falschen Available-/Upcoming-Episoden. Fehlt `browsable`, werden Kategorien nicht ungeprüft angezeigt; für echtes Android-TV-11-Opt-in besteht eine Hardwareprüfung.
 
-**Zunächst M00-Nachtrag abnehmen:** [PR #33](https://github.com/Justify87/Plume_Launcher/pull/33) und dessen *aktuelle* HEAD-SHA erfassen, `REFERENCE.png` erneut gegen `REFERENCE_SHA256.txt` und den Git-Blob vergleichen, echten CI-Run/Jobs prüfen, `STATE.md`, `REVIEWS.md`, `TEST_MATRIX.md` mit den finalen Ergebnissen nachziehen. PR **nicht** ohne Nutzerfreigabe mergen. Bis zur CI-/Review-Evidenz lautet M00 `partial_pending_pr_ci`.
+## Exakt nächster Schritt M02 — Datenqualität, Sortierung, Verknüpfung
 
-**Exakt nächster Implementierungsmeilenstein: M01 — Nuvio-Kanalzuordnung.** Auf dem dann real gemergten M00-Stand (sonst auf dessen echten offenen PR-HEAD) beginnen; `TvContract.Channels.COLUMN_INTERNAL_PROVIDER_ID` mit den Suffixen `:in-progress`, `:available`, `:upcoming` verwenden. Nuvios tatsächlich installierte Package-IDs, Sichtbarkeit, Berechtigungen und Leerzustände prüfen. Den klassischen `CONTINUE`-Kanal nicht aufteilen, SmartTube nur als App in der Sidebar vorsehen. Original-Mullvad-JNI/VpnService/Gitlink beibehalten.
+1. Erst den **aktuellen** Branch/PR-HEAD und das finale PR-CI kontrollieren. M01 nicht als bestanden ohne CI/Review; Shield `hardware_pending`.
+2. Aus `NuvioProviderFeeds` echte V-Design-Medienmodelle ableiten: In-Progress-Hero-Validierung, Available-Releasebeleg, Upcoming-Datum und lokale Zeitzonengrenzen; Episode-ID/Staffel/Folge deduplizieren ohne `_id`-Kollaps.
+3. Nuvios synthetische 100s-Progress-Dauer niemals als echte Restzeit ausgeben. Kein SmartTube im Drei-Feed-Modell. Provider-Empty-States und Error-/Permission-Fälle explizit darstellen.
+4. M03 übernimmt erst anschließend die visuelle V-Design-Umstellung; keine hartcodierten Demodaten. VPN-/D-Pad-/HDMI-/Settings-Funktionen behalten.
 
-Lies vor M01: `STATE.md`, `ROADMAP.md`, `DESIGN_CONTRACT.md`, `DATA_CONTRACT.md`, `DECISIONS.md`, `REVIEWS.md`, `TEST_MATRIX.md`, `INVENTORY.md` und das **wirkliche** `REFERENCE.png`. Beachte die Folgefehler: synthetische Nuvio-100-s-Dauer, lokale Datumsgrenzen, bisherige Plume-Namensfilter, Altmodus-Prefs, D-Pad/HDMI/All Apps/Setup und Mullvad.
+Alle tatsächlichen Fakten in `STATE.md`, `ROADMAP.md`, `REVIEWS.md`, `TEST_MATRIX.md` dokumentieren. **Kein Merge ohne explizite Freigabe.**

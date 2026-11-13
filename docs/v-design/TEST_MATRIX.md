@@ -14,7 +14,7 @@ Die folgenden Statuswerte sind **beobachtete** Ergebnisse oder `not_run`; späte
 | UI-Featureinventar statt Blind-Löschung | `MainActivity`, XML, Media-/Focus-Klassen, Manifest/Gradle | **passed_source_review** | M00 |
 | Dokumentationsdiff / Dateirechte / Binärdiff | GitHub Compare `fbf2473...c8b0241`: genau 10 neue Textdateien `docs/v-design/*`, 0 andere Änderungen | **passed_source_review** (binary PNG weiterhin fehlt) | M00 |
 | Android/Gradle lokal | `./gradlew testDebugUnitTest lintDebug` | **not_run — Container ohne Netz/Repo-Checkout/Android SDK** | M00 |
-| Plume M00-CI | PR #32: früher [Run 43505553469](https://github.com/Justify87/Plume_Launcher/actions/runs/43505553469) `cancelled`, späterer [Run 43507886182](https://github.com/Justify87/Plume_Launcher/actions/runs/43507886182) `check=success`; Referenz fehlte damals. PR #33 CI final ausstehend | **old_pr_ci_passed / new_pr_ci_pending — kein vollständiges M00-Pass** | M00 |
+| Plume M00-CI | PR #32: früher [Run 43505553469](https://github.com/Justify87/Plume_Launcher/actions/runs/43505553469) `cancelled`, späterer [Run 43507886182](https://github.com/Justify87/Plume_Launcher/actions/runs/43507886182) `check=success`; Referenz fehlte damals. PR #33 letzter Run 43509990732 completed/success, check=success | **old_pr_ci_passed / new_pr_ci_pending — kein vollständiges M00-Pass** | M00 |
 | Exakte drei Nuvio Channel Types | Provider-ID-Adaptertests | not_run | M01 |
 | Legacy-Kanal nicht als Available mischen | Mixed-Feed-Unit-Tests | not_run | M01 |
 | TV-Permission denied / Nuvio fehlt | Provider-/Emulator-/Shield-Test | not_run | M01–M07 |
@@ -47,3 +47,22 @@ Die folgenden Statuswerte sind **beobachtete** Ergebnisse oder `not_run`; späte
 | Android-Gradle lokal, Screenshot-Vergleich, Shield Pro 2019 | Keine lokale SDK-/Checkout-/Geräteumgebung; Bild ist Referenz und keine App-Screenshot-Evidenz | not_run / hardware_pending |
 
 **Erster PR-#33-CI-Beobachtungspunkt:** [Run 43509467207](https://github.com/Justify87/Plume_Launcher/actions/runs/43509467207), `check=in_progress`, `mullvad-apk=skipped` zum Abrufzeitpunkt. Dokumentations-Metadatencommit kann diesen Run gemäß Workflow-Concurrency abbrechen. Deshalb **für finale Abnahme unbedingt neuesten HEAD/Run erneut lesen**; kein `passed` aus diesem Zwischenstand.
+
+
+## M01 — echte Test- und CI-Evidenz (2026-11-13)
+
+| Gate | Nachweis | Status |
+| --- | --- | --- |
+| M00 finaler PR-CI-Gate | [Run 43509990732](https://github.com/Justify87/Plume_Launcher/actions/runs/43509990732), [check Job 132177567483](https://github.com/Justify87/Plume_Launcher/actions/runs/43509990732/job/132177567483) | **completed/success; check=success**, Mullvad-Job skipped (bedingtes Job-Gate) |
+| Originalbild in M01 | GitHub `docs/v-design/REFERENCE.png` Git-Blob `d1b14c00...` über Base64 dekodiert, SHA-256 per JS berechnet, 249663 Bytes, FF D8 FF E0, 1536×864 | **passed_sha256_and_dimensions**, keine reale Launcher-Bildprüfung |
+| Exakte Paketvarianten | Nuvio `app/build.gradle.kts@8bc01a1b...`: FullRelease `com.nuvio.tv`, FullDebug `com.nuviodebug.com`, PlayStoreRelease `com.nuvio.app`, PlayStoreDebug `com.nuvio.appdebug`; Benchmark-Varianten + historische Fork-Aliase im Code | **passed_source_review**; Unit-Tests hinzugefügt, Ausführung pending |
+| Provider-ID statt Displayname | `NuvioProviderTest.localizedNamesCannotChangeProviderIdClassification` | **test_added_not_run** (PR-CI pending) |
+| Legacy Mixed & positiver Fortschritt | `classicMixedEntriesDoNotBecomeAvailableOrUpcoming`, `watchNextNeedsCorrectTypeAndPositivePlayback` | **test_added_not_run** |
+| Missing provider-ID/Spuffing / andere App | `missingWrongAndSpoofedProviderIdentityAreNotIncluded` | **test_added_not_run** |
+| Permission, Browsable/Opt-in, fehlende App | `optInAndPermissionAndAbsentProviderDoNotInventItems` | **test_added_not_run** |
+| Kein Classic-Channel-Polluting, separate Snapshots | `newCategoryWithMisleadingOldLabelNeverEntersClassicSelection`; `MainActivity` Review | **test_added_not_run / passed_source_review** |
+| PR #34 Gradle, lint, Debug/Release | [Draft PR #34](https://github.com/Justify87/Plume_Launcher/pull/34), finalen Run/Job erst nach Ausführung eintragen | **pending**, kein angenommener Pass |
+| Lokaler Android SDK-/Gradle-Build | `git ls-remote` in Container: DNS github.com nicht auflösbar; kein Android SDK | **not_run_environment** |
+| Shield Pro 2019, Android-TV-Provider-Opt-in, Mullvad Runtime, Pixelreferenz | kein physisches Gerät oder echter UI-Screenshot erreichbar | **hardware_pending / not_run** |
+
+Nur GitHub-Lauf mit zugehörigem finalen Commit nachträglich als CI-Pass werten. Der Launcher wird in M01 nicht neu gerendert; visuelle Abnahme M03–M08.

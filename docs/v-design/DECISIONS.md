@@ -23,3 +23,10 @@
 
 ## Weitere Entscheidungen
 Fortlaufende ID, Datum, Problem, verworfene Alternativen, Beschluss, Folgen/Abweichung und Testbeleg eintragen. Änderungen am Design nicht stillschweigend vornehmen.
+
+
+## D-008 — Exakte Channel-Provider-Identität, 2026-11-13 (M01)
+Ein Kanal gilt nur dann als Nuvio-Kategorie, wenn `package_name` aus der geprüften expliziten Installationsliste stammt und `channel.internal_provider_id` exakt `package + suffix` ist. `program.internal_provider_id` ist eine andere, programmspezifische ID. Lokalisierte Namen sind ungeeignet, ebenso Substring-Erkennung ähnlich benannter Apps. Moderne reale Nuvio-Pakete siehe `DATA_CONTRACT.md`. Bestehende historische Aliase bleiben explizit zugelassen, ohne fremde Apps zu erkennen.
+
+## D-009 — Opt-in/Legacy-Fallback und Nicht-Rendering, 2026-11-13 (M01)
+Neue Vorschau-Feeds werden nur gelesen, wenn `browsable == true` aus dem TV-Provider geliefert wird. Fehlende Browsable-Spalte gilt nicht automatisch als genehmigt. Keine `requestChannelBrowsable`-Aufrufe aus Plume, kein Overlay und keine eigene Nuvio-DB-Abfrage. Legacy/Watch Next liefert ausschließlich bei positiver Progress-Evidenz einen **In-Progress**-Fallback bei fehlendem neuen Kanal. Available/Upcoming werden niemals aus Misch- oder Namensdaten rekonstruiert. `NuvioProviderFeeds` bleibt bis M02/M03 nicht gerendert, damit alte UI/Classic ohne neues Kachellayout erhalten bleibt. M02 muss Quelle/Sortierung/Dedupe/Release-Datum weiter verifizieren.
