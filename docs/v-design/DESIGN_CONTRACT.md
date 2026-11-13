@@ -1,6 +1,6 @@
 # V-Design — verbindlicher Designvertrag
 
-**Stand 2026-11-13 (M00, geprüft gegen Benutzer-ZIP):** Ein einziges V-Design ersetzt in M06 sowohl Classic als auch das bisherige Overview. `REFERENCE.png` aus `repo-seed/docs/v-design/` ist die **normative, unveränderte Bildvorlage**, keine Live-Wallpaper-Datei. Die Originaldatei wurde lokal im ZIP tatsächlich gelesen: **1536 × 864, RGB, SHA-256** `95af66ad04f462867b5d52825c7e1946ac68b5e40bed52c07f4e74c085218f25`. **Repository-Blocker:** Der Binär-Upload in GitHub ist in dieser Sitzung nicht möglich; `docs/v-design/REFERENCE.png` fehlt derzeit im PR. Deshalb M00 nicht `passed` und M01 nicht freigegeben. `REFERENCE_SHA256.txt` bezeichnet das Original, nicht eine vorhandene Repo-Datei.
+**Stand 2026-11-13 (M00-Nachtrag, ursprüngliches ZIP und GitHub-Bytes geprüft):** Ein einziges V-Design ersetzt in M06 Classic und Overview. `docs/v-design/REFERENCE.png` ist die **normative, byteidentische Referenz** (1536×864, SHA-256 `95af66ad04f462867b5d52825c7e1946ac68b5e40bed52c07f4e74c085218f25`, 249663 Bytes). Die Dateiendung `.png` stammt aus dem Original, **der tatsächliche Dateicontainer ist JPEG/JFIF** (Magic `FF D8 FF E0`). Das Bild wird absichtlich nicht umkodiert, weil der Binär-SHA sonst nicht identisch wäre. Git-Blob `d1b14c00a6478cb3b49fcbbd637e0aa71db5df18` wurde über GitHub-Base64 geprüft und im Image-Commit `e1c13b2783aa632c2cbf391b10eb923426f8fc81` am kanonischen Pfad referenziert. M00 bleibt nur bis zu echten neuen PR-/CI-Nachweisen `partial_pending_pr_ci`.
 
 ## Gemessene Layoutanker (Referenzpixel, linke obere Ecke = 0/0)
 
@@ -50,4 +50,4 @@ Das Originalmockup zeigt in den Medienreihen **SmartTube-Kacheln**, obwohl der n
 
 ## Abnahmegrenzen
 
-M00 implementiert **kein UI**. Der spätere Referenzvergleich braucht echte 16:9 Screenshots vom Emulator/Shield, Fokuszustände und dokumentierte sichtbare Abweichungen. Kein `pixel-perfect`, keine Hardwarebestätigung ohne echte Prüfung. `REFERENCE.png` **muss binär byteidentisch im PR liegen**, bevor M00 als `passed` gelten kann.
+M00 implementiert **kein UI**. Der spätere Referenzvergleich braucht echte 16:9 Screenshots vom Emulator/Shield, Fokuszustände und dokumentierte sichtbare Abweichungen. Kein `pixel-perfect`, keine Hardwarebestätigung ohne echte Prüfung. Das byteidentische `REFERENCE.png` ist inzwischen unter dem kanonischen Pfad im Nachtragsbranch enthalten; vor `passed` sind noch die **echten** PR-/CI-Ergebnisse und das Abschlussreview nachzutragen. Das ist kein visueller Implementierungstest.

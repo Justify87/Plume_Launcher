@@ -4,7 +4,7 @@
 
 | Schritt | Abhängigkeit | Konkretes Deliverable | Stand 2026-11-13 | Branch / PR | Review |
 | --- | --- | --- | --- | --- | --- |
-| M00 | Plume `main@fbf2473` | Originalreferenz, Verträge, echte Baseline und Migration-Inventar | **partial — Referenzbinärdatei noch nicht in PR** | [`feature/vdesign-m00-bootstrap-contract` / Draft #32](https://github.com/Justify87/Plume_Launcher/pull/32) | `REVIEWS.md#M00` |
+| M00 | Plume `main@fbf2473` → gemergter #32 `7866632` | Originalreferenz, Verträge, echte Baseline und Migration-Inventar | **partial — Original-SHA nun im Git, CI/Review für Nachtrag ausstehend** | [#32 gemergt](https://github.com/Justify87/Plume_Launcher/pull/32); [Draft #33](https://github.com/Justify87/Plume_Launcher/pull/33) (`feature/vdesign-m00-reference-completion`) | `REVIEWS.md#M00` |
 | M01 | M00 **passed**, Referenz im Git | Exakte Nuvio-ID-Provider-Zuordnung, Permission/Empty-State, Legacy isoliert | not_started | — | pending |
 | M02 | M01 | Drei Datenkategorien, Dedupe, Prozent vs. Dauer, Release/Countdown | not_started | — | pending |
 | M03 | M02 | einziges V-Layout und Sidebar; sichere App-/VPN-Ziele | not_started | — | pending |
@@ -29,4 +29,4 @@
 | Referenztreue | echte UI-Screenshots + Koordinatenvergleich | dokumentierte legitime Abweichungen; keine Mockup-Titel |
 | Shield-Abnahme | Pro 2019 Testprotokoll | nur bei tatsächlicher Durchführung `passed`; sonst `hardware_pending` |
 
-**Aktuelle Grenze:** M00 enthält nur Dokumentation, kein UI-Wechsel. Nächster M01-Start ist solange blockiert, wie `REFERENCE.png` nicht im Repository verifiziert wurde.
+**Aktuelle Grenze:** M00 enthält nur Dokumentation und byteidentische Normreferenz, keinen UI-Wechsel. Das Referenz-Gate ist durch Git-Blob-/SHA-Identität erfüllt. M01 beginnt erst nach beobachteter M00-Ergänzungs-PR-CI, Review und regelgerechter Übergabe (gemergter oder gestapelter tatsächlicher HEAD). Die Originalbytes sind JPEG/JFIF mit historischer `.png`-Endung: nicht still in PNG transkodieren.
