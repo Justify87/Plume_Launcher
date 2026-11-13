@@ -423,7 +423,15 @@ class VpnActivity : ComponentActivity() {
             clipToPadding = false
             clipChildren = false
         }
-        columns.addView(rail, LinearLayout.LayoutParams(dp(230), -1))
+        // Eight VPN pages exceed the available height on several 720p TV densities.
+        // Let Android scroll focused rail items into view when navigating via D-Pad.
+        val railScroll = ScrollView(this).apply {
+            isFillViewport = false
+            isVerticalScrollBarEnabled = false
+            clipToPadding = false
+            addView(rail, ScrollView.LayoutParams(-1, -2))
+        }
+        columns.addView(railScroll, LinearLayout.LayoutParams(dp(230), -1))
         columns.addView(detail, LinearLayout.LayoutParams(0, -1, 1f))
         root.addView(columns, LinearLayout.LayoutParams(-1, 0, 1f))
         root.addView(text("D-Pad: auswählen · OK: öffnen · Back: zur Übersicht / Plume", 13f))
