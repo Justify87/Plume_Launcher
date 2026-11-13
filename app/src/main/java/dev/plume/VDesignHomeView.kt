@@ -130,14 +130,13 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
             val slot = upcomingCards.size
             view.setOnKeyListener { _, key, event ->
                 if (event.action != KeyEvent.ACTION_DOWN) return@setOnKeyListener false
-                val capacity = (latestFeed.upcoming.size - 8).coerceAtLeast(0)
-                val next = when {
-                    key == KeyEvent.KEYCODE_DPAD_DOWN && slot >= 4 ->
-                        (upcomingOffset + 4).coerceAtMost(capacity)
-                    key == KeyEvent.KEYCODE_DPAD_UP && slot < 4 ->
-                        (upcomingOffset - 4).coerceAtLeast(0)
-                    else -> upcomingOffset
+                val direction = when (key) {
+                    KeyEvent.KEYCODE_DPAD_DOWN -> 1
+                    KeyEvent.KEYCODE_DPAD_UP -> -1
+                    else -> 0
                 }
+                val next = VDesignCardSlots.nextUpcomingOffset(
+                    latestFeed.upcoming.size, upcomingOffset, slot, direction)
                 if (next == upcomingOffset) return@setOnKeyListener false
                 upcomingOffset = next
                 bindUpcoming()
@@ -186,10 +185,12 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
         titleAvailable.text = "Neue Folgen verfügbar  ·  ${feed.available.size}"
         titleUpcoming.text = "Demnächst  ·  ${feed.upcoming.size}"
         progressCards.forEachIndexed { index, card ->
-            card.bind(feed.inProgress.getOrNull(index), lastNow, lastZone, lastLocale)
+            card.bind(VDesignCardSlots.media(feed, NuvioSection.IN_PROGRESS, index),
+                lastNow, lastZone, lastLocale)
         }
         availableCards.forEachIndexed { index, card ->
-            card.bind(feed.available.getOrNull(index), lastNow, lastZone, lastLocale)
+            card.bind(VDesignCardSlots.media(feed, NuvioSection.AVAILABLE, index),
+                lastNow, lastZone, lastLocale)
         }
         // Retain the focused upcoming identity even if provider ordering changed.
         if (focusedId != null) {
@@ -209,8 +210,8 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
 
     private fun bindUpcoming() {
         upcomingCards.forEachIndexed { index, card ->
-            card.bind(latestFeed.upcoming.getOrNull(upcomingOffset + index),
-                lastNow, lastZone, lastLocale)
+            card.bind(VDesignCardSlots.media(latestFeed, NuvioSection.UPCOMING,
+                index, upcomingOffset), lastNow, lastZone, lastLocale)
         }
     }
 
