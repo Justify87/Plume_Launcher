@@ -204,6 +204,9 @@ class PreparationTests(unittest.TestCase):
                     "TunnelState.Connected", "entryHostname", "openQuantum()"):
             self.assertIn(api, advanced)
         self.assertIn("fun focusQuantum()", settings)
+        self.assertIn("if (index != 1 && returnFromAdvanced)", vpn)
+        self.assertIn("advancedUi.onTunnelState(if (daemonReady) latestTunnel else null)", vpn)
+        self.assertIn("val mode = if (daemonReady) constraints?.multihop else null", advanced)
         self.assertIn('with_name("VpnAdvancedUi.kt")',
                       (prepare.ROOT / "tools/mullvad/prepare.py").read_text())
         self.assertNotIn("SharedPreferences", advanced)
@@ -237,7 +240,8 @@ class PreparationTests(unittest.TestCase):
                           "addDisallowedApplication(", "Socket("):
             self.assertNotIn(forbidden, ui)
         self.assertIn("val railScroll = ScrollView(this)", activity)
-        self.assertIn("addView(rail, ScrollView.LayoutParams(-1, -2))", activity)
+        self.assertIn("addView(rail, FrameLayout.LayoutParams(-1, -2))", activity)
+        self.assertNotIn("ScrollView.LayoutParams", activity)
         self.assertIn("columns.addView(railScroll", activity)
         self.assertIn('with_name("VpnNetworkUi.kt")',
                       (prepare.ROOT / "tools/mullvad/prepare.py").read_text())

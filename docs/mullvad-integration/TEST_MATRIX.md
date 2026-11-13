@@ -429,6 +429,16 @@ adb shell dumpsys connectivity
 
 **Review-Entscheidung:** keine originalen Mullvad-Dateien oder VPN-Krypto verändert, ein einziges APK; originaler Relay-Filter und `ModifyMultihopUseCase` statt eigener Server-Paarung; M07-PQ-Writer wiederverwendet; keine Fake-Effektivzustände. CI-/Shield-Ergebnisse erst nach realen Runs ergänzen. M09 `partial` bis vollständiger Abnahme, M10 kann auf derselben Original-Runtime aufbauen.
 
+### M09 zusätzlicher Build- und Review-Nachweis — nach Merge von PR #24
+
+- Erste vollständige CI auf `0b3af65b302398fc175284fccad65e0f1eee6315`: [Run 43409181838](https://github.com/Justify87/Plume_Launcher/actions/runs/43409181838), `check=success`, `mullvad-apk=success`, `Legacy Plume-only debug APK=skipped` (workflowabhängig). Python-Staging, Plume-Regressionen, originale Kotlin/Rust/JNI-Apk und APK-Struktur damit **`observed_ci_pass`** für diesen Commit.
+- Nachreview: D-Pad-Rail wechselt vom temporären Entry-/Exit-Browser zur normalen Singlehop-Ansicht; Daemon-Reconnect übernimmt aktuellen echten Tunnelstatus; Offline-Labels für Multihop/DAITA/PQ zeigen ohne laufenden Originaldienst keine bestätigte Aktivierung. Tests der Staging-Regeln um diese Bedingungen erweitert.
+- **Neuer Review-Commit:** In Folgeprüfung den frischen CI-Status separat auswerten; `Run 43409181838` ist kein Buildnachweis für spätere Änderungen. Shield-Tests bleiben unabhängig davon `hardware_pending`.
+
+**Post-Merge-Situation:** PR #24 wurde während der M09-Review-Arbeit nach `main` gemergt, bevor die nachträglichen UI-Korrekturen Teil des PRs waren. Deshalb werden diese isoliert auf `main` `0df3ead5749ad5a3f465029308c104e9babe67d1` als `feature/m09-mullvad-postmerge-ui-review` erneut getestet. `Run 43409181838` ist grün für den M09-Merge, **kein** finaler Buildbeleg für das Folge-Review.
+
+**CI-Branchkonvention:** `.github/workflows/pr.yml` startet den integrierten `mullvad-apk`-Job nur bei PR-Head-Refs mit `mullvad` im Namen. Der erste Post-Merge-Review-PR #25 wurde deshalb vor der finalen Abnahme durch einen identischen Review-Branch mit `mullvad` im Namen ersetzt; **der in PR #25 übersprungene APK-Job ist kein Testpass**. Der neu eröffnete Review-PR wird vollständig geprüft.
+
 ## M10 — Netzwerkoptionen / nachzuweisende TV-Abnahme (13.11.2026)
 
 Basis `main` `0df3ead5749ad5a3f465029308c104e9babe67d1`, gepinnter Mullvad-SHA `aa47f606b1a159214c7279344128119fa91be5fd`. M09-PR #24 CI [43409181838](https://github.com/Justify87/Plume_Launcher/actions/runs/43409181838) abgeschlossen mit `success`. M10 hat zum Zeitpunkt der Implementierung **noch keinen CI-/Hardwarebeleg**.
@@ -469,3 +479,12 @@ adb shell dumpsys connectivity
 ```
 
 **Review:** Original Rust/JNI/Service unverändert, keine zweite Anwendung/Proxyengine, echte Repositories; kein reales Shield/ADB im Arbeitskontext. Ein grüner Build ohne Geräte-/Tunnelabnahme bleibt `partial`.
+
+### M10 CI-Nachprüfung nach dem letzten Fehler
+
+| Nachweis | Ergebnis / Ursache |
+| --- | --- |
+| [CI 43414769371](https://github.com/Justify87/Plume_Launcher/actions/runs/43414769371) auf `234d01739284` | `check=success`, `mullvad-apk=fail`; in `VpnActivity.kt:432` steht `ScrollView.LayoutParams` statt Androids `FrameLayout.LayoutParams` |
+| CI-Workflow `.github/workflows/pr.yml` / `debug-apk.yml` | Source-Staging erfolgreich, Originalimage und Rust-/Kotlin-Module bis Hostkompilierung erfolgreich; Workflow selbst korrekt fail-fast und deshalb für diesen Fehler unverändert |
+| M09-Basis seit PR #26 | Die auf `main` nachträglich gemergten D-Pad-/Offline-Korrekturen wurden mit M10 gemergt; M09-Runtimefunktion muss auf Shield trotzdem geprüft werden |
+| M10 Re-Run / ARM64-APK / Shield | `pending` bis erfolgreichem neuen GitHub-CI, `hardware_pending` für Shield und echten Tunnel |

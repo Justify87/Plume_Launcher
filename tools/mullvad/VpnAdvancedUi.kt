@@ -148,8 +148,9 @@ internal class VpnAdvancedUi(
 
     private fun render() {
         if (!::serviceLine.isInitialized) return
-        val mode = constraints?.multihop
-        val s = latest
+        // A cached value is not proof of an active daemon after connectivity is lost.
+        val mode = if (daemonReady) constraints?.multihop else null
+        val s = if (daemonReady) latest else null
         val enabled = daemonReady && mode != null && s != null
         serviceLine.text = if (!daemonReady) "Mullvad-Dienst nicht bereit"
             else if (!enabled) "Warte auf bestätigte Einstellungen"

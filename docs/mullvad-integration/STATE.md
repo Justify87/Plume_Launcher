@@ -22,7 +22,18 @@ m08_initial_ci_run: 43402989685
 m08_final_ci: not_verified_after_final_review_commits
 m09_ci: observed_ci_pass
 m09_ci_run: 43409181838
-m10_ci: not_run
+m09_pr: 24
+m09_pr_merged_into_main: true
+m09_merged_main_sha: 0df3ead5749ad5a3f465029308c104e9babe67d1
+m09_postmerge_review_branch: feature/m09-mullvad-postmerge-ui-review
+m09_postmerge_review_ci: pending
+m09_initial_commit: 0b3af65b302398fc175284fccad65e0f1eee6315
+m09_initial_ci: observed_ci_pass
+m09_initial_ci_run: 43409181838
+m09_final_ci: pending_after_review_fixes
+m10_ci: previously_failed_compile
+m10_initial_ci_run: 43414769371
+m10_retest: triggered_by_merge_fix
 m10_shield_test: hardware_pending
 m09_shield_test: hardware_pending
 m08_shield_test: hardware_pending
@@ -131,6 +142,16 @@ Der Originalcode registriert `VoucherRepository` und `NewDeviceRepository` in `u
 - **Abnahmestand:** `partial` bis CI-Kotlin/Rust/JNI-/APK-Gate und echte TV-/Tunnelprüfung. Staging-Assertions erweitert; lokale Android-Toolchain/Shield nicht vorhanden. Den aktuellen CI-Lauf erst nach PR-Anlage als nachgewiesen eintragen. `hardware_pending`: D-Pad, Single/Multi/Auto, reale Entry-/Exit-Relays, DAITA-Filter, PQ-/Tunnelwirkung, Standardwerte, Neustart/Background.
 - **M10-Handoff:** auf gemergtem M09-`main` oder gestapeltem Feature-Branch aufbauen; originale Anti-Zensur-/Obfuskations- und Netzwerkoptionen integrieren, `setCustomWireguardPort` als Obfuskationsport bezeichnen, nicht als generischen WireGuard-Port. Bestehende M06–M09-Repositories/Views erhalten; alle Hardwareprüfungen nachholen, bevor `pass` gesetzt wird.
 
+### M09 CI / Review-Korrekturen (nach Merge von PR #24)
+
+- **Erster Build:** [Actions 43409181838](https://github.com/Justify87/Plume_Launcher/actions/runs/43409181838) auf `0b3af65b302398fc175284fccad65e0f1eee6315` hat `check=success` und `mullvad-apk=success`, inklusive Quell-Staging, Kotlin/Rust/JNI-`ossProdDebug`-Build und APK-Manifest-/Assets-Gate. Das belegt **noch keine Shield-VPN-Wirkung**.
+- **Review-Fix:** Bei Rückkehr aus Multihop-Entry-/Exit-Auswahl in die normale Standortnavigation den Browser wieder in `RelayListType.Single` setzen; die Bestätigungsmeldung eines Tunnels auch beim erneuten Erreichen des Daemons synchronisieren. Modus/PQ bei getrenntem Daemon nicht als aktuell aktiv markieren, obwohl ein älterer Flowwert im Speicher steht.
+- **Finale CI:** Nach dieser Revision erneut auf **neuen** PR-HEAD prüfen und Ergebnis eintragen; der erste grüne Lauf gilt ausschließlich für den ersten Commit. M09 bis dahin `partial`, Shield `hardware_pending`.
+
+**Änderung der PR-Basis während der Umsetzung:** PR #24 wurde am 13.11.2026 10:41:36 UTC extern nach `main` gemergt (Merge-Commit `0df3ead5749ad5a3f465029308c104e9babe67d1`). Die nachträglichen Review-Fixes liegen deshalb **nicht** im ersten M09-PR, sondern müssen auf einem eigenen Branch `feature/m09-mullvad-postmerge-ui-review` direkt vom genannten Merge-Commit in einem separaten PR geprüft werden. Der erste grüne M09-Build gilt nur für den bereits gemergten Commit `0b3af65b...`; neue Review-Fixes erst nach neuem CI als gebaut bewerten.
+
+**CI-Branchkonvention:** `.github/workflows/pr.yml` startet den integrierten `mullvad-apk`-Job nur bei PR-Head-Refs mit `mullvad` im Namen. Der erste Post-Merge-Review-PR #25 wurde deshalb vor der finalen Abnahme durch einen identischen Review-Branch mit `mullvad` im Namen ersetzt; **der in PR #25 übersprungene APK-Job ist kein Testpass**. Der neu eröffnete Review-PR wird vollständig geprüft.
+
 ## M10 — Verschleierung, API-Zugriff und Server-IP (13.11.2026)
 
 - **Basis:** `main` `0df3ead5749ad5a3f465029308c104e9babe67d1` (M09 PR #24 bereits gemergt), bei Start keine offenen PRs. M09-PR-CI [43409181838](https://github.com/Justify87/Plume_Launcher/actions/runs/43409181838) `success`; M09-/M10-Shield-Hardwareabnahmen weiterhin offen.
@@ -140,3 +161,9 @@ Der Originalcode registriert `VoucherRepository` und `NewDeviceRepository` in `u
 - **Grenzen:** Die originale Server-IP-UI bietet am Pin JSON-Datei-/Textimport und globalen Reset, aber keinen per-Host-Edit-Setter im Repository; deshalb keine erfundene Einzel-IP-Mutation. QUIC besitzt keine eigene Portauswahl. Android-TV-Quick-Settings-Tile, Tarnungsicons, Smartphone-Touch/Share-Flows werden M11 als getrennte OS-/Gerätefragen übergeben.
 - **Belegstand:** `partial` — GitHub-CI des neuen M10-PRs und echte Shield-/VPN-/Offline-/Reconnect-Tests stehen aus. Keine lokale Android-SDK-/NDK-/Rust-/ADB-Umgebung verfügbar; die Staging-Tests sind ergänzt, aber noch nicht als `pass` gemeldet. Nach erfolgreichem CI bitte CI-Run/Artifact/Commit hier ergänzen.
 - **M11-Handoff:** Auf PR/Branch M10 nach Merge auf `main` (sonst gestapelt) aufsetzen. Noch nicht abgenommene Originalbereiche gemäß `FEATURE_MATRIX.md`: M01–M10 geräteabhängige VPN-/Konto-/Relay-/DNS-/Split-/Multihop-/Verschleierungs-/API-/Override-Tests; F25 Quick Tile, F34–F35 Problembericht/Logs, F36–F37 Benachrichtigungen, F38–F42 allgemeine Präferenzen/Locale/Appearance/App-Info, F41 Tarnungsicons sowie weitere unverifizierte Funktionen. Nur `pass` vergeben, wenn tatsächlich auf TV und mit Originaldienst geprüft.
+
+### M10 CI-Fehleranalyse / Merge-Fix (13.11.2026)
+
+- [Run 43414769371](https://github.com/Justify87/Plume_Launcher/actions/runs/43414769371): `check=success` (Staging, Launcher-Regressionen, Unit/Lint), `mullvad-apk=fail` bei `:app:compileOssProdDebugKotlin`: `VpnActivity.kt:432:38 Unresolved reference 'LayoutParams'` durch irrtümliches `ScrollView.LayoutParams` im M10-Rail. **Codekorrektur:** `FrameLayout.LayoutParams`, da `ScrollView` von `FrameLayout` erbt. Keine Änderung am Mullvad-Kern oder am containerbasierten Workflow nötig.
+- **Systematischer Folgefehler:** PR #26 (M09-Nachreview) wurde nach dem M10-Abzweig in `main` gemergt. Der ältere M10-Branch war dadurch auf GitHub `mergeable_state=dirty`. M09-Fokus-, Daemon-/Offline-Korrekturen und Testassertions in einen zweieltrigen Merge-Commit auf dem M10-Branch integriert, statt die Korrekturen still zu verlieren; Gitlink/Upstream unverändert.
+- Source-/Staging-Tests prüfen künftig die korrekte `FrameLayout.LayoutParams`-Schreibweise und untersagen die konkrete nichtkompilierende `ScrollView.LayoutParams`-Variante. Textprüfungen beweisen weiterhin **keine** Kompilierung; der kombinierte Gradle-APK-Build bleibt Pflichtgate. Keine ungetestete Erfolgsbehauptung, Shield weiterhin `hardware_pending`.

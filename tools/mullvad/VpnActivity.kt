@@ -256,6 +256,7 @@ class VpnActivity : ComponentActivity() {
                 settingsUi.onDaemonReady(daemonReady)
                 splitTunnelingUi.onDaemonReady(daemonReady)
                 advancedUi.onDaemonReady(daemonReady)
+                advancedUi.onTunnelState(if (daemonReady) latestTunnel else null)
                 networkUi.onDaemonReady(daemonReady)
                 grpcLine.text = "Mullvad-Dienst: " + if (daemonReady) "bereit" else state.toString()
                 diagnosticLine.text = grpcLine.text
@@ -429,7 +430,7 @@ class VpnActivity : ComponentActivity() {
             isFillViewport = false
             isVerticalScrollBarEnabled = false
             clipToPadding = false
-            addView(rail, ScrollView.LayoutParams(-1, -2))
+            addView(rail, FrameLayout.LayoutParams(-1, -2))
         }
         columns.addView(railScroll, LinearLayout.LayoutParams(dp(230), -1))
         columns.addView(detail, LinearLayout.LayoutParams(0, -1, 1f))
@@ -530,7 +531,17 @@ class VpnActivity : ComponentActivity() {
             }
             tab.setOnFocusChangeListener { _, focused ->
                 paint(tab, focused, page == index)
-                if (focused) showPage(index)
+                if (focused) {
+                    // Switching away from the temporary entry/exit browser restores
+                    // normal single-hop mode, including D-Pad focus-only tab changes.
+                    if (index != 1 && returnFromAdvanced) {
+                        returnFromAdvanced = false
+                        locationUi.showFor(RelayListType.Single)
+                    } else if (index == 1 && !returnFromAdvanced) {
+                        locationUi.showFor(RelayListType.Single)
+                    }
+                    showPage(index)
+                }
             }
             tab.setOnKeyListener { _, key, event ->
                 if (event.action == KeyEvent.ACTION_DOWN && key == KeyEvent.KEYCODE_DPAD_RIGHT) {
