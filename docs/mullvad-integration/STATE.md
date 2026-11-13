@@ -26,14 +26,17 @@ m09_pr: 24
 m09_pr_merged_into_main: true
 m09_merged_main_sha: 0df3ead5749ad5a3f465029308c104e9babe67d1
 m09_postmerge_review_branch: feature/m09-mullvad-postmerge-ui-review
-m09_postmerge_review_ci: pending
+m09_postmerge_review_ci: observed_ci_pass
+m09_postmerge_review_ci_run: 43412061826
 m09_initial_commit: 0b3af65b302398fc175284fccad65e0f1eee6315
 m09_initial_ci: observed_ci_pass
 m09_initial_ci_run: 43409181838
-m09_final_ci: pending_after_review_fixes
-m10_ci: previously_failed_compile
+m09_final_ci: observed_ci_pass
+m10_ci: observed_ci_pass
 m10_initial_ci_run: 43414769371
-m10_retest: triggered_by_merge_fix
+m10_ci_run: 43423552657
+m10_ci_code_commit: f938114fb80b3ae38ea068dc1904ca67b216ce1f
+m10_ci_artifact: Plume-Mullvad-ARM64-Debug-84
 m10_shield_test: hardware_pending
 m09_shield_test: hardware_pending
 m08_shield_test: hardware_pending
@@ -159,7 +162,7 @@ Der Originalcode registriert `VoucherRepository` und `NewDeviceRepository` in `u
 - **Implementierung:** `tools/mullvad/VpnNetworkUi.kt` mit eigenem TV-Tab „Netzwerk“ und Unterseiten Verschleierung, API-Zugriff, Server-IP. `VpnActivity.kt` übernimmt D-Pad/Back, Statusbindung und Koin-Repositories; `prepare.py` kopiert die View in das abgeleitete `ossProd`-SourceSet. `test_mullvad_prepare.py` prüft die unveränderten Original-Schreibpfade.
 - **Originalzustand:** `SettingsRepository` kontrolliert die sieben im Pin vorhandenen Obfuskationsmodi samt echten Port-Settern; `RelayListRepository.portRanges` stellt die erlaubten WireGuard-/LWO-Portbereiche bereit. `ApiAccessRepository` verwaltet aktuelle/eingeschaltete Methoden und eigene SOCKS5-/Shadowsocks-Proxys mit Original-Test/CRUD; `RelayOverridesRepository` importiert JSON-Patches (Text/Datei) oder setzt alle Einträge zurück. Backend-Flows rendern den Status, Offlinezustände deaktivieren Änderungen. Keine lokale VPN- oder Proxy-Konfiguration.
 - **Grenzen:** Die originale Server-IP-UI bietet am Pin JSON-Datei-/Textimport und globalen Reset, aber keinen per-Host-Edit-Setter im Repository; deshalb keine erfundene Einzel-IP-Mutation. QUIC besitzt keine eigene Portauswahl. Android-TV-Quick-Settings-Tile, Tarnungsicons, Smartphone-Touch/Share-Flows werden M11 als getrennte OS-/Gerätefragen übergeben.
-- **Belegstand:** `partial` — GitHub-CI des neuen M10-PRs und echte Shield-/VPN-/Offline-/Reconnect-Tests stehen aus. Keine lokale Android-SDK-/NDK-/Rust-/ADB-Umgebung verfügbar; die Staging-Tests sind ergänzt, aber noch nicht als `pass` gemeldet. Nach erfolgreichem CI bitte CI-Run/Artifact/Commit hier ergänzen.
+- **Belegstand:** `partial` wegen ausstehender Shield-/VPN-/Offline-/Reconnect-Abnahme. GitHub [CI 43423552657](https://github.com/Justify87/Plume_Launcher/actions/runs/43423552657) auf `f938114fb80b3ae38ea068dc1904ca67b216ce1f`: `check=success`, `mullvad-apk=success` einschließlich Kotlin 2.4 / Rust-JNI ARM64 / APK-Struktur (839 Einträge); Artifact `Plume-Mullvad-ARM64-Debug-84`. Keine lokalen SDK-/ADB-/Shield-Tests ausgeführt.
 - **M11-Handoff:** Auf PR/Branch M10 nach Merge auf `main` (sonst gestapelt) aufsetzen. Noch nicht abgenommene Originalbereiche gemäß `FEATURE_MATRIX.md`: M01–M10 geräteabhängige VPN-/Konto-/Relay-/DNS-/Split-/Multihop-/Verschleierungs-/API-/Override-Tests; F25 Quick Tile, F34–F35 Problembericht/Logs, F36–F37 Benachrichtigungen, F38–F42 allgemeine Präferenzen/Locale/Appearance/App-Info, F41 Tarnungsicons sowie weitere unverifizierte Funktionen. Nur `pass` vergeben, wenn tatsächlich auf TV und mit Originaldienst geprüft.
 
 ### M10 CI-Fehleranalyse / Merge-Fix (13.11.2026)
@@ -167,3 +170,10 @@ Der Originalcode registriert `VoucherRepository` und `NewDeviceRepository` in `u
 - [Run 43414769371](https://github.com/Justify87/Plume_Launcher/actions/runs/43414769371): `check=success` (Staging, Launcher-Regressionen, Unit/Lint), `mullvad-apk=fail` bei `:app:compileOssProdDebugKotlin`: `VpnActivity.kt:432:38 Unresolved reference 'LayoutParams'` durch irrtümliches `ScrollView.LayoutParams` im M10-Rail. **Codekorrektur:** `FrameLayout.LayoutParams`, da `ScrollView` von `FrameLayout` erbt. Keine Änderung am Mullvad-Kern oder am containerbasierten Workflow nötig.
 - **Systematischer Folgefehler:** PR #26 (M09-Nachreview) wurde nach dem M10-Abzweig in `main` gemergt. Der ältere M10-Branch war dadurch auf GitHub `mergeable_state=dirty`. M09-Fokus-, Daemon-/Offline-Korrekturen und Testassertions in einen zweieltrigen Merge-Commit auf dem M10-Branch integriert, statt die Korrekturen still zu verlieren; Gitlink/Upstream unverändert.
 - Source-/Staging-Tests prüfen künftig die korrekte `FrameLayout.LayoutParams`-Schreibweise und untersagen die konkrete nichtkompilierende `ScrollView.LayoutParams`-Variante. Textprüfungen beweisen weiterhin **keine** Kompilierung; der kombinierte Gradle-APK-Build bleibt Pflichtgate. Keine ungetestete Erfolgsbehauptung, Shield weiterhin `hardware_pending`.
+
+### M10 — bestätigter Re-Run nach Fehlerbehebung
+
+- [GitHub Actions 43423552657](https://github.com/Justify87/Plume_Launcher/actions/runs/43423552657), Quellcommit `f938114fb80b3ae38ea068dc1904ca67b216ce1f`, **vollständig `success`**. Job `check=success` (Regeln, Installer, Staging, Plume-Unit/Lint); Job `mullvad-apk=success` (Originalcontainer, `:app:compileOssProdDebugKotlin`, Rust/JNI, `BUILD SUCCESSFUL in 11m 42s`, `check_apk.py`: 839 APK-Einträge, Manifest-/Paketprüfungen, Upload). Der bewusst übersprungene Legacy-Launcher-Job ist **kein Fehler und kein Testpass**.
+- Artefakt: `Plume-Mullvad-ARM64-Debug-84` (GitHub Artifact-ID `14037250863`; gespeicherte ZIP/Artifact-Größe ist nicht mit roher APK-Größe gleichzusetzen).
+- M09-Postmerge-PR #26: [CI 43412061826](https://github.com/Justify87/Plume_Launcher/actions/runs/43412061826) `check=success`, `mullvad-apk=success`, gemergt in `main` `74fefef3fd5f10cd380208b4c674c746a488c30a`; in M10-Branch korrekt als zweiter Parent übernommen.
+- Noch **nicht** abgenommen: echte NVIDIA Shield Pro 2019 Installation, D-Pad-Sichtbarkeit/Fokus, Backendstatus nach Restart/Offline, API-Methoden/Proxytest, Obfuskationsport-Wirkung, IP-Overrides, DAITA/Multihop-Kombinationen und tatsächlich verbundener Tunnel. Status deshalb weiterhin `partial`, nicht `pass`.
