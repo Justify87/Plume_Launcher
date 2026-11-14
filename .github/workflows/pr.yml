@@ -81,7 +81,8 @@ jobs:
   mullvad-apk:
     # Same pinned containerized build as the manual integrated APK workflow.
     # Preserve the fast Plume regressions in "check" above.
-    if: contains(github.head_ref, 'mullvad') && github.head_ref != 'feature/m01-mullvad-upstream-handoff'
+    # M07 validates the real combined APK, not just the lightweight launcher shell.
+    if: (contains(github.head_ref, 'mullvad') || startsWith(github.head_ref, 'feature/vdesign-m07-')) && github.head_ref != 'feature/m01-mullvad-upstream-handoff'
     uses: ./.github/workflows/debug-apk.yml
     with:
       variant: integrated

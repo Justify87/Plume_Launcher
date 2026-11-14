@@ -151,6 +151,7 @@ internal class VDesignCardView(
     var onSelect: ((NuvioMediaItem) -> Unit)? = null
     var onFocused: ((VDesignCardView) -> Unit)? = null
     private var artworkUri: String? = null
+    private var emptyLabel: TextView? = null
 
     init {
         clipChildren = true
@@ -235,6 +236,32 @@ internal class VDesignCardView(
             art.setImageDrawable(null) // no old bitmap after rebind/scroll/permission loss
             if (nextArt != null) loadArtwork(art, nextArt)
         }
+    }
+
+    /** Visible only for the first slot of a genuinely empty Nuvio section. */
+    fun showEmpty(message: String?) {
+        if (message == null) {
+            emptyLabel?.visibility = View.GONE
+            return
+        }
+        val label = emptyLabel ?: TextView(context).apply {
+            gravity = Gravity.CENTER
+            setTextSize(TypedValue.COMPLEX_UNIT_PX, font(18))
+            setTextColor(Colors.DIM)
+            includeFontPadding = false
+            isFocusable = false
+        }.also {
+            addView(it, LayoutParams(-1, -2, Gravity.CENTER))
+            emptyLabel = it
+        }
+        label.text = message
+        label.visibility = View.VISIBLE
+    }
+
+    /** Network recovery must retry unchanged URLs after a previous decode failure. */
+    fun retryMissingArtwork() {
+        val uri = artworkUri ?: return
+        if (media != null && art.tag == uri && art.drawable == null) loadArtwork(art, uri)
     }
 
     /** Existing LruCache loader notifies all cards waiting for an in-flight identical URI. */

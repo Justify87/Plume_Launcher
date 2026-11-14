@@ -1,3 +1,69 @@
+# V-Design — kanonischer State (M07, neuester Stand)
+
+> **M07 ist implementiert und geprüft, aber nicht vollständig abgenommen.** Die bisherigen M00–M06-Blöcke unten sind historische Snapshots, insbesondere das dort genannte M06-Draft-PR: **#39 ist inzwischen tatsächlich in main gemergt**. Nur dieser oberste Block ist der aktuelle kanonische Status.
+
+```yaml
+schema: plume-v-design-handoff/v1
+checked_on: "2026-11-14 (Europe/Berlin)"
+repository: Justify87/Plume_Launcher
+target_application_id: dev.plume.advanced
+milestone: M07
+status: code_committed_ci_standalone_passed_visual_hardware_pending
+predecessor: M06
+predecessor_pr: 39
+predecessor_pr_merged: true
+baseline_main_sha: eac085e3a2e8e2380d3b113bffc38a2f6c13fd74
+nuvio_dev_sha_read_only: be4b84a84e004a2d36405601683df000d8dc446a
+work_branch: feature/vdesign-m07-visual-qa-performance
+code_commits:
+  - 428dca837f0397232532e1acedabd9621f1f7a7f
+  - 8dce8de2a8bcf84ee2062157080b9029108c399e
+pull_request: 40
+pull_request_url: https://github.com/Justify87/Plume_Launcher/pull/40
+pull_request_state_at_review: draft_unmerged
+reference_file: docs/v-design/REFERENCE.png
+reference_blob: d1b14c00a6478cb3b49fcbbd637e0aa71db5df18
+reference_sha256: 95af66ad04f462867b5d52825c7e1946ac68b5e40bed52c07f4e74c085218f25
+reference_bytes: 249663
+reference_dimensions: "1536x864"
+reference_actual_format: JPEG_JFIF_despite_png_extension
+reference_verified_against_actual_github_bytes: true
+visual_comparison: not_run_no_emulator_or_shield_capture
+real_screenshots: none
+m07_source_ci_sha: 8dce8de2a8bcf84ee2062157080b9029108c399e
+m07_source_ci_run: 43588790615
+m07_source_ci_check_job: 132428880587
+m07_source_ci_check_result: completed_success
+m07_source_ci_native_job: 132428880906
+m07_source_ci_native_status_at_docs: in_progress_not_assumed_success
+m07_standalone_release_before_bytes: 509570
+m07_standalone_release_after_bytes: 509922
+m07_standalone_release_delta_bytes: 352
+docs_followup_ci: pending_new_sha_run
+local_gradle: not_run_no_checkout_or_android_sdk
+emulator: not_run
+shield_pro_2019: hardware_pending
+performance_heap_fps_poster_latency: not_measured
+mullvad_original_submodule_gitlink: aa47f606b1a159214c7279344128119fa91be5fd
+mullvad_integration_docs: docs/archive/legacy-features/mullvad-vpn/STATE.md
+next_milestone: M08
+```
+
+## M07 Ist-Stand und Quellen
+
+- Tatsächlicher M06-Merge: [PR #39](https://github.com/Justify87/Plume_Launcher/pull/39), `main@eac085e3a2e8e2380d3b113bffc38a2f6c13fd74`. Nuvio `dev@be4b84a84e004a2d36405601683df000d8dc446a` wurde nur gelesen. Einziger Home-Baum bleibt `VDesignHomeView`; kein Reimport von Classic/Overview oder SmartTube-Content.
+- **Referenzbyteprüfung:** GitHub-Base64-Daten tatsächlich dekodiert; eigenständig SHA-256 `95af66ad04f462867b5d52825c7e1946ac68b5e40bed52c07f4e74c085218f25`, 249663 Bytes, JPEG/JFIF `FF D8 FF E0`, SOF0 1536×864 gegen `REFERENCE_SHA256.txt` erfolgreich geprüft. Normbild tatsächlich betrachtet. **Kein Live-UI-Screenshot**, kein Pixel-Overlay.
+- **Gezielte Bugs:** Bisherige `retryPosters()`-Feed-Rebinds luden fehlgeschlagene Bilder bei gleicher URI nie neu. Karten können jetzt nur bei tatsächlich fehlendem Drawable nachladen, beim validierten Netzzustand und bei Rückkehr aus Apps. Decoder liest maximal 8 MiB pro URL und reduziert extrem hohe Bilder; `artworkReady` erzeugt keine temporäre 14-Karten-Liste mehr.
+- **Empty states:** Die erste Kachel jeder vollständig leeren, tatsächlich Nuvio-basierten Sektion zeigt neutral „Keine Einträge“. Keine Ersatzserien, kein SmartTube-Promotion, keine ungesicherte Aussage über Permission-/Offline-Ursache. Die bisherige Nuvio-`CONTINUE`-Mischlogik bleibt separat und unverändert.
+- **Layoutquelle:** `VDesignCanvas.place()` sowie statische Anker entsprechen den dokumentierten Bildflächen (Sidebar 0–218, Hero x255/y74/651×262, Available x258/y403, Upcoming y612/727). Full-HD- und Inset-Mathematik wird per JVM-Test ausgeführt. **Visuelle Laufzeitmessung, Overscan, Font-Scale und lange Titel bleiben offen**, insbesondere weil der Karten-/Schriftmaßstab noch DisplayMetrics statt real gemessener Insets nutzt.
+- **Source-/Diff-Gate:** vor Dokumentation sieben produktive/Test-/Workflow-Dateien geändert, keine Gitlink-/Rust-/JNI-/Manifest-/Gradle-/Nuvio-Änderungen und keine neuen Berechtigungen. Original Mullvad-Gitlink bleibt `aa47f606...`; Paket-ID `dev.plume.advanced`. Der M07-PR triggert die bestehende kombinierte Mullvad-APK-CI erstmals zusätzlich, deren Runtime-Ausgang ist **nicht** mit einem erfolgreichen Standalone-Job gleichzusetzen.
+- **Nachgewiesene erste CI:** [Run 43588790615](https://github.com/Justify87/Plume_Launcher/actions/runs/43588790615), [check 132428880587](https://github.com/Justify87/Plume_Launcher/actions/runs/43588790615/job/132428880587) auf `8dce8de2a8bcf84ee2062157080b9029108c399e` **completed/success**: Installer-/Spotify-/Mullvad-Offline-Regressionen, `testDebugUnitTest lintDebug assembleDebug assembleRelease`; tatsächliche Release-APK-Größe `509570 → 509922 (+352)` Byte. [Native Job 132428880906](https://github.com/Justify87/Plume_Launcher/actions/runs/43588790615/job/132428880906) lief beim Eintrag noch. Änderungen der Dokumentation erzeugen einen neuen SHA und neuen CI-Lauf, dessen Ergebnis separat auszuwerten ist.
+- **Keine Messwerte erfunden:** Heap, FPS/Frame-Time, Hintergrund-Decodierdauer, echter Netzwerk-Peak, Device-RAM und VPN-Tunnel-Runtime **not_measured**; `MAX_BYTES=8 MiB` ist eine Codegrenze, keine Benchmarkzahl. Kein Emulator/Shield verfügbar, daher `visual_comparison: not_run`, `hardware_pending`.
+
+**Entscheidung:** M07 `partial` bis vollständiger kombinierter CI-Evidenz und echter Android-TV-/Shield-Abnahme. PR #40 bleibt Draft/unmerged. **Exakt nächster Meilenstein M08**.
+
+---
+
 # V-Design — kanonischer State (M06)
 
 > **M06 ist implementiert auf Draft-PR #39, noch nicht gemergt.** Der darunter erhaltene M05-Block ist ein historischer Stand, dessen Aussage „PR #38 offen“ durch den verifizierten Merge überholt ist. Dies ist der einzige kanonische Statusort.
