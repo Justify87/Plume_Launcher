@@ -69,14 +69,18 @@ class SettingsTransferTest {
         assertEquals(original, stored)
         assertEquals(2, commits)
     }
-    @Test fun oldExportWithObsoleteHomeModeAndRowsIsSafe() {
-        val old = """{"format":"plume-settings","version":1,"settings":{
-          "home_layout_mode":"classic", "row_size":"nonsense", "row_align":"centre",
-          "row_show":"never", "row_drop":"unexpected", "cw_colour":"broken",
-          "names":"focus", "row_name":"Old row", "top_bar":"power,plume",
-          "theme":"dark", "sort":"manual", "order":"com.netflix.ninja",
-          "row_hidden":["com.spotify.tv.android"]}}""".toByteArray()
-        val imported = SettingsTransfer.decode(old)
+    @Test fun oldExportSettingsMapIgnoresObsoleteHomeModeAndRows() {
+        // Android's org.json is a runtime stub in plain JVM tests. Exercise the pure
+        // validate() migration used by decode(); full JSON file import needs an emulator/Shield.
+        val old = mapOf<String, Any>(
+            "home_layout_mode" to "classic", "row_size" to "nonsense",
+            "row_align" to "centre", "row_show" to "never",
+            "row_drop" to "unexpected", "cw_colour" to "broken",
+            "names" to "focus", "row_name" to "Old row", "top_bar" to "power,plume",
+            "theme" to "dark", "sort" to "manual", "order" to "com.netflix.ninja",
+            "row_hidden" to listOf("com.spotify.tv.android"),
+        )
+        val imported = SettingsTransfer.validate(old)
         assertEquals("dark", imported["theme"])
         assertEquals("manual", imported["sort"])
         assertEquals("com.netflix.ninja", imported["order"])
