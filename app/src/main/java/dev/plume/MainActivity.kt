@@ -4001,17 +4001,22 @@ class MainActivity : Activity() {
                 settingsScrim.visibility != View.VISIBLE -> showVDesignSystemActions(v)
             allApps.visibility == View.VISIBLE && tag != null -> {
                 val app = sortedApps().firstOrNull { it.pkg == tag }
-                if (app != null) holdMenu(v, listOfNotNull(
-                    getString(R.string.open) to { launch(app) },
-                    if (app.pkg.startsWith(HDMI)) null else getString(R.string.change_app_picture) to {
-                        unlock { appPictures(app.pkg, app.label) }
-                    },
-                    if (app.pkg.startsWith(HDMI)) null else getString(R.string.app_info) to {
-                        openSettings(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
-                            Uri.fromParts("package", app.pkg, null))
-                    },
-                    if (canUninstall(app.pkg)) getString(R.string.uninstall) to { uninstall(app.pkg) } else null,
-                ))
+                if (app != null) {
+                    // The historical PIN contract allowed launching while locked, never editing or uninstalling.
+                    val actions = if (locked()) listOf(getString(R.string.open) to { launch(app) })
+                    else listOfNotNull(
+                        getString(R.string.open) to { launch(app) },
+                        if (app.pkg.startsWith(HDMI)) null else getString(R.string.change_app_picture) to {
+                            appPictures(app.pkg, app.label)
+                        },
+                        if (app.pkg.startsWith(HDMI)) null else getString(R.string.app_info) to {
+                            openSettings(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                                Uri.fromParts("package", app.pkg, null))
+                        },
+                        if (canUninstall(app.pkg)) getString(R.string.uninstall) to { uninstall(app.pkg) } else null,
+                    )
+                    holdMenu(v, actions)
+                }
             }
             v.parent === wifi.parent -> topMenu(v)
         }
