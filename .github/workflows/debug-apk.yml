@@ -1,24 +1,10 @@
-# One build workflow for manual debug APKs and the M02 PR.
-# Integrates Mullvad's exact pinned Android container (not a separate installed VPN APK).
+# Single authoritative Plume+Mullvad APK build for pull requests and manual runs.
+# Includes previous PR quality checks inside the one combined-APK job.
 name: Build Plume Launcher Advanced Debug APK
 
 on:
   workflow_dispatch:
-    inputs:
-      variant:
-        description: "Build target: combined Plume+Mullvad or legacy launcher only"
-        type: choice
-        required: true
-        default: integrated
-        options:
-          - integrated
-          - launcher-only
   workflow_call:
-    inputs:
-      variant:
-        type: string
-        required: false
-        default: integrated
 
 permissions:
   contents: read
@@ -26,7 +12,6 @@ permissions:
 jobs:
   integrated:
     name: Combined Plume + Mullvad ARM64 Debug APK
-    if: inputs.variant == 'integrated'
     runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:
@@ -44,6 +29,40 @@ jobs:
           test -z "$(git -C third_party/mullvadvpn-app status --porcelain --ignore-submodules=all)"
           image=$(cat third_party/mullvadvpn-app/building/android-container-image.txt)
           test "$image" = 'ghcr.io/mullvad/mullvadvpn-app-build-android@sha256:ca22c11fb8a15321f897fa169c9c9d1f7d0d9edfeea16fa04af4de71ebcf4286'
+
+      # The old standalone PR check is folded into this job, not discarded.
+      - name: Review dependency, permission and changelog changes (PRs)
+        if: ${{ github.event_name == 'pull_request' }}
+        shell: bash
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: sh tools/pr-rules.sh "$BASE"
+
+      - name: ADB launcher installer regression tests
+        run: sh tools/plume-install-test/run.sh
+
+      - name: Spotify podcast feasibility unit tests (offline)
+        run: python3 -m unittest discover -s tools -p 'test_spotify_podcast_probe.py' -v
+
+      - name: Set up Java 17 for Plume unit tests
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Set up Gradle for Plume quality checks
+        uses: gradle/actions/setup-gradle@v5
+
+      - name: Plume unit tests, lint and standalone Debug compilation
+        run: ./gradlew testDebugUnitTest lintDebug assembleDebug
+
+      - name: Upload Plume lint report on failure
+        if: failure()
+        uses: actions/upload-artifact@v5
+        with:
+          name: lint-report
+          path: app/build/reports/lint-results-debug.html
+          if-no-files-found: ignore
 
       - name: Test source staging generator and APK validator
         run: |
@@ -144,58 +163,6 @@ jobs:
         with:
           name: Plume-Mullvad-ARM64-Debug-${{ github.run_number }}
           path: artifacts/plume-mullvad/
-          if-no-files-found: error
-          retention-days: 14
-          compression-level: 0
-
-  launcher-only:
-    name: Legacy Plume-only debug APK
-    if: inputs.variant == 'launcher-only'
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    steps:
-      - name: Check out source
-        uses: actions/checkout@v5
-
-      - name: Set up Java 17
-        uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: 17
-
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v5
-
-      - name: Test, lint and build original Debug APK
-        run: ./gradlew testDebugUnitTest lintDebug assembleDebug
-
-      - name: Verify package and write checksum
-        shell: bash
-        run: |
-          set -euo pipefail
-          apk_dir=app/build/outputs/apk/debug
-          mv "$apk_dir/app-debug.apk" "$apk_dir/Plume-Launcher-Advanced-debug.apk"
-          test -s "$apk_dir/Plume-Launcher-Advanced-debug.apk"
-          aapt=$(find "$ANDROID_HOME/build-tools" -maxdepth 2 -type f -name aapt | sort -V | tail -n 1)
-          test -n "$aapt"
-          "$aapt" dump badging "$apk_dir/Plume-Launcher-Advanced-debug.apk" > "$apk_dir/badging.txt"
-          grep -Fq "package: name='dev.plume.advanced'" "$apk_dir/badging.txt"
-          grep -Fq "application-label:'Plume Launcher Advanced'" "$apk_dir/badging.txt"
-          (cd "$apk_dir" && sha256sum Plume-Launcher-Advanced-debug.apk > SHA256SUMS)
-          {
-            echo '### Legacy Plume-only Debug APK'
-            echo "Build: $GITHUB_RUN_NUMBER"
-            echo "APK: Plume-Launcher-Advanced-debug.apk"
-            echo "SHA-256: $(cut -d' ' -f1 "$apk_dir/SHA256SUMS")"
-          } >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Upload original debug APK
-        uses: actions/upload-artifact@v5
-        with:
-          name: Plume-Only-Debug-${{ github.run_number }}
-          path: |
-            app/build/outputs/apk/debug/Plume-Launcher-Advanced-debug.apk
-            app/build/outputs/apk/debug/SHA256SUMS
           if-no-files-found: error
           retention-days: 14
           compression-level: 0
