@@ -42,7 +42,7 @@ class YouTubeSubscriptionsTest {
         assertFalse(YouTubeSubscriptions.isSubscriptions("History"))
         assertFalse(YouTubeSubscriptions.isSmartTube(null))
     }
-    @Test fun rssMetadataWinsAcrossTvAndRssWithoutHidingTheSmartTubeAppPage() {
+    @Test fun rssMetadataWinsAcrossTvAndRssWithoutAnyLegacyAppPage() {
         val video = YouTubeSubscriptions.Video(channel, "abcDEF12345", "new", "Uploader", now - 60_000)
         val rss = YouTubeSubscriptions.media(listOf(video), null).single()
             .copy(packageAliases = setOf("org.smarttube.beta"))
@@ -51,12 +51,12 @@ class YouTubeSubscriptionsTest {
         val repo = MediaFeedRepository()
         repo.replaceSource("tv", listOf(tv))
         repo.replaceSource(YouTubeSubscriptions.SOURCE_ID, listOf(rss))
-        val overview = HomePageContent.sections(repo, HomePageState.Overview).flatMap { it.items }
-        assertEquals(1, overview.size)
-        assertEquals(YouTubeSubscriptions.SOURCE_ID, overview.single().sourceId)
-        val smartTubePage = HomePageContent.sections(repo, HomePageState.App("org.smarttube.beta"))
-            .flatMap { it.items }
-        assertEquals(1, smartTubePage.size)
+        // M06 removes old per-app Overview previews, not the media-source dedupe contract.
+        // SmartTube remains an app shortcut only on the V-Design home.
+        val deduped = YouTubeSubscriptions.dedupe(repo.snapshot())
+        assertEquals(1, deduped.size)
+        assertEquals(YouTubeSubscriptions.SOURCE_ID, deduped.single().sourceId)
+        assertEquals("abcDEF12345", deduped.single().contentId?.removePrefix("yt:"))
     }
 
     @Test fun rejectsDoctypeAndExternalEntities() {

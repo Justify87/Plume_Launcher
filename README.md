@@ -31,76 +31,40 @@ This is a **personal hobby fork**, not a promise of commercial-grade integration
 
 ### Design principles
 
-- **Content first, not advertisements.** Continue something, see relevant new items, then open an app.
-- **A genuine ten-foot interface.** Readable at TV distance and fully navigable by D-pad, OK and Back.
-- **Familiar Plume aesthetics.** Calm wallpaper, restrained glass effects and clear focus treatment.
-- **No unnecessary complexity.** Prefer existing Kotlin / Android framework Views over heavyweight UI stacks.
-- **Local-first wherever possible.** Reuse supported Android TV data sources; add integrations deliberately, not speculatively.
-- **Keep the classic experience.** The existing Plume-style home remains available as an alternative.
+- **One TV home, not competing layouts.** The V-Design is the only launcher Home surface; Classic and the older Overview mode were removed in M06.
+- **Content from real publishers.** The three V-Design sections use the Nuvio TV Preview channels `:in-progress`, `:available`, `:upcoming` — never manufactured titles or sample shows.
+- **D-pad first.** The launcher, source apps, All Apps, system actions and Settings must remain reachable from the remote.
+- **No provider assumptions.** Permission denied, missing channel and offline conditions show honest empty states instead of fake items.
+- **Respect existing Android and VPN capabilities.** Keep TV inputs, Home-role setup, wallpaper and the original embedded Mullvad backend.
 
 ## Where things stand
 
-**Overview is an optional, live Android TV media view.** It is not an account-level history service.
-Plume shows only content that the installed apps or the Android TV system actually publish.
-A missing row means there is no verified content to show; it does not mean an app has nothing to watch.
+**M06 is currently in [draft PR #39](https://github.com/Justify87/Plume_Launcher/pull/39), not merged into `main`.** The single V-Design Home surface replaces both old Plume home layouts on this feature branch. Real Shield TV behavior still requires device testing.
 
-| Area | State | Real limit |
+| Area | State | Limit |
 | --- | --- | --- |
-| **Classic home** | Available; default for new installations | Original app row and TV Watch Next preferences remain intact |
-| **Overview layout** | Available; opt-in | Vertical sidebar, app previews, **Continue Watching** and **New for you** from supported sources |
-| **Android TV Watch Next / Preview channels** | Integrated | Requires TV listings permission and publishing, accessible app channels |
-| **Nuvio TV** | Source-specific handling | Started items require real playback progress; separate **Next Up** requires a compatible Nuvio version and visible channel. Next Up means the next aired episode, not necessarily newly released or streamable |
-| **SmartTube / YouTube** | Optional | SmartTube's **Subscriptions** channel must be published and browsable; optional public channel IDs provide dated RSS videos without sign-in. RSS items are not proof of unseen videos |
-| **Spotify podcasts** | Feasibility research only | No Spotify login, podcast sync, episode resume or Spotify media cards are shipped. API access and exact Shield TV resume behavior remain unverified |
+| **V-Design home** | Sole Home layout on the M06 branch | Reference-based sidebar and Nuvio-specific content; Shield validation pending |
+| **Continue watching** | Nuvio `:in-progress` | Items require actual publishing and permission |
+| **New episodes available** | Nuvio `:available` | Only published episodes |
+| **Upcoming** | Nuvio `:upcoming` | Dates/countdowns from available metadata; detail launch, no premature playback |
+| **All Apps and HDMI/system access** | Reachable through V-Design sidebar and Settings long-press | Remote, TV vendor and Home permissions vary |
+| **SmartTube** | App shortcut in sidebar only | No SmartTube media cards on V-Design home |
+| **Mullvad VPN** | Embedded backend and VPN shortcut retained | JNI/tunnel runtime not revalidated by M06 |
+| **Spotify podcasts** | Separate feasibility research | No Spotify podcast cards or resume synchronization shipped |
 
-Media cards open the publishing app when Android TV supplies a valid target. Some providers offer
-only an app launch, no exact episode deep link. Invalid or unavailable targets show a message rather
-than blocking the launcher. Artwork, timestamps and progress stay absent when not supplied.
+### Using the single V-Design Home
 
-### Overview mode
+Use **Up / Down** in the sidebar, **Right** to enter available content, **Left** to return and **OK** to open a permitted item or application. **Hold OK on Übersicht** to open All Apps; **hold OK on Einstellungen** for HDMI sources, Android/WLAN Settings, power and Home setup. The three V sections draw only from typed Nuvio media; its older mixed `CONTINUE` channel is kept in Nuvio, never reclassified as these three categories.
 
-Open **Plume settings → Style → Home layout → Overview** to enable it. Return to **Classic** from
-the same setting at any time. Switching layouts does not delete Classic's app order, hidden apps,
-wallpapers, Continue Watching configuration or launcher/Home setup.
+The previous **Classic / Overview setting no longer exists** on the M06 branch. Older exports and installed preferences do not restore those removed layouts. Their currently relevant app order, wallpaper and TV-channel preferences remain preserved; retired layout-only keys are ignored.
 
-- Use **Up / Down** to move within the sidebar and between available content rows.
-- Use **Right** to enter media cards or an app's **Open app** action. Use **Left** to return.
-- Select a sidebar app with **Up / Down** to preview its published media. Press **OK** on the app entry to launch it.
-- Use **Back** on an app preview to return to Overview; use **All apps** for the full installed-app list.
-- In settings, choose **From apps** / **Channels** for existing Android TV source controls. Turn on **SmartTube / YouTube** only if you want the optional subscription and RSS feed.
-
-If a source is not installed, TV listings access is denied, a provider fails or the device is offline,
-the Home screen remains usable. Retry by returning to the launcher, checking permissions/channels or
-opening the source app. There is no perpetual network service, automatic Spotify history or promise
-that every streaming service exposes its progress. The [historical M11 Shield test matrix](docs/archive/legacy-features/overview-ui/m11-release-acceptance.md)
-records what still needs physical-device confirmation.
-
-### Classic home — inherited and usable
-
-The Classic layout keeps the established Plume feature set, including:
-
-- Installed app tiles, rearranging, hiding, sorting and different icon/banner styles.
-- Android TV **Watch Next** and available app channels, subject to device support and permissions.
-- Custom icons and banners for individual apps.
-- Wallpaper choices, video backgrounds, glass styles, clock and weather.
-- Screensaver choices, including Gallery and Aerial Views.
-- Remote-key shortcuts, an optional Home-button accessibility service and HDMI input shortcuts where supported.
-- A PIN option for layout/settings changes and a **portable settings backup**.
-
-Some functions depend on the TV vendor, its Android version and permissions. Features inherited from Plume are credited to the original project; their presence here is not a claim that the fork invented them.
+If a source is missing, Android TV listings access is denied or a provider fails, the single Home shell remains navigable and shows empty content rather than demo data. Historical release-test evidence is archived under [legacy Overview documentation](docs/archive/legacy-features/overview-ui/m11-release-acceptance.md); a fresh Shield Pro 2019 run is still required.
 
 ## The intended Advanced experience
 
-The direction of development is a **unified home** that makes it easier to:
+A small, fixed remote-friendly layout: resume one of your real Nuvio shows, see actually available episodes, discover upcoming releases and launch a source app without a second Home page. No general cross-service private history or Spotify integration is implied.
 
-1. **Resume:** find content you started, with useful context and progress where supported.
-2. **See what's new:** recognize newly available episodes, videos or podcast episodes without hunting through apps.
-3. **Choose a source:** open a dedicated app area for more relevant items and a direct way into the app.
-4. **Navigate naturally:** move between sidebar and content using only the remote, with predictable focus and return behavior.
-
-The design is deliberately **not** an endlessly scrolling wall of recommendations. Integration availability will depend on what each app exposes via Android TV, official interfaces or other technically appropriate sources. No universal access to private watch histories is assumed.
-
-Development milestones and changes are tracked in [pull requests](https://github.com/Justify87/Plume_Launcher/pulls), [issues](https://github.com/Justify87/Plume_Launcher/issues) and [CHANGELOG.md](CHANGELOG.md). A planned capability is not a released feature.
+Development is tracked in [pull requests](https://github.com/Justify87/Plume_Launcher/pulls) and [V-Design milestones](docs/v-design/ROADMAP.md).
 
 ## Install a debug APK
 
@@ -176,10 +140,10 @@ Useful starting points in the code:
 | File | Purpose |
 | --- | --- |
 | [MainActivity.kt](app/src/main/java/dev/plume/MainActivity.kt) | Launcher activity and established navigation/settings behavior |
-| [HomeLayoutMode.kt](app/src/main/java/dev/plume/HomeLayoutMode.kt) | Classic / Overview preference |
-| [HomeSidebarView.kt](app/src/main/java/dev/plume/HomeSidebarView.kt) | D-pad sidebar |
-| [OverviewHomeView.kt](app/src/main/java/dev/plume/OverviewHomeView.kt) | Overview content rows and focusable cards |
-| [DemoMedia.kt](app/src/main/java/dev/plume/DemoMedia.kt) | Clearly separated offline demonstration content |
+| [VDesignHomeView.kt](app/src/main/java/dev/plume/VDesignHomeView.kt) | The only Home renderer and sidebar/navigation shell |
+| [VDesignFocusNavigator.kt](app/src/main/java/dev/plume/VDesignFocusNavigator.kt) | Spatial D-pad navigation |
+| [VDesignCardView.kt](app/src/main/java/dev/plume/VDesignCardView.kt) | Real Nuvio media-card presentation |
+| [AndroidTvMediaSource.kt](app/src/main/java/dev/plume/AndroidTvMediaSource.kt) | TV Preview channel and Nuvio source interpretation |
 | [SettingsTransfer.kt](app/src/main/java/dev/plume/SettingsTransfer.kt) | Selective settings backup/restore |
 | [HomeOverride.kt](app/src/main/java/dev/plume/HomeOverride.kt) | Optional Home-button accessibility integration |
 
@@ -189,7 +153,7 @@ CI runs pull request checks, unit tests, lint, APK assembly and installation-hel
 
 ## Privacy and network access
 
-The goal is to keep the home experience **ad-free, account-free and free of analytics**. The fork does not need a central tracking account to show its existing UI, and the Overview reads only supported Android TV sources and optional public YouTube feeds.
+The goal is to keep the home experience **ad-free, account-free and free of analytics**. The fork does not need a central tracking account to show its existing UI, and its Home reads only supported Nuvio TV Preview channels. Other optional source integrations and network features remain separate.
 
 The underlying launcher can still make network requests for **selected** wallpapers and videos, weather/location-related data, poster images and GitHub update checks. Network services that supply such content can receive normal connection information such as the device's IP address. Permissions may be needed to read Android TV listings or user-selected images. The optional accessibility service is for Home and configured remote-key behavior, **not** a general-purpose media-history scraper.
 

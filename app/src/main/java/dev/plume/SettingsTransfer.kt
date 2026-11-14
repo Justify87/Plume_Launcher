@@ -9,25 +9,19 @@ import org.json.JSONTokener
 import java.io.File
 import java.io.IOException
 
-/** Version 1 transfers portable preferences only. Missing supported keys return to Plume defaults. */
+/** Version 1 transfers active portable preferences; retired Classic/Overview keys in old exports are ignored. */
 internal object SettingsTransfer {
     private const val LIMIT = 65_536
     private val choices = mapOf(
         "theme" to setOf("light", "dark", "wallpaper", "auto"),
         "glass_style" to setOf("off", "frosted", "clear"),
         "icon_style" to setOf("mono", "colour", "banner", "bannermono"),
-        "row_size" to setOf("standard", "large", "largest"),
-        "row_align" to setOf("left", "centre", "right"),
-        "names" to setOf("focus", "always", "never"),
-        "row_show" to setOf("always", "down", "never"),
         "sort" to setOf("manual", "usage"),
-        "clock_size" to setOf("38", "48", "60"),
-        "clock_style" to setOf("light", "bold", "serif"),
         "weather" to setOf("off", "c", "f"),
         "wx_unit" to setOf("c", "f"),
     )
-    private val switches = setOf("glass", "colour_icons", "app_anim", "row_drop", "cw_colour", "geo_manual")
-    private val keys = choices.keys + switches + setOf("order", "row_hidden", "cw_off", "row_name", "top_bar",
+    private val switches = setOf("glass", "colour_icons", "app_anim", "geo_manual")
+    private val keys = choices.keys + switches + setOf("order", "row_hidden", "cw_off",
         "wp_every", "geo_city", "geo_lat", "geo_lon")
     private val pkg = Regex("[A-Za-z0-9_]+(?:\\.[A-Za-z0-9_]+)+")
 
@@ -72,7 +66,6 @@ internal object SettingsTransfer {
                 else -> {
                     require(value is String && value.length <= 16_384 && '\u0000' !in value) { "Invalid $key" }
                     if (key == "order") require(value.isEmpty() || value.split(',').let { it.size <= 512 && it.all(pkg::matches) }) { "Invalid order" }
-                    if (key == "top_bar") require(value.split(',').all { it in setOf("wifi", "sources", "apps", "system", "plume", "power") }) { "Invalid top bar" }
                     value
                 }
             }

@@ -441,4 +441,6 @@
     <string name="youtube_ids_help">Select public channels</string>
     <string name="youtube_ids_count">%1$d channel IDs</string>
     <string name="youtube_ids_invalid">Invalid channel ID or more than 12 channels</string>
+    <string name="section_applications">Apps</string>
+    <string name="section_tv_media">TV media sources</string>
 </resources>

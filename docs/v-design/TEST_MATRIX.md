@@ -237,3 +237,45 @@ Der frühere failed-Lint-Run 43516551245 bleibt als historische Evidenz erhalten
 | Dieser CI-Evidence-Docs-Commit | Neuer HEAD und GitHub-Actions-Run erst nach Push auszuwerten | **pending_new_ci** |
 
 Damit sind Unit- und Code-/Docs-CI-Gates nachgewiesen, aber **nicht** physische Device-/HOME-/VPN-/Nuvio-Playback-Tests oder Pixelvergleich.
+
+
+## M06 — Home-Einzelvertrag, Migration, reale CI-Evidenz
+
+| Gate | Beobachtete Evidenz | Stand |
+| --- | --- | --- |
+| Alt-View-Bäume entfernt | GitHub-Quellprüfung `activity_main.xml`: 0× `classicHome`, `overviewHome`, `appRow`, `watchRow`, `homeBodyHost`; `VDesignHomeView` verbleibt | **passed_static_source** |
+| Alt-Modus und Renderer unerreichbar | `MainActivity.kt`: 0× `HomeLayoutMode`, `homeLayoutMode`, `HomeSidebarView`, `OverviewHomeView`, `HomePageState`, `R.id.appRow`, `R.id.watchRow`; Mode-Kotlin-Dateien gelöscht | **passed_static_source** |
+| Altdaten-Import | `SettingsTransferTest.oldExportWithObsoleteHomeModeAndRowsIsSafe`, `restore` lässt abgeschaltete lokale Schlüssel in Ruhe | **test_committed_ci_pending** |
+| Direct Boot V-only | gesperrter User erhält `VDesignHomeView` ohne Credential-Preferences und ohne TV-Provider | **passed_source_review; hardware_not_run** |
+| Erster PR CI-Run (Compiler) | [43533466727](https://github.com/Justify87/Plume_Launcher/actions/runs/43533466727), [Check 132256619151](https://github.com/Justify87/Plume_Launcher/actions/runs/43533466727/job/132256619151) | **completed_failure — rowNames/cwColour** |
+| Korrigierter Code nach Erst-Fehler | `e48abd7c7d5554a5b5e2482df173ba38ebe76d0a`, [Folge-Run 43533837289](https://github.com/Justify87/Plume_Launcher/actions/runs/43533837289) | **completed_failure — alter YouTube-Overview-Unit-Test** |
+| YouTube-Dedupe-Unit-Test migriert | [d5d88e5](https://github.com/Justify87/Plume_Launcher/commit/d5d88e502ea960419756625523553d596f29de2d), [dritter Run 43534292196](https://github.com/Justify87/Plume_Launcher/actions/runs/43534292196) | **in_progress zum Doku-Schreibzeitpunkt** |
+| JVM, lint, debug/release APK am letzten HEAD | realen **finalen** CI SHA/Job nach Docs-Commit neu prüfen | **not_yet_confirmed** |
+| Gradle lokal | kein SDK/Checkout für lokalen Build | **not_run** |
+| Shield Pro 2019, HOME, Long OK, VPN, Provider, Direct Boot, All Apps, Wallpaper | kein Gerät/Emulator im Ausführungsumfeld | **not_run_hardware_pending** |
+| Original Mullvad JNI/Submodule, Nuvio dev, Permissions | keiner der betreffenden Pfade in Code-Commit geändert | **passed_diff_scope_only; runtime_not_run** |
+
+
+| M06 Code+Docs, 3. CI-Anlauf | [43534378039](https://github.com/Justify87/Plume_Launcher/actions/runs/43534378039), [Check 132259774709](https://github.com/Justify87/Plume_Launcher/actions/runs/43534378039/job/132259774709): 218 Tests, 1× `SettingsTransferTest` `org.json`-RuntimeException | **completed_failure** |
+| M06 pure Migration nach JVM-Stub-Korrektur | [cabf0a7](https://github.com/Justify87/Plume_Launcher/commit/cabf0a76705759254f69f8c8754591fbbfff3c3f), [Run 43534832233](https://github.com/Justify87/Plume_Launcher/actions/runs/43534832233) | **in_progress_at_documentation** |
+| M06 vollständiger JSON-Dateiimport unter Android | nicht durch plain JVM `validate()` abgedeckt, Emulator/Shield erforderlich | **not_run** |
+
+
+## M06 — nachgewiesene letzte Code-CI (nicht Hardware)
+
+| Gate | Run / Job / Quelle | Beobachtet |
+| --- | --- | --- |
+| Vollständiger Code-HEAD | [`3e8a1351285a72c99fa4f2c6526873845693eadc`](https://github.com/Justify87/Plume_Launcher/commit/3e8a1351285a72c99fa4f2c6526873845693eadc), [Run 43583732764](https://github.com/Justify87/Plume_Launcher/actions/runs/43583732764) | **completed_success** |
+| Kotlin Unit-Tests + Lint | [Check 132413775845](https://github.com/Justify87/Plume_Launcher/actions/runs/43583732764/job/132413775845): `./gradlew testDebugUnitTest lintDebug` | **BUILD SUCCESSFUL** |
+| Debug-/Release-APK | gleicher Job: `./gradlew assembleDebug assembleRelease` | **BUILD SUCCESSFUL** |
+| APK-Größe gegen `main` | gleicher Check-Log: `APK: 550334 -> 509570 bytes (-40764)` | **−40764 B, gemessen** |
+| Installer-/Offline-Regressionen | gleicher Check: 44 ADB-Installer-Checks ohne Fehler, Spotify und Mullvad-Skript-/APK-Validator-Offline-Tests erfolgreich | **passed_ci** |
+| Mullvad ARM64-/Tunnel-Runtime | nativer Job [132413776867](https://github.com/Justify87/Plume_Launcher/actions/runs/43583732764/job/132413776867) | **skipped_branch_filter**, runtime not_run |
+| Voriger Lint-Fehler | [43534832233](https://github.com/Justify87/Plume_Launcher/actions/runs/43534832233), [43535233277](https://github.com/Justify87/Plume_Launcher/actions/runs/43535233277) | **completed_failure**, danach `return` korrigiert |
+| Superseded Zwischen-Runs | [43583143770](https://github.com/Justify87/Plume_Launcher/actions/runs/43583143770), [43583423993](https://github.com/Justify87/Plume_Launcher/actions/runs/43583423993), [43583586974](https://github.com/Justify87/Plume_Launcher/actions/runs/43583586974) | **cancelled_by_new_commits** |
+| Statische Erreichbarkeit und Alt-Design | `MainActivity` keine `HomeLayoutMode` / `HomeSidebarView` / `OverviewHomeView` / `R.id.appRow` / `R.id.watchRow`, XML keine zwei alten Home-Hosts | **passed_static_review** |
+| Android-Funktionstests | Shield-Pro-2019-D-Pad/HOME/Back/All Apps/PIN/HDMI/VPN/Nuvio/Wallpaper/Direct Boot/JSON-Import | **not_run_hardware_pending** |
+| Dokumentations-Folge-Commit | neuer Git-SHA nach diesem Code-CI; eigenen Workflow-Run ermitteln | **pending_new_ci** |
+
+| M06 Code+Docs-HEAD | [ba52e586](https://github.com/Justify87/Plume_Launcher/commit/ba52e586ea9929783d359b9bc29aab7016b09416), [Run 43584273457](https://github.com/Justify87/Plume_Launcher/actions/runs/43584273457), `check` | **completed_success** |
+| M06 native Mullvad Job auf Docs-HEAD | [Run 43584273457](https://github.com/Justify87/Plume_Launcher/actions/runs/43584273457), `mullvad-apk` | **skipped_branch_filter** |

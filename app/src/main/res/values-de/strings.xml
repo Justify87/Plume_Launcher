@@ -42,4 +42,6 @@
     <string name="youtube_ids_help">Öffentliche Kanäle auswählen</string>
     <string name="youtube_ids_count">%1$d Kanal-IDs</string>
     <string name="youtube_ids_invalid">Ungültige Kanal-ID oder mehr als 12 Kanäle</string>
+    <string name="section_applications">Apps</string>
+    <string name="section_tv_media">TV-Medienquellen</string>
 </resources>

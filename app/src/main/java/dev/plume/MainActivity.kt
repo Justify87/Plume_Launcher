@@ -314,7 +314,7 @@ class MainActivity : Activity() {
     private val prefs by lazy { getSharedPreferences("home", MODE_PRIVATE) }
     private val io = Executors.newSingleThreadExecutor()
     // One TV query populates both Classic's Prog list and the shared model. Demo remains separate.
-    private val mediaFeed = MediaFeedRepository().apply { replaceSource("demo", DemoMedia.asMediaItems()) }
+    private val mediaFeed = MediaFeedRepository()
     // Read and atomically replace on the existing TV query executor; not rendered before M02.
     @Volatile private var nuvioProviderFeeds = NuvioProviderFeeds.EMPTY
     // M02's complete, counted and sorted three-section projection for the M03 V-Design host.
@@ -337,12 +337,7 @@ class MainActivity : Activity() {
     private var apps = APPS ?: emptyList()
     private var sources = SOURCES ?: emptyList() // HDMI ports and the devices on them: the Sources list, not the apps
     private var appsDirty = APPS == null
-    private var watchKey: String? = null
     private var lastTop: View? = null // last focused view in each home row, so Up/Down return to it
-    private var lastApp: View? = null
-    private var lastCard: View? = null
-    private var editing = false
-    private var grabbed: View? = null
     private var holdFired = false
     private var dark = false
     private var fg = Color.BLACK
@@ -350,23 +345,12 @@ class MainActivity : Activity() {
     private var cardRest = intArrayOf(Color.WHITE, Color.WHITE)
     private var cardLit = cardRest
 
-    private lateinit var appRow: LinearLayout
-    private lateinit var watchRow: LinearLayout
-    private lateinit var watchTitle: TextView
-    private val appsTitle by lazy { findViewById<TextView>(R.id.appsTitle) }
-    private lateinit var watchScroll: View
-    private val appScroll by lazy { findViewById<View>(R.id.appScroll) }
-    private var titleAlpha = 1f // the row title's own alpha from the layout, read before placeRow fades it
-    private var rowOut = false // "Show row: On Down": the bottom row has focus, so it's slid in
     private lateinit var allApps: View
     private lateinit var allAppsGrid: GridLayout
     private lateinit var wifi: ImageView
     private lateinit var glass: GlassLayer // paints the blurred wallpaper under glass tiles
     private lateinit var videoWallpaper: VideoWallpaper
-    private var homeLayoutMode = HomeLayoutMode.CLASSIC
-    private lateinit var homeSidebar: HomeSidebarView
-    private lateinit var homeOverview: OverviewHomeView
-    private lateinit var vDesign: VDesignHomeView // M03 visible shell; legacy hosts survive until M06
+    private lateinit var vDesign: VDesignHomeView // sole Home renderer
     private val vDesignDayTick = object : Runnable {
         override fun run() {
             if (!ready || !resumed || isDestroyed) return
@@ -374,10 +358,6 @@ class MainActivity : Activity() {
             scheduleVDesignMidnight()
         }
     }
-    private var sidebarSelection = HomeSidebarView.OVERVIEW
-    private var homePage: HomePageState = HomePageState.Overview
-    private var previewPageKey: String? = null
-    private val previewScrollY = mutableMapOf<String, Int>()
 
     private var resumed = false
     private var ready = false // false while the user is still locked: no prefs, files or cache yet
@@ -385,7 +365,7 @@ class MainActivity : Activity() {
     private val unlockReceiver = object : BroadcastReceiver() {
         override fun onReceive(c: Context, i: Intent) = rebuildWhenUnlocked()
     }
-    private val refreshIfDirty = Runnable { if (appsDirty && !editing) refreshApps() } // not while a tile is being moved: onResume catches up
+    private val refreshIfDirty = Runnable { if (appsDirty) refreshApps() }
 
     private val packageReceiver = object : BroadcastReceiver() {
         override fun onReceive(c: Context, i: Intent) {
@@ -407,7 +387,6 @@ class MainActivity : Activity() {
                 // Online again (e.g. Wi-Fi coming up after boot): fetch any posters that failed meanwhile.
                 if (caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)) {
                     retryPosters()
-                    if (::homeOverview.isInitialized) homeOverview.retryArtwork()
                 }
             }
         }
@@ -430,7 +409,21 @@ class MainActivity : Activity() {
         // broadcast cannot leave the home screen empty. Do not read prefs, files or the cache yet.
         registerReceiver(unlockReceiver, IntentFilter(Intent.ACTION_USER_UNLOCKED))
         if (!getSystemService(UserManager::class.java).isUserUnlocked) {
+            // Device-protected resources only: never read credential-protected preferences or TV listings.
+            // Still render the same V-Design shell instead of falling back to a removed Classic home.
             setContentView(R.layout.activity_main)
+            val root = findViewById<FrameLayout>(R.id.root)
+            val lockedHome = VDesignHomeView(this).apply {
+                bindFeed(NuvioDashboardFeed.EMPTY)
+                bindNavigation(
+                    listOf(VDesignHomeView.Navigation(VDesignHomeView.OVERVIEW,
+                        getString(R.string.home_layout_overview), getDrawable(R.drawable.ic_home))),
+                    onOpen = {}, onAllApps = {}, onSystemActions = {},
+                )
+            }
+            root.addView(lockedHome, root.indexOfChild(findViewById<View>(R.id.allApps)),
+                FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT))
+            lockedHome.post { lockedHome.focusOverview() }
             return
         }
         ready = true
@@ -440,13 +433,8 @@ class MainActivity : Activity() {
         videoWallpaper = VideoWallpaper(findViewById<SurfaceView>(R.id.videoWallpaper),
             { findViewById<ImageView>(R.id.wallpaper).alpha = 0f },
             { findViewById<ImageView>(R.id.wallpaper).alpha = 1f; if (resumed) toast(getString(R.string.video_cannot_play), long = true) })
-        for (id in intArrayOf(R.id.appScroll, R.id.watchScroll, R.id.allApps)) findViewById<View>(id).setOnScrollChangeListener { _, _, _, _, _ -> glass.kick(150) }
-        appRow = findViewById(R.id.appRow)
-        watchRow = findViewById(R.id.watchRow)
-        watchTitle = findViewById(R.id.watchTitle)
-        titleAlpha = watchTitle.alpha
-        watchScroll = findViewById(R.id.watchScroll)
         allApps = findViewById(R.id.allApps)
+        allApps.setOnScrollChangeListener { _, _, _, _, _ -> glass.kick(150) }
         allAppsGrid = findViewById(R.id.allAppsGrid)
         wifi = findViewById(R.id.wifi)
         // A new install starts on Arctic Aurora, light, with Frosted glass; an update keeps what it has.
@@ -467,19 +455,10 @@ class MainActivity : Activity() {
         }
         applyTopBar()
         applyTheme()
-        setupHomeSidebar()
-        applyHomeLayoutMode()
         setupVDesign()
         glassShown = glassLook() to null // the tiles are built for this look; only the blur is still to come
         loadWallpaper()
-        // "Show row: On Down": the row slides in while one of its cards has focus, however focus got there.
-        window.decorView.viewTreeObserver.addOnGlobalFocusChangeListener { _, now ->
-            val out = rowShow() == "down" && now?.getTag(R.id.watchRow) is Prog
-            if (out != rowOut) { rowOut = out; placeRow(animate = true) }
-        }
-        watchScroll.addOnLayoutChangeListener { _, _, top, _, bottom, _, oldTop, _, oldBottom ->
-            if (top != oldTop || bottom != oldBottom) placeRow(animate = false) // the drop is measured from the layout
-        }
+        // There are no Classic home rows to measure.
 
         // Top bar: network, All apps, Android settings, launcher settings. Round, lit on focus.
         for ((id, action) in listOf<Pair<Int, () -> Unit>>(
@@ -561,8 +540,7 @@ class MainActivity : Activity() {
         val allAppsRequested = intent.getBooleanExtra(Remap.OPEN_ALL_APPS, false)
         if (currentWallpaper().startsWith("video:")) videoWallpaper.resume()
         returnTo = null // back by another way than Home: the next Home starts again at the first tile
-        openedFrom?.get()?.let { tile -> ui.post { if (tile.isAttachedToWindow) settleRow(tile) } }
-        openedFrom = null
+        // V-Design restores focus by stable content keys instead of old row animation.
         ensureHomeService()
         homeSetupResumed()
         // Back from a screen that settings opened: settings again, on the same row (and the Home switch as it is now).
@@ -577,7 +555,7 @@ class MainActivity : Activity() {
             return
         }
         // Only rebuild what changed, so focus stays where it was when returning from an app.
-        if (appsDirty) refreshApps() else if (appRow.childCount == 0) renderApps()
+        if (appsDirty) refreshApps()
         refreshVDesignNavigation()
         vDesign.bindFeed(nuvioDashboardFeed)
         scheduleVDesignMidnight()
@@ -604,7 +582,6 @@ class MainActivity : Activity() {
         if (allAppsRequested) {
             intent.removeExtra(Remap.OPEN_ALL_APPS) // consume only after initialization and any theme recreation
             prefs.edit().remove("return_settings").remove("return_dream").remove("reopen_settings").apply()
-            if (editing) endEdit()
             if (movingTop != null) endTopMove(false)
             if (settingsScrim.visibility == View.VISIBLE) closeLauncherSettings()
             if (allApps.visibility != View.VISIBLE) openAllApps()
@@ -644,7 +621,6 @@ class MainActivity : Activity() {
             ui.removeCallbacks(vDesignDayTick)
             ui.removeCallbacks(themeTick)
             ui.removeCallbacks(wallpaperTick)
-            if (editing) endEdit()
             if (movingTop != null) endTopMove(false) // Home or an app opened in the middle of a move: the bar goes back as it was
         }
         super.onPause()
@@ -1062,42 +1038,21 @@ class MainActivity : Activity() {
             homeTest = 0
             return donePopup()
         }
-        val back = returnTo // set when Plume started the app that Home leaves
         returnTo = null
-        if (editing) endEdit()
         if (movingTop != null) endTopMove(false)
         if (settingsScrim.visibility == View.VISIBLE) closeLauncherSettings()
         if (allApps.visibility == View.VISIBLE) closeAllApps()
-        // Home from an app goes back to the tile or card it was started from, wherever focus is now. If Plume did not start the app,
-        // or the tile or card is gone, Home starts again at the first tile.
-        if (::vDesign.isInitialized) {
-            vDesign.restoreFocus()
-            return
-        }
-        if (homeLayoutMode == HomeLayoutMode.OVERVIEW) {
-            (back?.let { homeSidebar.viewFor(it) } ?: homeSidebar.viewFor(HomeSidebarView.OVERVIEW))
-                ?.requestFocus()
-            return
-        }
-        if (back?.let { homeViewFor(it) }?.requestFocus() == true) return
-        watchScroll.scrollTo(0, 0)
-        appRow.getChildAt(0)?.requestFocus()
+        // Home always returns to the same single V-Design, including when an overlay was open.
+        vDesign.restoreFocus()
     }
 
     @Deprecated("Home screen: Back only closes overlays")
     override fun onBackPressed() {
         if (!ready) return
-        val backPage = homePage.backTarget()
         when {
             settingsScrim.visibility == View.VISIBLE -> pageBack?.invoke() ?: closeLauncherSettings()
             allApps.visibility == View.VISIBLE -> closeAllApps()
             ::vDesign.isInitialized && vDesign.hasFocus() -> vDesign.focusRememberedSidebar()
-            !::vDesign.isInitialized && homeLayoutMode == HomeLayoutMode.OVERVIEW && backPage != null -> {
-                homePage = backPage
-                sidebarSelection = HomeSidebarView.OVERVIEW
-                updateOverviewPreview(sortedApps().filter { inRow(it.pkg, rowHiddenSet()) })
-                homeSidebar.viewFor(HomeSidebarView.OVERVIEW)?.requestFocus()
-            }
         }
     }
 
@@ -1131,7 +1086,7 @@ class MainActivity : Activity() {
         allApps.setBackgroundColor(if (glassy != null) Color.TRANSPARENT else ground)
         findViewById<TextView>(R.id.clock).typeface = clockFace()
         findViewById<TextView>(R.id.clock).textSize = clockSize().toFloat()
-        for (id in intArrayOf(R.id.clock, R.id.date, R.id.appsTitle, R.id.watchTitle, R.id.allAppsTitle, R.id.rowLabel, R.id.weather, R.id.featured)) {
+        for (id in intArrayOf(R.id.clock, R.id.date, R.id.allAppsTitle, R.id.weather, R.id.featured)) {
             findViewById<TextView>(id).setTextColor(fg)
         }
         iconInk = fg
@@ -1156,35 +1111,12 @@ class MainActivity : Activity() {
 
     private fun fitInk() {
         val top = listOf(R.id.clock, R.id.date, R.id.weather, R.id.featured).map { findViewById<TextView>(it) }
-        val topInk = inkBehind(top)
-        for (v in top) ink(v, topInk, fade = true)
-        val icons = topIcons()
-        iconInk = inkBehind(icons)
-        for (v in icons) {
-            if (!v.isFocused) v.setColorFilter(iconInk)
-            iconShadow(v)
-        }
-        val names = findViewById<LinearLayout>(R.id.nameRow).let { row -> (0 until row.childCount).map { row.getChildAt(it) as TextView } }
-        val apps = listOf(findViewById<TextView>(R.id.appsTitle)) + names
-        // Measured over the whole row, so the On focus name keeps one colour as it moves from tile to tile.
-        appsInk = inkBehind(apps + findViewById<View>(R.id.appScroll))
-        for (v in apps) ink(v, appsInk, fade = true)
-        ink(findViewById(R.id.rowLabel), appsInk, fade = true)
-        val cols = (0 until watchRow.childCount).map { watchRow.getChildAt(it) as ViewGroup }
-        val watch = listOf(watchTitle) + cols.flatMap { col -> (0 until col.childCount).mapNotNull { col.getChildAt(it) as? TextView } }
-        watchInk = inkBehind(watch)
-        for (v in watch) ink(v, watchInk, fade = true)
-        // The progress bar and the source mark go with the card's text.
-        for (col in cols) for (i in 0 until col.childCount) when (val v = col.getChildAt(i)) {
-            is ProgressBar -> v.progressDrawable = progressBarDrawable(watchInk)
-            is TextView -> if (v.tag == INK_MARK) v.compoundDrawablesRelative[0]?.setTint(watchInk)
-        }
+        val shade = inkBehind(top)
+        for (v in top) ink(v, shade, fade = true)
+        iconInk = inkBehind(topIcons())
+        for (v in topIcons()) if (!v.isFocused) v.setColorFilter(iconInk)
     }
 
-    /**
-     * A soft shadow in the opposite colour under a top icon, as [ink] gives text, so it holds on busy photos too.
-     * Drawn once into a small bitmap in the icon's background, under its focus ring; none on a plain wallpaper.
-     */
     private fun iconShadow(v: ImageView) {
         val layers = v.background as? LayerDrawable ?: return
         val icon = v.drawable?.constantState?.newDrawable(resources)?.mutate()
@@ -1391,9 +1323,7 @@ class MainActivity : Activity() {
             applyTheme()
             baked.clear()
             glass.clearTiles()
-            renderApps()
-            watchKey = null
-            showWatchNext(watchList)
+            refreshVisibleApps()
         }
         showPanelGlass()
     }
@@ -2585,88 +2515,26 @@ class MainActivity : Activity() {
         val rowHidden = rowHiddenSet().count { pkg -> apps.any { it.pkg == pkg } }
         val chFlip = prefs.getStringSet("ch_flip", emptySet())!!
         val channelsOn = (if (WATCH_NEXT in chFlip) 0 else 1) + appChannels().distinctBy { (_, p, n) -> channelKey(p, n) }.count { (_, p, n) -> channelOn(n, channelKey(p, n), chFlip) }
-        val names = rowNames()
         // Rows with more than two values also step back with Left; two-value rows flip either way.
         val steps = mutableMapOf<Int, (Int) -> Unit>(
-            R.string.home_layout to { d ->
-                val next = HomeLayoutMode.values().toList().step(homeLayoutMode, d)
-                prefs.edit().putString(HomeLayoutMode.PREF_KEY, next.key).apply()
-                applyHomeLayoutMode()
-                renderSettings(R.string.home_layout)
-            },
-            R.string.clock_size to { d ->
-                prefs.edit().putString("clock_size", CLOCK_SIZES.keys.toList().step(clockSize(), d).toString()).apply()
-                findViewById<TextView>(R.id.clock).textSize = clockSize().toFloat()
-                findViewById<View>(R.id.clock).post { fitInk() } // the clock now covers other pixels
-                renderSettings(R.string.clock_size)
-            },
-            R.string.clock_style to { d ->
-                prefs.edit().putString("clock_style", CLOCK_STYLES.keys.toList().step(prefs.getString("clock_style", "light")!!, d)).apply()
-                findViewById<TextView>(R.id.clock).typeface = clockFace()
-                findViewById<View>(R.id.clock).post { fitInk() } // the clock now covers other pixels
-                renderSettings(R.string.clock_style)
-            },
             R.string.icon_style to { d ->
                 prefs.edit().putString("icon_style", ICON_STYLES.keys.toList().step(iconStyle(), d)).apply()
-                homeOverview.invalidateContent() // change source marks with the icon style
-                renderApps()
+                refreshVisibleApps()
                 renderSettings(R.string.icon_style)
             },
             R.string.theme to { d ->
                 prefs.edit().putString("theme", THEMES.step(theme, d)).putBoolean("reopen_settings", true).apply()
-                recreate() // colours are applied once per activity; reopen the panel after
-            },
-            R.string.row_size to { d ->
-                prefs.edit().putString("row_size", ROW_SIZES.keys.toList().step(rowSize(), d)).apply()
-                renderApps()
-                renderSettings(R.string.row_size)
-            },
-            R.string.row_position to { d ->
-                prefs.edit().putString("row_align", ROW_ALIGN.keys.toList().step(rowAlign(), d)).apply()
-                alignRow()
-                renderSettings(R.string.row_position)
-            },
-            R.string.app_names to { d ->
-                prefs.edit().putString("names", listOf("focus", "always", "never").step(names, d)).apply()
-                renderApps()
-                renderSettings(R.string.app_names)
-            },
-            R.string.show_row to { d ->
-                prefs.edit().putString("row_show", ROW_SHOW.keys.toList().step(rowShow(), d)).apply()
-                placeRow(animate = false)
-                renderSettings(R.string.show_row)
-            },
-            R.string.apps_when_hidden to { _ ->
-                prefs.edit().putBoolean("row_drop", !rowDrops()).apply()
-                placeRow(animate = false)
-                renderSettings(R.string.apps_when_hidden)
-            },
-            R.string.show_icons to { _ ->
-                prefs.edit().putBoolean("cw_colour", !cwColour()).apply()
-                watchKey = null // rebuild the cards with the new source icons
-                if (homeLayoutMode == HomeLayoutMode.OVERVIEW) homeOverview.invalidateContent()
-                showWatchNext(watchList)
-                renderSettings(R.string.show_icons)
+                recreate()
             },
             R.string.glass to { d ->
                 val styles = if (currentWallpaper().startsWith("video:")) GLASS_STYLES - GlassStyle.CLEAR else GLASS_STYLES
                 prefs.edit().putString("glass_style", styles.step(glassStyle().let { if (it in styles) it else GlassStyle.FROSTED }, d)?.key ?: "off").apply()
-                // Clear's sharp picture is made only while Clear is the style: load the wallpaper again to make it.
                 if (glassStyle() == GlassStyle.CLEAR && sharpPixels == null && Backdrop.of(currentWallpaper()) == Backdrop.PICTURE) loadWallpaper()
                 else applyGlass()
-                if (homeLayoutMode == HomeLayoutMode.OVERVIEW) {
-                    homeOverview.invalidateContent() // repaint cards for the new glass style
-                    renderHomeSidebar()
-                }
                 renderSettings(R.string.glass)
             },
         )
         val rows = linkedMapOf<Int, Triple<String, String, () -> Unit>>(
-            R.string.home_layout to Triple(getString(R.string.home_layout),
-                getString(if (homeLayoutMode == HomeLayoutMode.CLASSIC) R.string.home_layout_classic else R.string.home_layout_overview)) {
-                steps[R.string.home_layout]!!(1)
-            },
-            R.string.edit_apps_row to Triple(getString(R.string.edit_apps_row), "") { closeLauncherSettings(); startEdit(grab = null) },
             R.string.theme to Triple(getString(R.string.theme), getString(mapOf("light" to R.string.theme_light, "dark" to R.string.theme_dark, "wallpaper" to R.string.theme_wallpaper, "auto" to R.string.theme_auto)[theme] ?: R.string.theme_light)) {
                 steps[R.string.theme]!!(1)
             },
@@ -2683,47 +2551,16 @@ class MainActivity : Activity() {
                 if (ShowsWall.CHOICE in listOf(currentWallpaper(false), currentWallpaper(true))) getString(R.string.n_on, wpSourceList().count { wpSourceOn(it.first) }) else "") { pickWpSources() },
             R.string.sort_apps to Triple(getString(R.string.sort_apps), if (sort == "manual") getString(R.string.manual) else getString(R.string.most_used)) {
                 prefs.edit().putString("sort", if (sort == "manual") "usage" else "manual").apply()
-                renderApps()
+                refreshVisibleApps()
                 renderSettings(R.string.sort_apps)
-            },
-            R.string.apps_in_row to Triple(getString(R.string.apps_in_row), if (rowHidden == 0) getString(R.string.all) else getString(R.string.n_of_m, apps.size - rowHidden, apps.size)) { pickRowApps() },
-            R.string.row_position to Triple(getString(R.string.row_position), getString(ROW_ALIGN[rowAlign()]!!.first)) {
-                steps[R.string.row_position]!!(1)
-            },
-            R.string.app_names to Triple(getString(R.string.app_names), mapOf("focus" to getString(R.string.on_focus), "always" to getString(R.string.always), "never" to getString(R.string.never))[names]!!) {
-                steps[R.string.app_names]!!(1)
             },
             R.string.icon_style to Triple(getString(R.string.icon_style), getString(ICON_STYLES.getValue(iconStyle()))) {
                 steps[R.string.icon_style]!!(1)
-            },
-            R.string.row_size to Triple(getString(R.string.row_size), getString(ROW_SIZES.getValue(rowSize()).first)) {
-                steps[R.string.row_size]!!(1)
-            },
-            R.string.restore_hidden to Triple(getString(R.string.restore_hidden), if (hidden == 0) getString(R.string.none_hidden) else resources.getQuantityString(R.plurals.show_again, hidden, hidden)) {
-                prefs.edit().remove("hidden_watch").apply()
-                watchKey = null
-                refreshWatchNext()
-                renderSettings(R.string.restore_hidden)
             },
             R.string.cw_apps to Triple(getString(R.string.cw_apps), if (cwOff == 0) getString(R.string.all_on) else getString(R.string.n_off, cwOff)) { pickWatchSources() },
             R.string.cw_channels to Triple(getString(R.string.cw_channels), getString(R.string.n_on, channelsOn)) { pickChannels() },
             R.string.youtube_subscriptions to Triple(getString(R.string.youtube_subscriptions),
                 toggle(prefs.getBoolean("yt_new_on", false))) { pickYouTubeSubscriptions() },
-            R.string.row_name to Triple(getString(R.string.row_name), rowName()) { pickRowName() },
-            R.string.show_icons to Triple(getString(R.string.show_icons), getString(if (cwColour()) R.string.colour else R.string.monochrome)) {
-                steps[R.string.show_icons]!!(1)
-            },
-            R.string.show_row to Triple(getString(R.string.show_row), getString(ROW_SHOW.getValue(rowShow()))) { steps[R.string.show_row]!!(1) },
-            R.string.apps_when_hidden to Triple(getString(R.string.apps_when_hidden), getString(if (rowDrops()) R.string.moves_down else R.string.stays_put)) {
-                steps[R.string.apps_when_hidden]!!(1)
-            },
-            R.string.clock_size to Triple(getString(R.string.clock_size), getString(CLOCK_SIZES.getValue(clockSize()))) {
-                steps[R.string.clock_size]!!(1)
-            },
-            R.string.clock_style to Triple(getString(R.string.clock_style), getString(CLOCK_STYLES.getValue(prefs.getString("clock_style", "light")!!))) {
-                steps[R.string.clock_style]!!(1)
-            },
-            // "weather" is off/c/f as before; "wx_unit" keeps the unit while it's off.
             R.string.weather to Triple(getString(R.string.weather), toggle(weather != "off")) {
                 if (weather == "off") prefs.edit().putString("weather", unit).apply()
                 else prefs.edit().putString("wx_unit", weather).putString("weather", "off").apply()
@@ -2782,20 +2619,19 @@ class MainActivity : Activity() {
         // In the order things sit on the home screen, top to bottom, then the TV itself.
         val sections = listOf(
             Triple(R.string.section_style, "${rows[R.string.theme]!!.second} · ${getString(glassName())}",
-                listOf(R.string.home_layout, R.string.theme, R.string.glass, R.string.app_animations)),
-            Triple(R.string.section_app_row, "${rows[R.string.apps_in_row]!!.second} · ${rows[R.string.row_position]!!.second}",
-                listOf(R.string.edit_apps_row, R.string.apps_in_row, R.string.sort_apps, R.string.icon_style, R.string.row_size, R.string.app_names, R.string.row_position)),
-            // "When hidden" only means something once the row can hide.
-            Triple(R.string.bottom_row, "${rowName()} · ${rows[R.string.show_row]!!.second}", listOfNotNull(R.string.show_row, R.string.apps_when_hidden.takeIf { rowShow() != "always" },
-                R.string.row_name, R.string.show_icons, R.string.cw_apps, R.string.cw_channels,
-                R.string.youtube_subscriptions, R.string.restore_hidden)),
-            Triple(R.string.section_clock_weather, if (weather == "off") on(false) else "${rows[R.string.weather_units]!!.second} · ${prefs.getString("geo_city", null) ?: rows[R.string.weather_location]!!.second}",
-                listOf(R.string.clock_style, R.string.clock_size, R.string.weather, R.string.weather_units, R.string.weather_location)),
-            Triple(R.string.section_screensaver, rows[R.string.screensaver]!!.second, listOf(R.string.screensaver, R.string.test_screensaver, R.string.screensaver_timing)),
-            // Home app is Android TV's own way (Google TV and Fire OS keep their home); Fire OS never passes keys to us, so no smooth volume there.
+                listOf(R.string.theme, R.string.glass, R.string.app_animations)),
+            Triple(R.string.section_applications, rows[R.string.sort_apps]!!.second,
+                listOf(R.string.sort_apps, R.string.icon_style)),
+            Triple(R.string.section_tv_media, rows[R.string.cw_channels]!!.second,
+                listOf(R.string.cw_apps, R.string.cw_channels)),
+            Triple(R.string.section_clock_weather,
+                if (weather == "off") on(false) else "${rows[R.string.weather_units]!!.second} · ${prefs.getString("geo_city", null) ?: rows[R.string.weather_location]!!.second}",
+                listOf(R.string.weather, R.string.weather_units, R.string.weather_location)),
+            Triple(R.string.section_screensaver, rows[R.string.screensaver]!!.second,
+                listOf(R.string.screensaver, R.string.test_screensaver, R.string.screensaver_timing)),
             Triple(R.string.section_remote_home, if (homeSetUp()) getString(R.string.home_button) else on(false),
-                listOfNotNull(R.string.home_button, R.string.default_launcher.takeIf { !googleTv() && !fireTv() }, R.string.smooth_volume.takeIf { !fireTv() },
-                    R.string.section_keys, R.string.setup_home)),
+                listOfNotNull(R.string.home_button, R.string.default_launcher.takeIf { !googleTv() && !fireTv() },
+                    R.string.smooth_volume.takeIf { !fireTv() }, R.string.section_keys, R.string.setup_home)),
         )
         val section = sections.firstOrNull { at in it.third }
         if (section != null) {
@@ -2812,21 +2648,11 @@ class MainActivity : Activity() {
             }
             // Choices show side by side (or under the title when long); the row's value is the picked one's name.
             val choices = mapOf(
-                R.string.home_layout to listOf(R.string.home_layout_classic to R.drawable.ms_view_carousel,
-                    R.string.home_layout_overview to R.drawable.ms_widgets).map { (s, i) -> getString(s) to i },
                 R.string.theme to listOf(R.string.theme_light to R.drawable.ms_light_mode, R.string.theme_dark to R.drawable.ms_dark_mode,
                     R.string.theme_wallpaper to R.drawable.ms_wallpaper, R.string.theme_auto to R.drawable.ms_routine).map { (s, i) -> getString(s) to i },
                 R.string.glass to listOf(R.string.off, R.string.glass_frosted, R.string.glass_clear).map { getString(it) to null },
                 R.string.sort_apps to listOf(R.string.manual, R.string.most_used).map { getString(it) to null },
-                R.string.app_names to listOf(R.string.on_focus, R.string.always, R.string.never).map { getString(it) to null },
-                R.string.row_size to ROW_SIZES.values.map { getString(it.first) to null },
-                R.string.row_position to ROW_ALIGN.values.map { getString(it.first) to null },
-                R.string.show_row to ROW_SHOW.values.map { getString(it) to null },
-                R.string.apps_when_hidden to listOf(R.string.stays_put, R.string.moves_down).map { getString(it) to null },
-                R.string.show_icons to listOf(R.string.monochrome, R.string.colour).map { getString(it) to null },
                 R.string.weather_units to listOf("°C" to null, "°F" to null),
-                R.string.clock_style to CLOCK_STYLES.values.map { getString(it) to null },
-                R.string.clock_size to CLOCK_SIZES.values.map { getString(it) to null },
             )
             val styles = keys.map { k ->
                 val cost = k == R.string.smooth_volume && prefs.getBoolean("smooth_volume", false)
@@ -2854,7 +2680,7 @@ class MainActivity : Activity() {
             Triple(WALLPAPER_CARD, page(getString(R.string.wallpaper), wallpaperName(wall)) { pickWallpaper(dark) },
                 RowStyle(thumb = wall to dark, help = getString(R.string.help_wallpaper), area = AREA_ALL, hero = true)) +
             group(R.string.group_home_screen) +
-            listOf(R.string.section_style, R.string.section_app_row, R.string.bottom_row, R.string.section_clock_weather, R.string.section_screensaver).map(sectionRow) +
+            listOf(R.string.section_style, R.string.section_applications, R.string.section_tv_media, R.string.section_clock_weather, R.string.section_screensaver).map(sectionRow) +
             group(R.string.group_tv) +
             sectionRow(R.string.section_remote_home) +
             Triple(R.string.lock_layout, rows[R.string.lock_layout]!!, RowStyle(R.drawable.ms_lock, help = getString(R.string.lock_note))) +
@@ -3144,10 +2970,7 @@ class MainActivity : Activity() {
             // Past the edges by the window's corner radius, so the round corners fall off screen and no corner stays dim.
             AREA_ALL -> return RectF(0f, 0f, settingsScrim.width.toFloat(), settingsScrim.height.toFloat()).apply { inset(-dp(16).toFloat(), -dp(16).toFloat()) }
             AREA_CLOCK -> listOf(findViewById<View>(R.id.clock).parent as View)
-            AREA_APPS -> listOf(findViewById(R.id.appScroll))
-            // "On Down" hides the row by sliding it out, still VISIBLE, so isShown below can't tell.
-            AREA_SHOWS -> if (rowShow() == "down" && !rowOut) return null
-                else listOf(findViewById(R.id.watchTitle), findViewById<View>(R.id.watchScroll))
+            AREA_APPS, AREA_SHOWS -> return null
             else -> return null
         }.filter { it.isShown && it.height > 0 }
         if (views.isEmpty()) return null
@@ -3529,6 +3352,21 @@ class MainActivity : Activity() {
     // ---------- apps row ----------
 
     /** Labels and icons come from each app's resources, ~200 ms on this TV: done off the UI thread. */
+    /** Refresh only the existing surfaces, retaining the focused All Apps tile when possible. */
+    private fun refreshVisibleApps() {
+        refreshVDesignNavigation()
+        if (allApps.visibility == View.VISIBLE) {
+            val focusedPackage = if (settingsScrim.visibility != View.VISIBLE) currentFocus?.tag as? String else null
+            openAllApps()
+            if (focusedPackage != null) {
+                (0 until allAppsGrid.childCount).asSequence()
+                    .map { allAppsGrid.getChildAt(it) }
+                    .firstOrNull { it.tag == focusedPackage }
+                    ?.requestFocus()
+            }
+        }
+    }
+
     private fun refreshApps() {
         appsDirty = false
         io.execute {
@@ -3546,9 +3384,7 @@ class MainActivity : Activity() {
                 sources = inputs
                 SOURCES = inputs
                 if (movingTop == null) applyTopBar() // Sources shows only while the TV has an input
-                renderApps()
-                refreshVDesignNavigation()
-                if (allApps.visibility == View.VISIBLE) openAllApps() // a fresh remote request can precede the app list
+                refreshVisibleApps() // new remote request can precede the app list
             }
         }
     }
@@ -3627,7 +3463,7 @@ class MainActivity : Activity() {
         val pinned = pinnedInputs()
         val on = src.pkg !in pinned
         prefs.edit().putStringSet("inputs_pinned", if (on) pinned + src.pkg else pinned - src.pkg).apply()
-        renderApps()
+        refreshVisibleApps()
         Toast.makeText(this, getString(if (on) R.string.input_added else R.string.input_removed), Toast.LENGTH_SHORT).show()
     }
 
@@ -3655,55 +3491,6 @@ class MainActivity : Activity() {
      * A row shorter than the screen sits left, centred or right. A longer row always starts at the left:
      * centred, the scroller would push its first tiles out of reach.
      */
-    private fun alignRow() {
-        val content = appRow.parent as View
-        (content.layoutParams as FrameLayout.LayoutParams).gravity =
-            if (appTileCount() > rowTiles()) Gravity.START else ROW_ALIGN[rowAlign()]!!.second
-        content.requestLayout()
-    }
-
-    private fun renderApps() {
-        val focusedTag = currentFocus?.tag
-        // Rebuilds can happen in the background (an app or HDMI device added); only take focus if the row had it.
-        // First fill after a cold start: Android already gave the default focus to the top bar's first icon.
-        val firstFill = appRow.childCount == 0 && currentFocus?.parent === wifi.parent
-        val takeFocus = homeLayoutMode == HomeLayoutMode.CLASSIC && (currentFocus == null || currentFocus?.parent === appRow || firstFill)
-        val gap = dp(GRID_GAP)
-        val width = rowTileWidth()
-        val tileH = if (isBannerStyle(iconStyle())) width * 9 / 16 else (dp(76) * rowScale()).toInt() // 16:9 like a banner
-        // The row sits on the bottom of its space. A banner row is shorter, so lift it by half the difference: its
-        // centre stays where the card row's is, between the clock and Continue Watching. A taller row (Large,
-        // Largest) grows upward only, or it would cover Continue Watching's title.
-        findViewById<View>(R.id.appScroll).apply {
-            (layoutParams as LinearLayout.LayoutParams).bottomMargin = dp(-24) + maxOf(0, dp(76) - tileH) / 2
-            requestLayout()
-        }
-        appRow.removeAllViews()
-        if (homeLayoutMode == HomeLayoutMode.OVERVIEW) renderHomeSidebar()
-        val hidden = rowHiddenSet()
-        val tiles = sortedApps().filter { inRow(it.pkg, hidden) }.map { appTile(it, labeled = false) }
-        if (tiles.isEmpty()) return showNames()
-        tiles.forEachIndexed { i, t ->
-            t.id = View.generateViewId()
-            appRow.addView(t, LinearLayout.LayoutParams(width, tileH).apply { if (i > 0) marginStart = gap })
-            val own = t.onFocusChangeListener
-            t.setOnFocusChangeListener { v, focused ->
-                own.onFocusChange(v, focused)
-                if (focused) lastApp = v
-                showRowLabel(v, focused)
-            }
-        }
-        showNames()
-        alignRow()
-        if (takeFocus) (tiles.firstOrNull { it.tag == focusedTag } ?: tiles[0]).requestFocus()
-        if (!prefs.getBoolean("tip_move", false)) {
-            prefs.edit().putBoolean("tip_move", true).apply()
-            toast(getString(R.string.tip_move), long = true)
-        }
-    }
-
-    /** Home row names: "focus" (under the focused tile only), "always" (in every tile) or "never". */
-    private fun rowNames() = prefs.getString("names", "focus")!!
 
     /** "mono", "colour" or "banner". The old on/off "colour_icons" decides until a style has been picked. */
     private fun iconStyle() = iconStyleOf(prefs.getString("icon_style", null), prefs.getBoolean("colour_icons", false))
@@ -3776,11 +3563,12 @@ class MainActivity : Activity() {
         return col
     }
 
-    /** The home row shows marks only by default (see rowNames); the All apps grid always labels them. */
+    /** The All Apps grid shows named icon tiles; legacy banner-row rendering remains unused. */
     private fun appTile(a: App, labeled: Boolean = true): View {
         if (!labeled && isBannerStyle(iconStyle())) bannerTile(a)?.let { it.contentDescription = a.label; return it }
         val logo = LOGOS[a.pkg]
-        val custom = (if (!labeled && !a.pkg.startsWith(HDMI) && !isBannerStyle(iconStyle())) AppPictures.read(this, a.pkg, banner = false) else null)
+        val custom = (if (!a.pkg.startsWith(HDMI) && (labeled || !isBannerStyle(iconStyle())))
+            AppPictures.read(this, a.pkg, banner = false) else null)
             ?.apply { if (!colourIcons()) colorFilter = GREYSCALE }
             ?: customIcon(a.pkg)
         val name = a.label.takeIf { labeled }
@@ -3811,56 +3599,6 @@ class MainActivity : Activity() {
     }
 
     /** "App names: Always": a name under every tile, same width and gap as the tiles, so they line up. */
-    private fun showNames() {
-        val row = findViewById<LinearLayout>(R.id.nameRow)
-        val always = rowNames() == "always"
-        row.visibility = if (always) View.VISIBLE else View.GONE
-        findViewById<View>(R.id.rowLabel).visibility = if (always) View.GONE else View.VISIBLE
-        row.removeAllViews()
-        if (!always) return
-        for (i in 0 until appRow.childCount) {
-            val t = appRow.getChildAt(i)
-            row.addView(fittingLabel(t.contentDescription.toString(), 13f).apply {
-                gravity = Gravity.CENTER
-                alpha = if (dark) 0.85f else 1f
-                ink(this, appsInk)
-            }, LinearLayout.LayoutParams(t.layoutParams as LinearLayout.LayoutParams).apply { height = MATCH_PARENT })
-        }
-        row.post { fitInk() } // measured again over the names' own place on the wallpaper
-    }
-
-    /** Slides the shared name label under the focused row tile; fades it out once focus leaves the row. */
-    private fun showRowLabel(v: View, focused: Boolean) {
-        val label = findViewById<FittingLabel>(R.id.rowLabel)
-        if (rowNames() == "always") { // the names under every tile: only the selected tile's name scrolls, if it is too wide
-            val names = findViewById<LinearLayout>(R.id.nameRow)
-            val at = appRow.indexOfChild(v)
-            for (i in 0 until names.childCount) (names.getChildAt(i) as? FittingLabel)?.setActive(focused && !editing && i == at)
-        }
-        if (focused && !editing && rowNames() == "focus") {
-            // Name and place change together, or moving quickly shows the next name under the previous tile for a frame.
-            // Posted only on first render, when focus lands before layout and every width is still 0. A post that runs
-            // after focus moved on is skipped, or it would show this old name while a newer tile is selected.
-            val place = {
-                label.text = v.contentDescription
-                label.box = v.width // the name stays inside its tile: when it is wider it scrolls
-                label.translationX = v.left + v.width / 2f - label.width / 2f
-                label.setActive(true)
-                ink(label, appsInk) // the row's colour (see fitInk): one colour, not a new one under each tile
-            }
-            if (v.width > 0 && label.width > 0) place() else v.post { if (v.isFocused) place() }
-            label.animate().alpha(if (dark) 0.85f else 1f).setDuration(160).start()
-        } else {
-            ui.post {
-                if (currentFocus?.parent !== appRow || editing) {
-                    label.animate().alpha(0f).setDuration(120).start()
-                    label.setActive(false)
-                }
-            }
-        }
-    }
-
-    /** White card: logo on top, name underneath. With no label the mark sits alone, centred, at one size. */
     private fun tile(label: String?, icon: Drawable, mono: Boolean, tag: String, wordmarkInset: Int? = null, tint: Int? = null, onClick: () -> Unit): View {
         val col = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -3986,7 +3724,7 @@ class MainActivity : Activity() {
             }
         }
 
-    // ---------- holding OK, and editing the apps row ----------
+    // ---------- holding OK and D-pad actions ----------
 
     /**
      * Hold detection lives here, not in View long-click: this TV's remote doesn't reliably trigger the
@@ -4022,129 +3760,13 @@ class MainActivity : Activity() {
             if (e.action == KeyEvent.ACTION_DOWN) (currentFocus?.tag as? (Int) -> Unit)?.invoke(if (e.keyCode == KeyEvent.KEYCODE_DPAD_LEFT) -1 else 1)
             return true
         }
-        if (editing && editKey(e, confirm)) return true
         if (e.action == KeyEvent.ACTION_DOWN && settingsScrim.visibility != View.VISIBLE && allApps.visibility != View.VISIBLE) {
             if (::vDesign.isInitialized && vDesign.handleDpad(currentFocus, e.keyCode)) return true
-            currentFocus?.let { homeNav(it, e.keyCode) }?.let { it.requestFocus(); return true }
         }
         return super.dispatchKeyEvent(e)
     }
 
-    /**
-     * The home screen is three rows: top bar, apps, Continue Watching. Left/Right stay inside a row.
-     * Right from the last app returns to the first; other row ends stop focus. Up/Down move between
-     * rows and land where you last were, not on whatever happens to sit nearest on screen.
-     * Returns the view to focus (itself = stay), or null to let Android handle the key.
-     */
-    private fun homeNav(v: View, key: Int): View? {
-        if (homeLayoutMode == HomeLayoutMode.OVERVIEW) return overviewNav(v, key)
-        fun alive(x: View?) = x?.takeIf { it.isAttachedToWindow }
-        val apps = alive(lastApp)?.takeIf { it.parent === appRow } ?: appRow.getChildAt(0)
-        val cards = if (watchScroll.visibility != View.VISIBLE) null
-            else alive(lastCard) ?: (watchRow.getChildAt(0) as? ViewGroup)?.getChildAt(0)
-        val top = alive(lastTop) ?: findViewById(R.id.launcherSettings)
-        return when {
-            v.parent === wifi.parent -> when (key) { // top bar
-                KeyEvent.KEYCODE_DPAD_DOWN -> apps ?: cards ?: v // the apps row can be empty (all hidden)
-                KeyEvent.KEYCODE_DPAD_UP -> v
-                KeyEvent.KEYCODE_DPAD_LEFT -> if (v.id == shownTop().first()) v else null
-                KeyEvent.KEYCODE_DPAD_RIGHT -> if (atRightTopBarEdge(v)) v else null
-                else -> null
-            }
-            v.parent === appRow -> when (key) {
-                KeyEvent.KEYCODE_DPAD_UP -> top
-                KeyEvent.KEYCODE_DPAD_DOWN -> cards ?: v
-                KeyEvent.KEYCODE_DPAD_LEFT -> if (appRow.indexOfChild(v) == 0) v else null
-                KeyEvent.KEYCODE_DPAD_RIGHT -> if (appRow.indexOfChild(v) == appRow.childCount - 1) appRow.getChildAt(0) else null
-                else -> null
-            }
-            v.getTag(R.id.watchRow) is Prog -> {
-                val i = watchRow.indexOfChild(v.parent as View)
-                when (key) {
-                    KeyEvent.KEYCODE_DPAD_UP -> apps ?: top
-                    KeyEvent.KEYCODE_DPAD_DOWN -> v
-                    KeyEvent.KEYCODE_DPAD_LEFT -> if (i == 0) v else null
-                    KeyEvent.KEYCODE_DPAD_RIGHT -> if (i == watchRow.childCount - 1) v else null
-                    else -> null
-                }
-            }
-            else -> null
-        }
-    }
-
-    /** Return only actual, attached and visible focus targets. The classic navigation is unchanged. */
-    private fun overviewNav(v: View, key: Int): View? {
-        val direction = when (key) {
-            KeyEvent.KEYCODE_DPAD_UP -> HomeFocusNavigator.Direction.UP
-            KeyEvent.KEYCODE_DPAD_DOWN -> HomeFocusNavigator.Direction.DOWN
-            KeyEvent.KEYCODE_DPAD_LEFT -> HomeFocusNavigator.Direction.LEFT
-            KeyEvent.KEYCODE_DPAD_RIGHT -> HomeFocusNavigator.Direction.RIGHT
-            else -> return null
-        }
-        val top = lastTop?.takeIf { it.isAttachedToWindow && it.isShown }
-            ?: findViewById(R.id.launcherSettings)
-        val activeCard = homeOverview.positionOf(v)
-        val sidebar = { homeSidebar.viewFor(sidebarSelection)?.takeIf { it.isAttachedToWindow && it.isShown } }
-        if (activeCard != null) {
-            val counts = homeOverview.counts()
-            val other = when (direction) {
-                HomeFocusNavigator.Direction.UP -> (activeCard.row - 1 downTo 0).firstOrNull { counts[it] > 0 }
-                HomeFocusNavigator.Direction.DOWN -> (activeCard.row + 1 until counts.size).firstOrNull { counts[it] > 0 }
-                else -> null
-            }
-            val move = OverviewRowsNavigator.next(
-                activeCard.row, activeCard.index, counts,
-                OverviewRowsNavigator.Direction.valueOf(direction.name),
-                other?.let { homeOverview.lastIndex(it) },
-            )
-            return when (move) {
-                OverviewRowsNavigator.Target.Stay -> v
-                OverviewRowsNavigator.Target.Top -> top
-                OverviewRowsNavigator.Target.Sidebar -> sidebar() ?: v
-                is OverviewRowsNavigator.Target.Card ->
-                    homeOverview.focusAt(move.row, move.index) ?: v
-            }
-        }
-        val action = findViewById<View>(R.id.overviewAction)
-        // On an app page, Down from Open app reaches any available sample row.
-        if (v === action && direction == HomeFocusNavigator.Direction.DOWN) {
-            return homeOverview.preferredCard() ?: v
-        }
-        val zone = when {
-            v.parent === wifi.parent -> HomeFocusNavigator.Zone.TOP
-            homeSidebar.indexOf(v) >= 0 -> HomeFocusNavigator.Zone.SIDEBAR
-            v === action -> HomeFocusNavigator.Zone.CONTENT
-            else -> return null
-        }
-        if (zone == HomeFocusNavigator.Zone.TOP) {
-            if (direction == HomeFocusNavigator.Direction.LEFT && v.id == shownTop().first()) return v
-            if (direction == HomeFocusNavigator.Direction.RIGHT && atRightTopBarEdge(v)) return v
-        }
-        val index = if (zone == HomeFocusNavigator.Zone.SIDEBAR) homeSidebar.indexOf(v)
-            else sidebar()?.let { homeSidebar.indexOf(it) } ?: 0
-        if (zone == HomeFocusNavigator.Zone.SIDEBAR && direction == HomeFocusNavigator.Direction.RIGHT) {
-            // Preserve M02: an app opens its action first. Down then reaches its sample cards.
-            // The shared Overview has no action, so Right opens the first card directly.
-            return action.takeIf { it.isAttachedToWindow && it.isShown }
-                ?: homeOverview.takeIf { it.isShown }?.preferredCard()
-                ?: v
-        }
-        val target = HomeFocusNavigator.next(zone, direction, index, homeSidebar.itemCount,
-            contentAvailable = action.visibility == View.VISIBLE || homeOverview.counts().any { it > 0 })
-        return when (target) {
-            HomeFocusNavigator.Target.Stay -> v
-            HomeFocusNavigator.Target.Framework -> null
-            HomeFocusNavigator.Target.Top -> top
-            is HomeFocusNavigator.Target.Sidebar -> homeSidebar.viewAt(target.index) ?: v
-            HomeFocusNavigator.Target.Content ->
-                homeOverview.preferredCard() ?: action.takeIf { it.isShown } ?: v
-        }
-    }
-
-    /** Place the new host above the frozen legacy home, below All Apps and the settings scrim.
-     * Glass remains at root child 2 (behind content), untouched by the shell.
-     * The Direct Boot branch returns before this method and never accesses prefs or providers.
-     */
+    /** Mount the sole V-Design Home view above the wallpaper and below All Apps/settings overlays. */
     private fun setupVDesign() {
         val root = findViewById<FrameLayout>(R.id.root)
         vDesign = VDesignHomeView(this)
@@ -4165,6 +3787,10 @@ class MainActivity : Activity() {
     }
 
     /** Every entry must resolve to an installed app or a real local Activity. */
+    /** Existing user-installed app icons remain visible after removing the Classic app row. */
+    private fun vDesignAppIcon(app: App): Drawable =
+        AppPictures.read(this, app.pkg, banner = false) ?: customIcon(app.pkg) ?: app.icon
+
     private fun refreshVDesignNavigation() {
         if (!::vDesign.isInitialized) return
         val installed = sortedApps()
@@ -4177,8 +3803,8 @@ class MainActivity : Activity() {
         } catch (_: PackageManager.NameNotFoundException) { false }
         val items = buildList {
             add(VDesignHomeView.Navigation(VDesignHomeView.OVERVIEW, "Übersicht", getDrawable(R.drawable.ic_home)))
-            nuvio?.let { add(VDesignHomeView.Navigation(VDesignHomeView.NUVIO, "Nuvio TV", it.icon)) }
-            smartTube?.let { add(VDesignHomeView.Navigation(VDesignHomeView.SMARTTUBE, "SmartTube", it.icon)) }
+            nuvio?.let { add(VDesignHomeView.Navigation(VDesignHomeView.NUVIO, "Nuvio TV", vDesignAppIcon(it))) }
+            smartTube?.let { add(VDesignHomeView.Navigation(VDesignHomeView.SMARTTUBE, "SmartTube", vDesignAppIcon(it))) }
             add(VDesignHomeView.Navigation(VDesignHomeView.SETTINGS, "Einstellungen", getDrawable(R.drawable.ic_settings)))
             if (vpnAvailable) add(VDesignHomeView.Navigation(VDesignHomeView.VPN, "VPN", getDrawable(R.drawable.ic_vpn)))
         }
@@ -4226,243 +3852,7 @@ class MainActivity : Activity() {
         ui.postDelayed(vDesignDayTick, delay)
     }
 
-    /** The shared top bar and the unchanged Classic rows are independent of the new body. */
-    private fun applyHomeLayoutMode() {
-        val old = homeLayoutMode
-        homeLayoutMode = HomeLayoutMode.fromPreference(prefs.getString(HomeLayoutMode.PREF_KEY, null))
-        val classic = homeLayoutMode == HomeLayoutMode.CLASSIC
-        findViewById<View>(R.id.classicHome).visibility = if (classic) View.VISIBLE else View.GONE
-        findViewById<View>(R.id.overviewHome).visibility = if (classic) View.GONE else View.VISIBLE
-        lastTop = null
-        lastApp = null
-        lastCard = null
-        rowOut = false
-        if (classic && old != homeLayoutMode) placeRow(animate = false)
-        if (!classic) renderHomeSidebar()
-    }
-
-    private fun setupHomeSidebar() {
-        homeSidebar = findViewById(R.id.homeSidebar)
-        homeOverview = findViewById(R.id.overviewMedia)
-        homeSidebar.setOnScrollChangeListener { _, _, _, _, _ -> glass.kick(150) }
-        findViewById<TextView>(R.id.overviewAction).apply {
-            style(this, dp(12), card = true, lift = 1.04f)
-            setOnClickListener {
-                sortedApps().firstOrNull { it.pkg == sidebarSelection && inRow(it.pkg, rowHiddenSet()) }
-                    ?.let { app -> launch(app) }
-            }
-        }
-    }
-
-    /**
-     * Reuse the existing app model, pinned inputs, order and row_hidden preference. Rebuilding the
-     * rail retains the selected key, and only restores focus when a sidebar entry actually had it.
-     */
-    private fun renderHomeSidebar() {
-        if (!::homeSidebar.isInitialized) return
-        val visibleApps = sortedApps().filter { inRow(it.pkg, rowHiddenSet()) }
-        val items = buildList {
-            add(HomeSidebarView.Item(HomeSidebarView.OVERVIEW,
-                getString(R.string.home_layout_overview), getDrawable(R.drawable.ic_home)!!, tint = true))
-            for (app in visibleApps) {
-                // The same loaded App.icon used by the classic row; no extra PackageManager query.
-                val icon = app.icon.constantState?.newDrawable(resources)?.mutate() ?: app.icon
-                add(HomeSidebarView.Item(app.pkg, app.label, icon))
-            }
-            add(HomeSidebarView.Item(HomeSidebarView.ALL_APPS,
-                getString(R.string.all_apps), getDrawable(R.drawable.ic_apps)!!, tint = true))
-        }
-        val hadSidebarFocus = homeSidebar.focusedKey()
-        val action = findViewById<View>(R.id.overviewAction)
-        val hadActionFocus = action.isFocused
-        val visiblePackages = visibleApps.mapTo(HashSet()) { it.pkg }
-        val removedApp = homePage is HomePageState.App &&
-            (homePage as HomePageState.App).packageName !in visiblePackages
-        if (items.none { it.key == sidebarSelection } || removedApp)
-            sidebarSelection = HomeSidebarView.OVERVIEW
-        homePage = HomePageState.fromSidebar(sidebarSelection, visiblePackages)
-        homeSidebar.bind(
-            items = items,
-            ink = fg,
-            decorate = { style(it, dp(10), card = true, lift = 1.03f) },
-            onFocused = { key ->
-                // The page follows sidebar preview selection, never the media-card focus.
-                if (sidebarSelection != key || homePage.key != key) {
-                    sidebarSelection = key
-                    homePage = HomePageState.fromSidebar(key, visiblePackages)
-                    updateOverviewPreview(visibleApps)
-                }
-            },
-            onOpen = { key ->
-                when (key) {
-                    HomeSidebarView.OVERVIEW -> {
-                        sidebarSelection = key
-                        homePage = HomePageState.Overview
-                        updateOverviewPreview(visibleApps)
-                    }
-                    HomeSidebarView.ALL_APPS -> openAllApps()
-                    else -> visibleApps.firstOrNull { it.pkg == key }?.let { launch(it) }
-                }
-            },
-            onDispose = { glass.remove(it) },
-        )
-        updateOverviewPreview(visibleApps)
-        if (hadSidebarFocus != null && homeLayoutMode == HomeLayoutMode.OVERVIEW &&
-            settingsScrim.visibility != View.VISIBLE && allApps.visibility != View.VISIBLE
-        ) {
-            (homeSidebar.viewFor(hadSidebarFocus) ?: homeSidebar.viewFor(sidebarSelection))?.requestFocus()
-        } else if (removedApp || hadActionFocus && action.visibility != View.VISIBLE) {
-            homeSidebar.viewFor(sidebarSelection)?.requestFocus()
-        }
-    }
-
-    /** Render a projection of the existing TV snapshot; page switches never query TvContract. */
-    private fun updateOverviewPreview(visibleApps: List<App>) {
-        val heading = findViewById<TextView>(R.id.overviewHeading)
-        val description = findViewById<TextView>(R.id.overviewDescription)
-        val action = findViewById<TextView>(R.id.overviewAction)
-        val app = (homePage as? HomePageState.App)?.let { selected ->
-            visibleApps.firstOrNull { it.pkg == selected.packageName }
-        }
-        val all = homePage == HomePageState.AllApps
-        val pageKey = homePage.key
-        val previewScroll = findViewById<android.widget.ScrollView>(R.id.overviewPreviewScroll)
-        val changedPage = previewPageKey != pageKey
-        if (changedPage) {
-            previewPageKey?.let { previewScrollY[it] = previewScroll.scrollY }
-            previewPageKey = pageKey
-            previewScroll.scrollTo(0, 0)
-        }
-        val restoreScrollY = if (changedPage) previewScrollY[pageKey] ?: 0 else previewScroll.scrollY
-        heading.text = when {
-            app != null -> app.label
-            all -> getString(R.string.all_apps)
-            else -> getString(R.string.home_layout_overview)
-        }
-        val mark = app?.let { selected ->
-            (selected.icon.constantState?.newDrawable(resources)?.mutate() ?: selected.icon).apply {
-                setBounds(0, 0, dp(36), dp(36))
-            }
-        }
-        heading.setCompoundDrawablesRelative(mark, null, null, null)
-        heading.compoundDrawablePadding = dp(12)
-
-        val labels = apps.associate { it.pkg to it.label }
-        val sections = HomePageContent.sections(mediaFeed, homePage).map { section ->
-            section.copy(items = section.items.map { item ->
-                item.copy(sourceLabel = item.sourceLabel ?: labels[item.sourcePackage] ?: item.sourcePackage)
-            })
-        }
-        val hasItems = sections.any { it.items.isNotEmpty() }
-        val hasPermission = checkSelfPermission(TV_LISTINGS) == PackageManager.PERMISSION_GRANTED
-        val rssEnabled = prefs.getBoolean("yt_new_on", false) &&
-            !YouTubeSubscriptions.channelIds(prefs.getString("yt_channel_ids", "").orEmpty()).isNullOrEmpty()
-        val online = if (rssEnabled && !hasItems) {
-            val manager = getSystemService(ConnectivityManager::class.java)
-            manager.activeNetwork?.let { network ->
-                manager.getNetworkCapabilities(network)
-                    ?.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
-            } == true
-        } else true
-        val emptyState = HomeFeedStatus.emptyState(hasItems, hasPermission,
-            tvFeedQueryFailed, rssEnabled, online)
-        description.setText(when {
-            all -> R.string.sidebar_all_apps_info
-            emptyState == HomeFeedEmptyState.PERMISSION -> R.string.tv_feed_permission
-            emptyState == HomeFeedEmptyState.PROVIDER_ERROR -> R.string.tv_feed_query_error
-            emptyState == HomeFeedEmptyState.OFFLINE -> R.string.tv_feed_offline
-            app != null && !hasItems -> R.string.tv_app_empty
-            app != null -> R.string.tv_app_info
-            !hasItems -> R.string.tv_feed_empty
-            else -> R.string.sidebar_overview_info
-        })
-        for (view in listOf(heading, description, action)) ink(view, fg)
-        description.visibility = if (app != null || all || !hasItems) View.VISIBLE else View.GONE
-        action.visibility = if (app != null) View.VISIBLE else View.GONE
-        action.tag = app?.pkg
-        homeOverview.visibility = if (all) View.GONE else View.VISIBLE
-
-        val hadCardFocus = homeOverview.positionOf(currentFocus) != null
-        if (!all) homeOverview.bind(
-            pageKey = pageKey,
-            sections = sections,
-            sectionTitle = { category ->
-                when (category) {
-                    MediaCategory.CONTINUE -> getString(R.string.continue_watching)
-                    MediaCategory.NEW -> getString(if (app != null) R.string.tv_app_new_content
-                        else R.string.sidebar_new_for_you)
-                    MediaCategory.RECOMMENDATION -> getString(R.string.tv_feed_recommendations)
-                    MediaCategory.UNKNOWN -> getString(R.string.tv_feed_other)
-                }
-            },
-            emptyLabel = { category ->
-                getString(when (category) {
-                    MediaCategory.NEW -> R.string.tv_feed_new_empty
-                    else -> if (hasPermission) R.string.tv_feed_empty else R.string.tv_feed_permission
-                })
-            },
-            exampleTag = "",
-            decorateCard = { style(it, dp(9), card = true, lift = 1.04f, frost = false) },
-            tintLabel = { ink(it, fg) },
-            disposeCard = { glass.remove(it) },
-            onSelect = { openOverviewMedia(it) },
-            makeProgress = { progressBarDrawable(fg) },
-            loadArtwork = { image, uri -> loadPoster(image, uri) },
-            sourceMark = { pkg -> sourceIcon(pkg) },
-            onScroll = { glass.kick(150) },
-        )
-        if (hadCardFocus && homeOverview.positionOf(currentFocus) == null) {
-            (homeOverview.preferredCard() ?: action.takeIf { it.isShown }
-                ?: homeSidebar.viewFor(sidebarSelection))?.requestFocus()
-        }
-        if (restoreScrollY > 0) previewScroll.post {
-            if (previewPageKey == pageKey && !homeOverview.hasFocus())
-                previewScroll.scrollTo(0, restoreScrollY)
-        }
-    }
-
-    /** Treat TV intent URIs as untrusted: launch only the publishing app, else use its TV entry. */
-    private fun openOverviewMedia(item: MediaItem) {
-        if (item.sourceId == YouTubeSubscriptions.SOURCE_ID) return openYouTubeVideo(item)
-        val pkg = item.sourcePackage?.takeIf { it.isNotBlank() } ?: run {
-            toast(getString(R.string.tv_feed_unavailable))
-            return
-        }
-        val link = item.intentUri?.takeIf { it.isNotBlank() }?.let { raw ->
-            try {
-                Intent.parseUri(raw, Intent.URI_INTENT_SCHEME).takeIf { intent ->
-                    val target = intent.component?.packageName ?: intent.`package`
-                    (target == null || target == pkg) &&
-                        (intent.component != null || intent.data != null) &&
-                        (intent.action == null || intent.action == Intent.ACTION_VIEW || intent.component != null)
-                }?.apply {
-                    if (action == null) action = Intent.ACTION_VIEW
-                    if (component == null) setPackage(pkg)
-                    selector = null
-                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                }
-            } catch (e: Exception) {
-                null
-            }
-        }
-        val fallback = try {
-            packageManager.getLeanbackLaunchIntentForPackage(pkg)
-        } catch (e: Exception) {
-            null
-        }
-        for (launchIntent in listOfNotNull(link, fallback)) {
-            try {
-                startApp(launchIntent, currentFocus)
-                prefs.edit().putLong("t_$pkg", System.currentTimeMillis()).apply()
-                return
-            } catch (e: Exception) {
-                android.util.Log.w("Plume", "TV media launch failed for $pkg", e)
-            }
-        }
-        toast(getString(R.string.tv_feed_unavailable))
-    }
-
-    /** Only typed Nuvio TV programs can launch, never SmartTube or the legacy mixed channel. */
+    /** Launch only verified Nuvio preview-item targets from the sole V-Design. */
     private fun openVDesignMedia(item: NuvioMediaItem) {
         val pkg = item.sourcePackage.takeIf(AndroidTvMediaSource::isNuvioPackage)
             ?: return toast(getString(R.string.tv_feed_unavailable))
@@ -4554,9 +3944,7 @@ class MainActivity : Activity() {
                 prefs.edit().putBoolean("yt_new_on", !enabled).remove("yt_attempt").apply()
                 if (enabled) {
                     mediaFeed.replaceSource(YouTubeSubscriptions.SOURCE_ID, emptyList())
-                    if (homeLayoutMode == HomeLayoutMode.OVERVIEW)
-                        updateOverviewPreview(sortedApps().filter { inRow(it.pkg, rowHiddenSet()) })
-                } else refreshYouTubeSubscriptions(force = true)
+                    } else refreshYouTubeSubscriptions(force = true)
                 refreshWatchNext()
                 pickYouTubeSubscriptions()
             },
@@ -4590,10 +3978,6 @@ class MainActivity : Activity() {
                 YouTubeSubscriptions.media(videos, null, age).map { item ->
                     item.copy(packageAliases = smartTube?.let { setOf(it) } ?: emptySet())
                 })
-            ui.post {
-                if (!isDestroyed && homeLayoutMode == HomeLayoutMode.OVERVIEW)
-                    updateOverviewPreview(sortedApps().filter { inRow(it.pkg, rowHiddenSet()) })
-            }
         }
     }
 
@@ -4620,49 +4004,30 @@ class MainActivity : Activity() {
                 settingsScrim.visibility != View.VISIBLE -> openAllApps()
             tag == VDesignHomeView.SETTINGS && allApps.visibility != View.VISIBLE &&
                 settingsScrim.visibility != View.VISIBLE -> showVDesignSystemActions(v)
-            allApps.visibility == View.VISIBLE && tag != null -> unlock { // grid: pin to the front of the row (unhiding it)
-                prefs.edit().putStringSet("row_hidden", rowHiddenSet() - tag).apply()
-                saveOrder(listOf(tag) + sortedApps().map { it.pkg }.filter { it != tag })
-                closeAllApps()
-                // The new Overview rail uses the same hidden/order settings as the classic row.
-                if (homeLayoutMode == HomeLayoutMode.OVERVIEW) homeSidebar.viewFor(tag)?.requestFocus()
-                else appRow.getChildAt(0)?.requestFocus() // show the app just pinned
+            allApps.visibility == View.VISIBLE && tag != null -> {
+                val app = sortedApps().firstOrNull { it.pkg == tag }
+                if (app != null) {
+                    // The historical PIN contract allowed launching while locked, never editing or uninstalling.
+                    val actions = if (locked()) listOf(getString(R.string.open) to { launch(app) })
+                    else listOfNotNull(
+                        getString(R.string.open) to { launch(app) },
+                        if (app.pkg.startsWith(HDMI)) null else getString(R.string.change_app_picture) to {
+                            appPictures(app.pkg, app.label)
+                        },
+                        if (app.pkg.startsWith(HDMI)) null else getString(R.string.app_info) to {
+                            openSettings(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                                Uri.fromParts("package", app.pkg, null))
+                        },
+                        if (canUninstall(app.pkg)) getString(R.string.uninstall) to { uninstall(app.pkg) } else null,
+                    )
+                    holdMenu(v, actions)
+                }
             }
             v.parent === wifi.parent -> topMenu(v)
-            v.parent === appRow -> appMenu(v)
-            v.getTag(R.id.watchRow) is Prog -> watchMenu(v, v.getTag(R.id.watchRow) as Prog)
         }
     }
 
     /** Hold OK on a row app: Move (OK places it), Remove from row (stays in All apps), App info. Locked: Open only. */
-    private fun appMenu(v: View) {
-        val pkg = v.tag as String
-        if (locked()) return holdMenu(v, listOf(
-            getString(R.string.open) to { v.performClick(); Unit },
-            getString(R.string.unlock_to_edit) to { unlock { v.requestFocus(); appMenu(v) } },
-        ))
-        holdMenu(v, listOfNotNull(
-            getString(R.string.move) to { startEdit(grab = v, once = true) },
-            if (pkg.startsWith(HDMI)) null else getString(R.string.change_app_picture) to {
-                appPictures(pkg, v.contentDescription.toString())
-            },
-            getString(R.string.remove_from_row) to {
-                val i = appRow.indexOfChild(v)
-                // An input just unpins: it is in the Sources list anyway, so there is nothing to hide.
-                if (pkg.startsWith(HDMI)) prefs.edit().putStringSet("inputs_pinned", pinnedInputs() - pkg).apply()
-                else prefs.edit().putStringSet("row_hidden", rowHiddenSet() + pkg).apply()
-                renderApps()
-                appRow.getChildAt(minOf(i, appRow.childCount - 1))?.requestFocus()
-                toast(getString(R.string.removed_from_row))
-            },
-            if (pkg.startsWith(HDMI)) null else getString(R.string.app_info) to {
-                openSettings(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", pkg, null))
-            },
-            if (canUninstall(pkg)) getString(R.string.uninstall) to { uninstall(pkg) } else null,
-        ))
-    }
-
-    /** Apps the user installed, and system apps that have an update on top. Never Plume or an HDMI tile. */
     private fun canUninstall(pkg: String): Boolean {
         if (pkg == packageName || pkg.startsWith(HDMI)) return false
         return try {
@@ -4675,17 +4040,16 @@ class MainActivity : Activity() {
         if (settingsScrim.visibility != View.VISIBLE) showPanel()
         showPage(getString(R.string.change_app_picture), listOf(
             page(getString(R.string.app_picture_icon), getString(R.string.app_picture_icon_hint)) { unlock { uploadAppPicture(pkg, name, false) } },
-            page(getString(R.string.banner), getString(R.string.app_picture_banner_hint)) { unlock { uploadAppPicture(pkg, name, true) } },
             page(getString(R.string.reset_app_picture)) {
                 unlock {
                     AppPictures.reset(this, pkg)
-                    renderApps()
+                    refreshVisibleApps()
                     appPictures(pkg, name)
                 }
             },
         ), crumb = name) {
             closeLauncherSettings()
-            (0 until appRow.childCount).map { appRow.getChildAt(it) }.firstOrNull { it.tag == pkg }?.requestFocus()
+            vDesign.restoreFocus()
         }
     }
 
@@ -4704,7 +4068,7 @@ class MainActivity : Activity() {
                 if (!saved) return@UploadServer null
                 ui.post {
                     if (!active.get() || isDestroyed) return@post
-                    renderApps()
+                    refreshVisibleApps()
                     status.text = getString(R.string.app_picture_added)
                 }
                 name
@@ -4738,21 +4102,6 @@ class MainActivity : Activity() {
     }
 
     /** Hold OK on a Continue Watching card: hide the show, or open its app rather than the episode. */
-    private fun watchMenu(v: View, p: Prog) {
-        holdMenu(v, listOfNotNull(
-            if (locked()) null else getString(R.string.remove_from_cw) to { hideWatch(p) },
-            if (!locked()) null else getString(R.string.unlock_to_edit) to { unlock { v.requestFocus(); watchMenu(v, p) } },
-            p.pkg?.let { pkg ->
-                getString(R.string.open_app) to {
-                    (packageManager.getLeanbackLaunchIntentForPackage(pkg) ?: packageManager.getLaunchIntentForPackage(pkg))
-                        ?.let { startActivity(it) }
-                    Unit
-                }
-            },
-        ))
-    }
-
-    /** A small Plume-styled menu just above [anchor] (under it when [below]); Back closes it. [rows] builds its rows. */
     private fun popupMenu(anchor: View, below: Boolean = false, rows: (dismiss: () -> Unit) -> List<View>) {
         val list: LinearLayout = if (glassActive()) glassSurface(dp(14).toFloat()) else LinearLayout(this).apply {
             background = if (dark) rimCard(dp(12), false, solid = true) else GradientDrawable().apply {
@@ -4968,8 +4317,6 @@ class MainActivity : Activity() {
 
     private fun beginTopMove(v: View) {
         movingTop = v
-        appsTitle.text = getString(R.string.moving_hint)
-        appsTitle.visibility = View.VISIBLE
         v.alpha = 0.6f
         v.requestFocus()
     }
@@ -4979,7 +4326,6 @@ class MainActivity : Activity() {
         val v = movingTop ?: return
         movingTop = null
         v.alpha = 1f
-        appsTitle.visibility = View.GONE
         if (save) saveTopOrder(topLive) else applyTopBar(topBefore)
         (if (v.visibility == View.VISIBLE) v else findViewById(shownTop().first())).requestFocus() // an added icon is gone again after Back
     }
@@ -5030,86 +4376,9 @@ class MainActivity : Activity() {
         }
     }
 
-    private fun appTileCount() = appRow.childCount
 
-    private var moveOnce = false // moving one app from the hold menu: OK places it and editing ends
-
-    private fun startEdit(grab: View?, once: Boolean = false) {
-        editing = true
-        moveOnce = once
-        appsTitle.text = if (once) getString(R.string.moving_hint) else getString(R.string.editing_hint)
-        appsTitle.visibility = View.VISIBLE
-        (grab ?: appRow.getChildAt(0)).requestFocus()
-        setGrabbed(grab)
-    }
-
-    private fun setGrabbed(v: View?) {
-        grabbed?.alpha = 1f
-        grabbed = v
-        v?.alpha = 0.6f
-    }
-
-    private fun endEdit() {
-        setGrabbed(null)
-        editing = false
-        moveOnce = false
-        appsTitle.visibility = View.GONE
-        val row = (0 until appTileCount()).map { appRow.getChildAt(it).tag as String }
-        saveOrder(row + sortedApps().map { it.pkg }.filter { it !in row })
-        currentFocus?.takeIf { it.parent === appRow }?.let { showRowLabel(it, true) } // the name was hidden while editing
-    }
-
-    /** While editing, keys only rearrange the row; nothing launches and focus can't leave it. */
-    private fun editKey(e: KeyEvent, confirm: Boolean): Boolean {
-        if (e.keyCode == KeyEvent.KEYCODE_BACK) {
-            if (e.action == KeyEvent.ACTION_UP) endEdit()
-            return true
-        }
-        val v = currentFocus ?: return false
-        val i = appRow.indexOfChild(v)
-        if (confirm) {
-            if (e.action == KeyEvent.ACTION_UP && i in 0 until appTileCount()) {
-                if (moveOnce) endEdit() else setGrabbed(if (grabbed === v) null else v)
-            }
-            return true
-        }
-        if (e.action != KeyEvent.ACTION_DOWN) return e.keyCode in EDIT_KEYS
-        when (e.keyCode) {
-            KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN -> return true
-            KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT -> {
-                val j = if (e.keyCode == KeyEvent.KEYCODE_DPAD_LEFT) i - 1 else i + 1
-                if (j !in 0 until appTileCount()) return true
-                if (grabbed === v) {
-                    // Swap layout params too, so the first tile keeps no leading margin.
-                    val other = appRow.getChildAt(j)
-                    val lp = v.layoutParams
-                    v.layoutParams = other.layoutParams
-                    other.layoutParams = lp
-                    appRow.removeViewAt(i)
-                    appRow.addView(v, j)
-                    showNames()
-                    v.requestFocus()
-                    return true
-                }
-                return false // not holding anything: normal focus movement within the row
-            }
-        }
-        return false
-    }
-
-    /** Apps left out of the home row; they stay in All apps. New installs show until hidden. */
     private fun rowHiddenSet() = prefs.getStringSet("row_hidden", emptySet())!!
 
-    private fun pickRowApps() {
-        val list = sortedApps().filter { !it.pkg.startsWith(HDMI) } // inputs are pinned from the Sources list
-        toggles(getString(R.string.apps_in_row), list.map { it.label to it.pkg }, "row_hidden", getString(R.string.shown), getString(R.string.hidden)) {
-            renderApps()
-            renderSettings(R.string.apps_in_row)
-        }
-    }
-
-    /** A page of on/off rows saved as the set of keys that are off; [done] runs on Back. */
-    /** [pref] holds the keys switched from where they start: on, or off for the keys in [startsOff]. */
     private fun toggles(title: String, items: List<Pair<String, String>>, pref: String, on: String, off: String, focus: Int = 0,
                         startsOff: Set<String> = emptySet(), done: () -> Unit) {
         val offSet = prefs.getStringSet(pref, emptySet())!!
@@ -5141,14 +4410,12 @@ class MainActivity : Activity() {
 
     private fun animationsOn() = prefs.getBoolean("app_anim", true)
 
-    private var openedFrom: WeakReference<View>? = null // the tile or card an app was opened from, until we come back
 
     /** Starts an app. With [from] and the animations on, the app opens out of that tile and the row settles on return. */
     private fun startApp(intent: Intent, from: View?) {
         val source = from?.takeIf { animationsOn() && it.isAttachedToWindow && it.width > 0 }
         val options = source?.let { ActivityOptions.makeScaleUpAnimation(it, 0, 0, it.width, it.height).toBundle() }
         startActivity(intent, options)
-        openedFrom = source?.let { WeakReference(it) }
         returnTo = focusKey(from)
     }
 
@@ -5157,43 +4424,9 @@ class MainActivity : Activity() {
 
     private fun cardKey(p: Prog) = "card|${p.title}|${p.pkg}|${p.intent}"
 
-    private fun focusKey(v: View?): String? = (v?.getTag(R.id.watchRow) as? Prog)?.let { cardKey(it) } ?: v?.tag as? String
+    private fun focusKey(v: View?): String? = v?.tag as? String
 
     /** The tile or card that [key] names, with the cards built up to it; null when it left the rows (uninstalled, hidden, off the list). */
-    private fun homeViewFor(key: String): View? {
-        (0 until appRow.childCount).map { appRow.getChildAt(it) }.firstOrNull { it.tag == key }?.let { return it }
-        val at = watchList.indexOfFirst { cardKey(it) == key }
-        if (at < 0) return null
-        addCardsTo(at)
-        return (watchRow.getChildAt(at) as? ViewGroup)?.getChildAt(0)
-    }
-
-    /**
-     * Back from an app: the row of the tile it came from settles in, a little larger and dimmer at first. It settles
-     * around that tile when it is on screen, and around the middle of the row's window when Home has moved the row.
-     */
-    private fun settleRow(tile: View) {
-        // A Continue watching card sits in a column of its own: the row is the one that holds the columns.
-        val row = (if (tile.getTag(R.id.watchRow) is Prog) watchRow else tile.parent) as? ViewGroup ?: return
-        row.animate().cancel()
-        val at = Rect(0, 0, tile.width, tile.height)
-        row.offsetDescendantRectToMyCoords(tile, at) // the tile's place in the row, whatever sits between them
-        var pivot = at.exactCenterX()
-        val scroll = generateSequence(row.parent) { it.parent }.firstOrNull { it is HorizontalScrollView } as? HorizontalScrollView
-        if (scroll != null && (at.left < scroll.scrollX || at.right > scroll.scrollX + scroll.width)) pivot = scroll.scrollX + scroll.width / 2f
-        row.pivotX = pivot
-        row.pivotY = at.exactCenterY()
-        row.scaleX = 1.12f
-        row.scaleY = 1.12f
-        row.alpha = 0.4f
-        // A moment late: the app's own window is still fading out over us for the first part.
-        row.animate().scaleX(1f).scaleY(1f).alpha(1f).setStartDelay(90).setDuration(420).setInterpolator(DECELERATE).start()
-        // The row scales and fades with no layout and no focus change: the frost must redraw as it settles.
-        glass.kick(600)
-    }
-
-    // ---------- all apps ----------
-
     private fun openAllApps() {
         allAppsGrid.removeAllViews()
         val gap = dp(10)
@@ -5220,7 +4453,6 @@ class MainActivity : Activity() {
         findViewById<View>(R.id.content).visibility = if (::vDesign.isInitialized) View.INVISIBLE else View.VISIBLE
         if (::vDesign.isInitialized) vDesign.visibility = View.VISIBLE
         homeFocusable(true)
-        renderApps()
         if (::vDesign.isInitialized) vDesign.restoreFocus()
         else findViewById<View>(R.id.allAppsButton).requestFocus() // back where it was opened from
     }
@@ -5935,8 +5167,6 @@ class MainActivity : Activity() {
             nuvioProviderFeeds = NuvioProviderFeeds.EMPTY
             nuvioDashboardFeed = NuvioDashboardFeed.EMPTY
             if (::vDesign.isInitialized) vDesign.bindFeed(nuvioDashboardFeed)
-            showWatchNext(emptyList())
-            if (homeLayoutMode == HomeLayoutMode.OVERVIEW) updateOverviewPreview(sortedApps().filter { inRow(it.pkg, rowHiddenSet()) })
             return
         }
         io.execute {
@@ -5952,11 +5182,8 @@ class MainActivity : Activity() {
             }
             ui.post {
                 if (!isDestroyed) {
-                    showWatchNext(list)
                     if (::vDesign.isInitialized) vDesign.bindFeed(nuvioDashboardFeed)
-                    if (homeLayoutMode == HomeLayoutMode.OVERVIEW)
-                        updateOverviewPreview(sortedApps().filter { inRow(it.pkg, rowHiddenSet()) })
-                }
+                    }
             }
         }
     }
@@ -6122,7 +5349,6 @@ class MainActivity : Activity() {
             return
         }
         toggles(getString(R.string.cw_apps), sources.map { it.label to it.pkg }, "cw_off", getString(R.string.on), getString(R.string.off)) {
-            watchKey = null
             refreshWatchNext()
             renderSettings(R.string.cw_apps)
         }
@@ -6173,26 +5399,7 @@ class MainActivity : Activity() {
     @Volatile private var autoRowName: String? = null
 
     /** The bottom row's name: the user's own, else the one channel on, else Continue Watching. */
-    private fun rowName() = prefs.getString("row_name", null).orEmpty().ifEmpty { autoRowName ?: getString(R.string.continue_watching) }
 
-    private fun pickRowName() {
-        val field = textField(prefs.getString("row_name", null).orEmpty(), autoRowName ?: getString(R.string.continue_watching),
-            InputType.TYPE_TEXT_FLAG_CAP_WORDS, EditorInfo.IME_ACTION_DONE) { name ->
-            prefs.edit().putString("row_name", name).apply()
-            watchTitle.text = rowName()
-            renderSettings(R.string.row_name)
-        }
-        val auto = page(getString(R.string.automatic), if (prefs.getString("row_name", null).isNullOrEmpty()) CHOSEN else "") {
-            prefs.edit().remove("row_name").apply()
-            watchTitle.text = rowName()
-            renderSettings(R.string.row_name)
-        }
-        // Opens on Automatic, so the keyboard only comes up when you go Up to the box to type.
-        showPage(getString(R.string.row_name), listOf(auto), top = field.parent as View) { renderSettings(R.string.row_name) }
-        settingsList.getChildAt(1).nextFocusUpId = field.id
-    }
-
-    /** Pick what fills the bottom row: Android TV Watch Next and any app channel on this TV now ("Plex · On Deck"). */
     private fun pickChannels() {
         val channels = appChannels()
             .filter { AndroidTvMediaSource.nuvioKind(it) !in AndroidTvMediaSource.categorizedNuvioKinds }
@@ -6203,7 +5410,6 @@ class MainActivity : Activity() {
             channels.map { (_, p, n) -> (if (n == app(p)) n else "${app(p)} · $n") to channelKey(p, n) }.sortedBy { it.first.lowercase() }
         val startsOff = channels.filter { (_, p, n) -> !channelOn(n, channelKey(p, n), emptySet()) }.map { (_, p, n) -> channelKey(p, n) }.toSet()
         toggles(getString(R.string.cw_channels), items, "ch_flip", getString(R.string.on), getString(R.string.off), startsOff = startsOff) {
-            watchKey = null
             refreshWatchNext()
             renderSettings(R.string.cw_channels)
         }
@@ -6277,15 +5483,16 @@ class MainActivity : Activity() {
         refreshWatchNext()
     }
 
-    /** Small source-app mark for the details line: its logo when we have one (brand colour with colour icons), else its icon (greyscale unless colour). */
+    /** Actual source branding on V-Design cards is independent of retired Classic row preferences. */
     private fun sourceIcon(pkg: String?): Drawable? {
         if (pkg == null) return null
-        val colour = cwColour()
-        val tint = BRAND_COLOURS[pkg]?.takeIf { colour } ?: watchInk // a mark without its brand colour goes with the card's text
-        LOGOS[pkg]?.takeIf { !it.second }?.let { return getDrawable(it.first)!!.mutate().apply { setTint(tint) } }
+        val tint = BRAND_COLOURS[pkg] ?: 0xFFE5E1EF.toInt()
+        LOGOS[pkg]?.takeIf { !it.second }?.let {
+            return getDrawable(it.first)!!.mutate().apply { setTint(tint) }
+        }
         return try {
-            packageManager.getApplicationIcon(pkg).mutate().apply { if (!colour) colorFilter = GREYSCALE }
-        } catch (e: PackageManager.NameNotFoundException) {
+            packageManager.getApplicationIcon(pkg).mutate()
+        } catch (_: PackageManager.NameNotFoundException) {
             null
         }
     }
@@ -6295,156 +5502,17 @@ class MainActivity : Activity() {
         return if (min >= 60) getString(R.string.time_left_hm, min / 60, min % 60) else getString(R.string.time_left_m, min)
     }
 
-    private fun showWatchNext(list: List<Prog>) {
-        val key = list.joinToString("|") { "${it.title}/${it.sub}/${it.progress}/${it.image}" }
-        if (key == watchKey) { // unchanged: keep views (and focus) as they are, just fill in missing posters
-            retryPosters()
-            return
-        }
-        watchKey = key
-        watchList = list
-        val focusedAt = watchRow.indexOfChild(currentFocus?.parent as? View)
-        val focusedKey = (currentFocus?.getTag(R.id.watchRow) as? Prog)?.let { cardKey(it) } // the same show, whatever place it has now
-        watchRow.removeAllViews()
-        watchTitle.text = rowName()
-        placeRow(animate = false)
-        // ~16 ms per card here and only four show at once: the first four now, the next four on the next frame.
-        addCardsTo(3)
-        watchRow.post { fitInk() }
-        ui.post { if (watchKey == key) addCardsTo(CARDS_AHEAD - 1) } // unless a newer list replaced this one
-        if (focusedAt >= 0) {
-            val at = watchList.indexOfFirst { cardKey(it) == focusedKey }.takeIf { it >= 0 } ?: focusedAt.coerceAtMost(watchList.size - 1)
-            addCardsTo(at) // the card may be past the first ones that are built
-            ((watchRow.getChildAt(at) as? LinearLayout)?.getChildAt(0) ?: appRow.getChildAt(0))?.requestFocus()
-        }
-    }
-
-    private var watchList = emptyList<Prog>()
 
     /** "always", "down" (hidden until Down reaches it) or "never". */
-    private fun rowShow() = prefs.getString("row_show", "always")!!.takeIf { it in ROW_SHOW } ?: "always"
 
     /** While the bottom row is hidden, the app row drops into its space (true) or stays where it is. */
-    private fun rowDrops() = prefs.getBoolean("row_drop", false)
 
     /** "Icons" in the shows row: source marks in colour (true) or monochrome, apart from the app row's icon style. */
-    private fun cwColour() = prefs.getBoolean("cw_colour", false)
 
     /**
      * Puts the bottom row and the app row where "Show row" wants them. Both rows are built once and only
      * slide (translationY on a layer), so the move costs no layout or redraw, even on a slow TV.
      */
-    private fun placeRow(animate: Boolean) {
-        val show = rowShow()
-        val has = watchList.isNotEmpty()
-        val keepSpace = show != "always" && !rowDrops() // "Stays put": the apps keep their place, even with no shows
-        // With no shows, an invisible stand-in card holds the row's height, so the apps don't fall to the bottom.
-        if (!has && keepSpace && watchRow.childCount == 0) watchRow.addView(watchCard(Prog(" ", " ", 0, null, null, null), false))
-        else if (!has && !keepSpace && watchRow.childCount > 0) watchRow.removeAllViews()
-        val vis = when {
-            !has -> if (keepSpace) View.INVISIBLE else View.GONE
-            show == "never" -> if (rowDrops()) View.GONE else View.INVISIBLE // invisible keeps its space
-            else -> View.VISIBLE
-        }
-        if (watchScroll.visibility != vis) { watchTitle.visibility = vis; watchScroll.visibility = vis }
-        val hidden = show == "down" && has && !rowOut
-        // From where the app row sits above the bottom row to where it would sit without it.
-        val drop = (watchScroll.bottom - appScroll.bottom).toFloat().coerceAtLeast(0f)
-        val appY = if (hidden && rowDrops()) drop else 0f
-        val rowY = if (!hidden) 0f else if (rowDrops()) drop else dp(24).toFloat()
-        fun move(v: View, y: Float, a: Float) {
-            if (v.translationY == y && v.alpha == a) return // a layer for a view that doesn't move only costs frames
-            if (animate) v.animate().translationY(y).alpha(a).setDuration(250).setInterpolator(DECELERATE).start()
-            else { v.animate().cancel(); v.translationY = y; v.alpha = a }
-        }
-        move(appsTitle, appY, appsTitle.alpha)
-        move(appScroll, appY, 1f)
-        move(watchTitle, rowY, if (hidden) 0f else titleAlpha)
-        move(watchScroll, rowY, if (hidden) 0f else 1f)
-        // The rows are layers: they move and fade without a layout, so the frost has to be told to follow them.
-        glass.kick(if (animate) 320 else 0)
-    }
-
-    /**
-     * Cards exist up to index [last] only: the four on screen and the four after them, more as focus moves on.
-     * Every card costs drawing time on each frame of the home screen (20 dropped ~6% of frames on the test
-     * TV, 8 about 2%), on screen or not, so the rest of the list waits until focus gets near.
-     */
-    private fun addCardsTo(last: Int) {
-        while (watchRow.childCount <= minOf(last, watchList.size - 1)) {
-            watchRow.addView(watchCard(watchList[watchRow.childCount], watchRow.childCount > 0))
-        }
-    }
-
-    /**
-     * Four posters across, each two apps-row columns wide. Progress sits on the artwork's bottom edge;
-     * title and details (source, episode, time left) go underneath.
-     */
-    private fun watchCard(p: Prog, gapBefore: Boolean): View {
-        val gap = dp(GRID_GAP)
-        val w = (resources.displayMetrics.widthPixels - dp(96) - gap * 3) / 4
-        val col = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            clipChildren = false
-            layoutParams = LinearLayout.LayoutParams(w, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
-                if (gapBefore) marginStart = gap
-            }
-        }
-        val img = ImageView(this).apply {
-            scaleType = ImageView.ScaleType.CENTER_CROP
-            setBackgroundColor(if (dark) DARK_SURFACE else 0xFFDDE1E5.toInt())
-        }
-        // Long titles scroll while their poster is focused instead of staying cut off.
-        val title = label(p.title, 14f).apply {
-            setPadding(0, dp(6), 0, 0)
-            isSingleLine = true
-            ellipsize = TextUtils.TruncateAt.MARQUEE
-            marqueeRepeatLimit = -1
-            ink(this, watchInk)
-        }
-        val frame = FrameLayout(this)
-        // The poster fills the card, so frost under it would never show and would only cost work on every frame.
-        style(frame, dp(8), card = true, lift = 1.1f, frost = false) { focused ->
-            title.isSelected = focused
-            if (focused) {
-                lastCard = frame
-                addCardsTo(watchRow.indexOfChild(col) + CARDS_AHEAD)
-            }
-        }
-        frame.contentDescription = p.title
-        frame.addView(img, MATCH_PARENT, MATCH_PARENT)
-        frame.setOnClickListener { open(p) }
-        frame.setTag(R.id.watchRow, p) // holding OK hides it (see onHold)
-        // 2:1 keeps logos and badges that providers bake into 16:9 art.
-        col.addView(frame, LinearLayout.LayoutParams(w, w / 2))
-        // Thin bar under the poster, card width. Kept (invisible) when there's no progress so titles line up.
-        col.addView(ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply {
-            max = 100
-            progress = p.progress
-            progressDrawable = progressBarDrawable(watchInk)
-            visibility = if (p.progress > 0) View.VISIBLE else View.INVISIBLE
-        }, LinearLayout.LayoutParams(w, dp(3)).apply { topMargin = dp(8) })
-        col.addView(title)
-        val icon = sourceIcon(p.pkg)
-        if (p.sub.isNotEmpty() || icon != null) {
-            col.addView(label(p.sub, 12f).apply {
-                ink(this, watchInk)
-                alpha = 0.8f
-                setPadding(0, dp(2), 0, 0)
-                icon?.let {
-                    it.setBounds(0, 0, dp(12), dp(12))
-                    setCompoundDrawablesRelative(it, null, null, null)
-                    compoundDrawablePadding = dp(6)
-                    // A plain mark (not the app's own icon, not in brand colour) follows the text: fitInk re-tints it.
-                    if (LOGOS[p.pkg]?.second == false && (!cwColour() || BRAND_COLOURS[p.pkg] == null)) tag = INK_MARK
-                }
-            })
-        }
-        loadPoster(img, p.image)
-        return col
-    }
-
-    /** [ink] fills it; the track is a faint version on the same side, light behind white and dark behind near-black. */
     private fun progressBarDrawable(ink: Int = fg): Drawable {
         fun bar(color: Int) = GradientDrawable().apply { cornerRadius = dp(2).toFloat(); setColor(color) }
         return LayerDrawable(arrayOf(
@@ -6453,16 +5521,6 @@ class MainActivity : Activity() {
         )).apply {
             setId(0, android.R.id.background)
             setId(1, android.R.id.progress)
-        }
-    }
-
-    private fun open(p: Prog) {
-        prefs.edit().putLong("t_${p.pkg}", System.currentTimeMillis()).apply()
-        val from = currentFocus?.takeIf { it.getTag(R.id.watchRow) is Prog }
-        try {
-            startApp(Intent.parseUri(p.intent, Intent.URI_INTENT_SCHEME).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK), from)
-        } catch (e: Exception) {
-            p.pkg?.let { packageManager.getLeanbackLaunchIntentForPackage(it) }?.let { startApp(it, from) }
         }
     }
 
@@ -6486,12 +5544,6 @@ class MainActivity : Activity() {
                     if (v.tag == uri) v.setImageBitmap(bmp)
                     // Another mounted card may have requested the same URL while its download was in flight.
                     // Fill only this URI: unrelated failed posters wait for the ordinary online retry.
-                    for (i in 0 until watchRow.childCount) {
-                        val image = ((watchRow.getChildAt(i) as? ViewGroup)?.getChildAt(0) as? ViewGroup)
-                            ?.getChildAt(0) as? ImageView ?: continue
-                        if (image.tag == uri && image.drawable == null) image.setImageBitmap(bmp)
-                    }
-                    if (::homeOverview.isInitialized) homeOverview.artworkReady(uri, bmp)
                     if (::vDesign.isInitialized) vDesign.artworkReady(uri, bmp)
                 }
             }
@@ -6500,13 +5552,9 @@ class MainActivity : Activity() {
 
     /** Cards whose poster never arrived (offline, server timeout) try again; loaded ones are left alone. */
     private fun retryPosters() {
-        for (i in 0 until watchRow.childCount) {
-            val img = ((watchRow.getChildAt(i) as? ViewGroup)?.getChildAt(0) as? ViewGroup)?.getChildAt(0) as? ImageView ?: continue
-            if (img.drawable == null) loadPoster(img, img.tag as? String)
-        }
+        if (::vDesign.isInitialized) vDesign.bindFeed(nuvioDashboardFeed)
     }
 
-    /** Downsample to card size in RGB_565 so a dozen posters stay around 1-2 MB. */
     private fun decode(uri: String): Bitmap? {
         val bytes = openStream(uri).use { it.readBytes() }
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
