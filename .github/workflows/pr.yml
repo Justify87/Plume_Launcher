@@ -1,5 +1,5 @@
-# Every pull request: the Plume rules, unit tests, lint, a release build, and its APK size against the base branch.
-# Results go in the job summary: a pull request from a fork gets a read-only token, so this can't comment.
+# Fast pull-request validation; the full combined Mullvad APK is built only when
+# integration inputs change (and remains manually buildable from debug-apk.yml).
 name: Pull request checks
 
 on:
@@ -18,25 +18,56 @@ jobs:
     timeout-minutes: 30
     env:
       BASE: ${{ github.event.pull_request.base.sha }}
+    outputs:
+      integrated: ${{ steps.scope.outputs.integrated }}
     steps:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
-      - name: Plume rules
+      - name: Identify changed components
+        id: scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          changed="$RUNNER_TEMP/pr-changed-files.txt"
+          git diff --name-only "$BASE"...HEAD > "$changed"
+          if grep -Eq '^(tools/mullvad/|third_party/mullvadvpn-app(/|$)|\.gitmodules$|\.github/workflows/debug-apk\.yml$|app/src/main/AndroidManifest\.xml$|app/build\.gradle\.kts$|build\.gradle\.kts$|settings\.gradle\.kts$|gradle/libs\.versions\.toml$)' "$changed"; then
+            echo 'integrated=true' >> "$GITHUB_OUTPUT"
+            echo 'Combined Mullvad APK check: integration inputs changed.'
+          else
+            echo 'integrated=false' >> "$GITHUB_OUTPUT"
+            echo 'Combined Mullvad APK check: not needed for this PR.'
+          fi
+          if grep -Eq '^(tools/plume-install\.sh$|tools/plume-install-test/)' "$changed"; then
+            echo 'installer=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'installer=false' >> "$GITHUB_OUTPUT"
+          fi
+          if grep -Eq '^tools/(spotify_podcast_probe|test_spotify_podcast_probe)\.py$' "$changed"; then
+            echo 'spotify=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'spotify=false' >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Review dependency, permission and changelog changes
         run: sh tools/pr-rules.sh "$BASE"
 
-      - name: ADB launcher installer regression tests
+      - name: ADB launcher installer regression tests (when touched)
+        if: ${{ steps.scope.outputs.installer == 'true' }}
         run: sh tools/plume-install-test/run.sh
 
-      - name: Spotify podcast feasibility unit tests (offline)
+      - name: Spotify podcast feasibility tests (when touched)
+        if: ${{ steps.scope.outputs.spotify == 'true' }}
         run: python3 -m unittest discover -s tools -p 'test_spotify_podcast_probe.py' -v
 
-      - name: Mullvad staging-script tests (no SDK needed)
-        run: python3 -m unittest discover -s tools -p 'test_mullvad_prepare.py' -v
-
-      - name: Mullvad APK structural validator regression tests (offline)
-        run: python3 -m unittest discover -s tools -p 'test_mullvad_apk.py' -v
+      # The combined APK workflow runs these exact Python tests itself.
+      # Run them here only when there is no integrated build to avoid duplication.
+      - name: Mullvad staging and APK validator regression tests (offline)
+        if: ${{ steps.scope.outputs.integrated != 'true' }}
+        run: |
+          python3 -m unittest discover -s tools -p 'test_mullvad_prepare.py' -v
+          python3 -m unittest discover -s tools -p 'test_mullvad_apk.py' -v
 
       - uses: actions/setup-java@v5
         with:
@@ -45,30 +76,10 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v5
 
-      - name: Plume unit tests and lint
-        run: ./gradlew testDebugUnitTest lintDebug
-
-      # In Mullvad integration PRs the real artifact is the combined APK below.
-      # Building the standalone launcher twice and comparing its release size
-      # does not validate that combined package.
-      - name: Legacy launcher APK builds (other PRs only)
-        if: ${{ !contains(github.head_ref, 'mullvad') || startsWith(github.head_ref, 'feature/m12-') }}
-        run: ./gradlew assembleDebug assembleRelease
-
-      - name: APK size against the base branch
-        if: ${{ !contains(github.head_ref, 'mullvad') || startsWith(github.head_ref, 'feature/m12-') }}
-        run: |
-          now=$(stat -c %s app/build/outputs/apk/release/app-release.apk)
-          git worktree add -q ../base "$BASE"
-          (cd ../base && ./gradlew -q assembleRelease)
-          before=$(stat -c %s ../base/app/build/outputs/apk/release/app-release.apk)
-          diff=$((now - before))
-          echo "APK: $before -> $now bytes ($diff)"
-          echo "### APK size" >> "$GITHUB_STEP_SUMMARY"
-          printf 'Release APK: %s → %s bytes (%+d)\n' "$before" "$now" "$diff" >> "$GITHUB_STEP_SUMMARY"
-          if [ "$diff" -gt 10240 ]; then
-            echo "::warning::The release APK grows by $diff bytes. Say why in the pull request."
-          fi
+      # Unit tests and lint, plus one fast compilation of the legacy launcher
+      # module. The actual installable Plume+Mullvad APK is built separately.
+      - name: Plume unit tests, lint and Debug compilation
+        run: ./gradlew testDebugUnitTest lintDebug assembleDebug
 
       - name: Lint report
         if: failure()
@@ -79,10 +90,10 @@ jobs:
           if-no-files-found: ignore
 
   mullvad-apk:
-    # Same pinned containerized build as the manual integrated APK workflow.
-    # Preserve the fast Plume regressions in "check" above.
-    # M07 validates the real combined APK, not just the lightweight launcher shell.
-    if: (contains(github.head_ref, 'mullvad') || startsWith(github.head_ref, 'feature/vdesign-m07-')) && github.head_ref != 'feature/m01-mullvad-upstream-handoff'
+    # Path-based instead of branch-name-based; use the unchanged pinned
+    # combined APK workflow and keep its manual workflow_dispatch entry.
+    needs: check
+    if: ${{ needs.check.outputs.integrated == 'true' }}
     uses: ./.github/workflows/debug-apk.yml
     with:
       variant: integrated
