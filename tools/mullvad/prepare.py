@@ -177,6 +177,18 @@ def plume_library_manifest(original: str) -> str:
     return ET.tostring(root, encoding="unicode", xml_declaration=True) + "\n"
 
 
+def plume_library_build() -> str:
+    """Keep the staged Plume library's version/What's new in sync with app Gradle."""
+    build = (ROOT / "app/build.gradle.kts").read_text(encoding="utf-8")
+    names = re.findall(r'(?m)^\s*versionName\s*=\s*"([^"]+)"', build)
+    if len(names) != 1 or not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+(?:-(?:beta|rc)[0-9]+)?", names[0]):
+        raise RuntimeError("Exactly one valid Plume versionName is required")
+    original = 'val version = "1.7.1"'
+    if PLUME_LIBRARY_BUILD.count(original) != 1:
+        raise RuntimeError("Staged Plume version template changed unexpectedly")
+    return PLUME_LIBRARY_BUILD.replace(original, f'val version = "{names[0]}"', 1)
+
+
 def prepare(output: Path) -> Path:
     verify_upstream()
     if output.exists():
@@ -242,7 +254,7 @@ def prepare(output: Path) -> Path:
         encoding="utf-8",
     )
     shutil.copy2(ROOT / "CHANGELOG.md", library / "CHANGELOG.md")
-    (library / "build.gradle.kts").write_text(PLUME_LIBRARY_BUILD, encoding="utf-8")
+    (library / "build.gradle.kts").write_text(plume_library_build(), encoding="utf-8")
 
     overlay = android / "app/src/ossProd/AndroidManifest.xml"
     overlay.parent.mkdir(parents=True, exist_ok=True)
