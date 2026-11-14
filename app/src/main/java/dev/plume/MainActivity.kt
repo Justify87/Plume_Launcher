@@ -3563,11 +3563,12 @@ class MainActivity : Activity() {
         return col
     }
 
-    /** The home row shows marks only by default (see rowNames); the All apps grid always labels them. */
+    /** The All Apps grid shows named icon tiles; legacy banner-row rendering remains unused. */
     private fun appTile(a: App, labeled: Boolean = true): View {
         if (!labeled && isBannerStyle(iconStyle())) bannerTile(a)?.let { it.contentDescription = a.label; return it }
         val logo = LOGOS[a.pkg]
-        val custom = (if (!labeled && !a.pkg.startsWith(HDMI) && !isBannerStyle(iconStyle())) AppPictures.read(this, a.pkg, banner = false) else null)
+        val custom = (if (!a.pkg.startsWith(HDMI) && (labeled || !isBannerStyle(iconStyle())))
+            AppPictures.read(this, a.pkg, banner = false) else null)
             ?.apply { if (!colourIcons()) colorFilter = GREYSCALE }
             ?: customIcon(a.pkg)
         val name = a.label.takeIf { labeled }
@@ -3786,6 +3787,10 @@ class MainActivity : Activity() {
     }
 
     /** Every entry must resolve to an installed app or a real local Activity. */
+    /** Existing user-installed app icons remain visible after removing the Classic app row. */
+    private fun vDesignAppIcon(app: App): Drawable =
+        AppPictures.read(this, app.pkg, banner = false) ?: customIcon(app.pkg) ?: app.icon
+
     private fun refreshVDesignNavigation() {
         if (!::vDesign.isInitialized) return
         val installed = sortedApps()
@@ -3798,8 +3803,8 @@ class MainActivity : Activity() {
         } catch (_: PackageManager.NameNotFoundException) { false }
         val items = buildList {
             add(VDesignHomeView.Navigation(VDesignHomeView.OVERVIEW, "Übersicht", getDrawable(R.drawable.ic_home)))
-            nuvio?.let { add(VDesignHomeView.Navigation(VDesignHomeView.NUVIO, "Nuvio TV", it.icon)) }
-            smartTube?.let { add(VDesignHomeView.Navigation(VDesignHomeView.SMARTTUBE, "SmartTube", it.icon)) }
+            nuvio?.let { add(VDesignHomeView.Navigation(VDesignHomeView.NUVIO, "Nuvio TV", vDesignAppIcon(it))) }
+            smartTube?.let { add(VDesignHomeView.Navigation(VDesignHomeView.SMARTTUBE, "SmartTube", vDesignAppIcon(it))) }
             add(VDesignHomeView.Navigation(VDesignHomeView.SETTINGS, "Einstellungen", getDrawable(R.drawable.ic_settings)))
             if (vpnAvailable) add(VDesignHomeView.Navigation(VDesignHomeView.VPN, "VPN", getDrawable(R.drawable.ic_vpn)))
         }
@@ -4035,7 +4040,6 @@ class MainActivity : Activity() {
         if (settingsScrim.visibility != View.VISIBLE) showPanel()
         showPage(getString(R.string.change_app_picture), listOf(
             page(getString(R.string.app_picture_icon), getString(R.string.app_picture_icon_hint)) { unlock { uploadAppPicture(pkg, name, false) } },
-            page(getString(R.string.banner), getString(R.string.app_picture_banner_hint)) { unlock { uploadAppPicture(pkg, name, true) } },
             page(getString(R.string.reset_app_picture)) {
                 unlock {
                     AppPictures.reset(this, pkg)
