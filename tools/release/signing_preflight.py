@@ -106,6 +106,28 @@ def validate_keystore(environ: dict[str, str], expected: str) -> None:
                 "PLUME_RELEASE_CERT_SHA256. Do not change keys unintentionally."
             )
         try:
+            # JDK keytool may silently IGNORE a distinct -keypass for PKCS12.
+            # Detect the actual type and require identical passwords so that
+            # apksigner cannot surprise us after the expensive build.
+            listing = subprocess.run(
+                ["keytool", "-J-Duser.language=en", "-J-Duser.country=US",
+                 "-list", "-keystore", str(keystore),
+                 "-storepass:env", "PLUME_STORE_PASSWORD"],
+                stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+                env=env, check=True,
+            ).stdout.decode("utf-8", errors="replace")
+        except (OSError, subprocess.CalledProcessError) as exc:
+            raise SigningPreflightError(
+                "Unable to inspect the keystore type. Check the configured keystore."
+            ) from exc
+        if re.search(r"(?m)^Keystore type:\\s*PKCS12\\s*$", listing):
+            if environ["PLUME_KEY_PASSWORD"] != environ["PLUME_STORE_PASSWORD"]:
+                raise SigningPreflightError(
+                    "PKCS12 uses the same entry and keystore password: "
+                    "PLUME_RELEASE_KEY_PASSWORD must equal "
+                    "PLUME_RELEASE_KEYSTORE_PASSWORD."
+                )
+        try:
             # Also use the private key, not merely the public certificate.
             # Catches an incorrect entry password before the multi-hour build.
             subprocess.run(
