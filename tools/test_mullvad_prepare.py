@@ -12,6 +12,12 @@ release_spec = importlib.util.spec_from_file_location(
 release = importlib.util.module_from_spec(release_spec)
 release_spec.loader.exec_module(release)
 
+signing_spec = importlib.util.spec_from_file_location(
+    "signing_preflight", Path(__file__).parent / "release/signing_preflight.py"
+)
+signing = importlib.util.module_from_spec(signing_spec)
+signing_spec.loader.exec_module(signing)
+
 spec = importlib.util.spec_from_file_location("prepare", Path(__file__).parent / "mullvad/prepare.py")
 prepare = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(prepare)
@@ -372,6 +378,82 @@ class PreparationTests(unittest.TestCase):
 
 
 # Release versioning and staged Mullvad/Plume versions share one CI regression suite.
+class ReleaseSigningPreflightTest(unittest.TestCase):
+    def test_missing_secrets_are_named_without_disclosing_values(self):
+        with self.assertRaises(signing.SigningPreflightError) as context:
+            signing.validate_configuration({})
+        message = str(context.exception)
+        for name in (
+            "PLUME_RELEASE_KEYSTORE_BASE64",
+            "PLUME_RELEASE_KEYSTORE_PASSWORD",
+            "PLUME_RELEASE_KEY_ALIAS",
+            "PLUME_RELEASE_KEY_PASSWORD",
+            "PLUME_RELEASE_CERT_SHA256",
+        ):
+            self.assertIn(name, message)
+        self.assertIn("docs/RELEASING.md", message)
+
+    def test_certificate_fingerprint_format(self):
+        self.assertEqual("AB" * 32, signing.normalized_fingerprint("ab:" * 31 + "ab"))
+        with self.assertRaises(signing.SigningPreflightError):
+            signing.normalized_fingerprint("not-a-valid-sha")
+
+    def test_corrupted_keystore_base64_is_rejected_early(self):
+        with self.assertRaises(signing.SigningPreflightError):
+            signing.decode_keystore("not_base64@@@")
+        with self.assertRaises(signing.SigningPreflightError):
+            signing.decode_keystore("")
+
+    def test_real_keytool_private_key_and_certificate_validation(self):
+        import base64
+        import hashlib
+        import os
+        import shutil
+        import subprocess
+        if shutil.which("keytool") is None:
+            self.skipTest("JDK keytool unavailable")
+        with tempfile.TemporaryDirectory() as tmp:
+            store = Path(tmp) / "test.p12"
+            environ = {
+                "KEYSTORE_B64": "",
+                "PLUME_STORE_PASSWORD": "only-for-test-123",
+                "PLUME_KEY_ALIAS": "test-release",
+                "PLUME_KEY_PASSWORD": "only-for-test-123",
+                "EXPECTED_CERT": "",
+            }
+            env = dict(os.environ)
+            env["PLUME_STORE_PASSWORD"] = environ["PLUME_STORE_PASSWORD"]
+            env["PLUME_KEY_PASSWORD"] = environ["PLUME_KEY_PASSWORD"]
+            subprocess.run([
+                "keytool", "-genkeypair", "-alias", environ["PLUME_KEY_ALIAS"],
+                "-keystore", str(store), "-storetype", "PKCS12",
+                "-storepass:env", "PLUME_STORE_PASSWORD",
+                "-keypass:env", "PLUME_KEY_PASSWORD",
+                "-keyalg", "RSA", "-keysize", "2048", "-validity", "2",
+                "-dname", "CN=CI signing fixture", "-noprompt",
+            ], env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+               check=True)
+            cert = subprocess.run([
+                "keytool", "-exportcert", "-alias", environ["PLUME_KEY_ALIAS"],
+                "-keystore", str(store), "-storepass:env", "PLUME_STORE_PASSWORD",
+            ], env=env, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+               check=True).stdout
+            environ["KEYSTORE_B64"] = base64.b64encode(store.read_bytes()).decode("ascii")
+            environ["EXPECTED_CERT"] = hashlib.sha256(cert).hexdigest().upper()
+            fingerprint = signing.validate_configuration(environ)
+            signing.validate_keystore(environ, fingerprint)
+            with self.assertRaises(signing.SigningPreflightError):
+                signing.validate_keystore(environ, "F" * 64)
+            # PKCS12 private-key passwords must equal the store password;
+            # keytool -certreq itself accepts a wrong keypass for PKCS12.
+            wrong_keypass = dict(environ)
+            wrong_keypass["PLUME_KEY_PASSWORD"] = "wrong-password"
+            with self.assertRaisesRegex(
+                signing.SigningPreflightError, "PKCS12"
+            ):
+                signing.validate_keystore(wrong_keypass, fingerprint)
+
+
 class ReleasePreparationTest(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
