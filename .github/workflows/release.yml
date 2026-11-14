@@ -191,14 +191,21 @@ jobs:
             echo "::error::Tag appeared during the build; refusing to publish"
             exit 1
           fi
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add app/build.gradle.kts CHANGELOG.md
-          git diff --cached --quiet && { echo "::error::No release source changes"; exit 1; }
-          git commit -m "release: v$VERSION"
-          # A protected main branch may reject this push. Do not bypass protection.
-          git push origin HEAD:refs/heads/main
-          echo "RELEASE_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+          if git diff --quiet -- app/build.gradle.kts CHANGELOG.md; then
+            # Version was already prepared, reviewed and merged through a PR.
+            # No write to main is needed; works with protected branches.
+            echo "RELEASE_SHA=$GITHUB_SHA" >> "$GITHUB_ENV"
+            echo 'Publishing previously prepared release commit.'
+          else
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git add app/build.gradle.kts CHANGELOG.md
+            git commit -m "release: v$VERSION"
+            # An unprotected main can accept this atomic version increment.
+            # A protected main may reject this push; do not bypass protection.
+            git push origin HEAD:refs/heads/main
+            echo "RELEASE_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+          fi
 
       - name: Create Git tag and draft GitHub Release with signed artifact
         shell: bash
