@@ -38,6 +38,13 @@ Die Ausgabe enthält den **SHA256-Fingerabdruck des Zertifikats**. In GitHub
 | Repository secret | `PLUME_RELEASE_KEY_PASSWORD` | Passwort des Schlüssel-Eintrags |
 | Repository variable | `PLUME_RELEASE_CERT_SHA256` | SHA256 des Zertifikats aus `keytool -list -v`; Doppelpunkte sind erlaubt |
 
+**PKCS12-Hinweis:** Beim oben empfohlenen `-storetype PKCS12` müssen
+`PLUME_RELEASE_KEYSTORE_PASSWORD` und `PLUME_RELEASE_KEY_PASSWORD`
+denselben Wert enthalten. Java-`keytool` ignoriert bei PKCS12 teils
+ein separat angegebenes falsches Key-Passwort. Der neue Vorabtest
+erkennt diese Konstellation explizit. Bei bestehenden JKS-Dateien
+können die beiden Passwörter unterschiedlich sein.
+
 Unter Linux: `base64 -w0 plume-release.jks`. Unter macOS:
 `base64 < plume-release.jks | tr -d '\n'`. Den Wert nur im GitHub-Secrets-Dialog eintragen.
 
