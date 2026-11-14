@@ -1,7 +1,5 @@
-# Every pull request validates both the standalone launcher and the actual combined
-# Plume+Mullvad APK. The manual integrated APK workflow remains available unchanged.
-# This is intentionally stricter than branch-name/path filtering: UI and entry-point
-# edits can break integrated Mullvad Kotlin compilation without touching VPN files.
+# One visible required PR check; the called workflow itself contains the
+# Plume tests, lint, pinned Mullvad container build and APK validation.
 name: Pull request checks
 
 on:
@@ -15,73 +13,5 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  check:
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    env:
-      BASE: ${{ github.event.pull_request.base.sha }}
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
-
-      - name: Identify optional tool test changes
-        id: scope
-        shell: bash
-        run: |
-          set -euo pipefail
-          changed="$RUNNER_TEMP/pr-changed-files.txt"
-          git diff --name-only "$BASE"...HEAD > "$changed"
-          if grep -Eq '^(tools/plume-install\.sh$|tools/plume-install-test/)' "$changed"; then
-            echo 'installer=true' >> "$GITHUB_OUTPUT"
-          else
-            echo 'installer=false' >> "$GITHUB_OUTPUT"
-          fi
-          if grep -Eq '^tools/(spotify_podcast_probe|test_spotify_podcast_probe)\.py$' "$changed"; then
-            echo 'spotify=true' >> "$GITHUB_OUTPUT"
-          else
-            echo 'spotify=false' >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Review dependency, permission and changelog changes
-        run: sh tools/pr-rules.sh "$BASE"
-
-      - name: ADB launcher installer regression tests (when touched)
-        if: ${{ steps.scope.outputs.installer == 'true' }}
-        run: sh tools/plume-install-test/run.sh
-
-      - name: Spotify podcast feasibility tests (when touched)
-        if: ${{ steps.scope.outputs.spotify == 'true' }}
-        run: python3 -m unittest discover -s tools -p 'test_spotify_podcast_probe.py' -v
-
-      # Mullvad staging/ZIP regression tests run once in the integrated workflow
-      # below, directly before container compilation.
-
-      - uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: 17
-
-      - uses: gradle/actions/setup-gradle@v5
-
-      # Unit tests and lint, plus one fast compilation of the legacy launcher
-      # module. The actual installable Plume+Mullvad APK is built separately.
-      - name: Plume unit tests, lint and Debug compilation
-        run: ./gradlew testDebugUnitTest lintDebug assembleDebug
-
-      - name: Lint report
-        if: failure()
-        uses: actions/upload-artifact@v5
-        with:
-          name: lint-report
-          path: app/build/reports/lint-results-debug.html
-          if-no-files-found: ignore
-
   mullvad-apk:
-    # The normal Plume Gradle build cannot compile the Mullvad Android/Rust
-    # integration. Keep its pinned container build as a full PR gate.
-    # Run for *every* PR, not just VPN branches or a handpicked path list.
-    needs: check
     uses: ./.github/workflows/debug-apk.yml
-    with:
-      variant: integrated
