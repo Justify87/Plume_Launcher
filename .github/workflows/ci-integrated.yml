@@ -1,0 +1,167 @@
+# Dedicated full PR integration gate, with standalone tests and R8 regression.
+# Manual debug APK builds are intentionally separate in debug-apk.yml.
+name: Plume + Mullvad CI
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  integrated:
+    name: Combined Plume + Mullvad ARM64 Debug APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Check out original Mullvad commit and Plume
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Verify original upstream and build image
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C third_party/mullvadvpn-app rev-parse HEAD)" = aa47f606b1a159214c7279344128119fa91be5fd
+          test -z "$(git -C third_party/mullvadvpn-app status --porcelain --ignore-submodules=all)"
+          image=$(cat third_party/mullvadvpn-app/building/android-container-image.txt)
+          test "$image" = 'ghcr.io/mullvad/mullvadvpn-app-build-android@sha256:ca22c11fb8a15321f897fa169c9c9d1f7d0d9edfeea16fa04af4de71ebcf4286'
+
+      # The old standalone PR check is folded into this job, not discarded.
+      - name: Review dependency, permission and changelog changes (PRs)
+        if: ${{ github.event_name == 'pull_request' }}
+        shell: bash
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: sh tools/pr-rules.sh "$BASE"
+
+      - name: ADB launcher installer regression tests
+        run: sh tools/plume-install-test/run.sh
+
+      - name: Spotify podcast feasibility unit tests (offline)
+        run: python3 -m unittest discover -s tools -p 'test_spotify_podcast_probe.py' -v
+
+      - name: Set up Java 17 for Plume unit tests
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Set up Gradle for Plume quality checks
+        uses: gradle/actions/setup-gradle@v5
+
+      - name: Plume unit tests, lint and standalone Debug compilation
+        run: ./gradlew testDebugUnitTest lintDebug assembleDebug
+
+      - name: Upload Plume lint report on failure
+        if: failure()
+        uses: actions/upload-artifact@v5
+        with:
+          name: lint-report
+          path: app/build/reports/lint-results-debug.html
+          if-no-files-found: ignore
+
+      - name: Test source staging generator and APK validator
+        run: |
+          python3 -m unittest discover -s tools -p test_mullvad_prepare.py -v
+          python3 -m unittest discover -s tools -p test_mullvad_apk.py -v
+
+      - name: Pull Mullvad's pinned Android toolchain image
+        run: docker pull "$(cat third_party/mullvadvpn-app/building/android-container-image.txt)"
+
+      - name: Assemble combined Plume-Mullvad OSS/Prod Debug and unsigned Release (R8)
+        run: bash tools/mullvad/build-integrated.sh --no-configuration-cache --max-workers=2 :app:assembleOssProdRelease
+
+      - name: Verify APK package, VPN components, launcher and checksum
+        shell: bash
+        run: |
+          set -euo pipefail
+          apk_dir=.build/plume-mullvad/mullvadvpn-app/android/app/build/outputs/apk/ossProd/debug
+          apk=$(find "$apk_dir" -maxdepth 1 -type f -name '*.apk' -print -quit)
+          test -n "$apk" && test -s "$apk"
+          test "$(find "$apk_dir" -maxdepth 1 -type f -name '*.apk' | wc -l)" -eq 1
+          python3 tools/mullvad/check_apk.py "$apk"
+          mkdir -p artifacts/plume-mullvad
+          image=$(cat third_party/mullvadvpn-app/building/android-container-image.txt)
+          apk_in_container="/build/android/app/build/outputs/apk/ossProd/debug/$(basename "$apk")"
+          docker run --rm -v "$PWD/.build/plume-mullvad/mullvadvpn-app:/build:ro" "$image" \
+            aapt dump badging "$apk_in_container" > artifacts/plume-mullvad/badging.txt
+          docker run --rm -v "$PWD/.build/plume-mullvad/mullvadvpn-app:/build:ro" "$image" \
+            aapt dump xmltree "$apk_in_container" AndroidManifest.xml > artifacts/plume-mullvad/manifest.txt
+          grep -Fq "package: name='dev.plume.advanced'" artifacts/plume-mullvad/badging.txt
+          grep -Fxq "native-code: 'arm64-v8a'" artifacts/plume-mullvad/badging.txt
+          grep -Fq 'dev.plume.MainActivity' artifacts/plume-mullvad/manifest.txt
+          grep -Fq 'net.mullvad.mullvadvpn.app.MullvadApplication' artifacts/plume-mullvad/manifest.txt
+          grep -Fq 'net.mullvad.mullvadvpn.app.service.MullvadVpnService' artifacts/plume-mullvad/manifest.txt
+          # M04 production TV surface must be in the APK and original harness absent.
+          grep -Fq 'net.mullvad.mullvadvpn.app.VpnActivity' artifacts/plume-mullvad/manifest.txt
+          if grep -Fq 'net.mullvad.mullvadvpn.app.PlumeVpnDebugActivity' artifacts/plume-mullvad/manifest.txt; then
+            echo "::error::Legacy M03 debug harness is still declared"
+            exit 1
+          fi
+          python3 - "$apk" <<'PY'
+          import sys
+          import zipfile
+          with zipfile.ZipFile(sys.argv[1]) as archive:
+              dexes = [archive.read(name) for name in archive.namelist()
+                       if name.startswith("classes") and name.endswith(".dex")]
+              if not any(b"VpnActivity" in dex for dex in dexes):
+                  sys.exit("Production Mullvad VPN TV Activity missing from DEX")
+              if any(b"PlumeVpnDebugActivity" in dex for dex in dexes):
+                  sys.exit("Legacy M03 debug TV harness still packaged in DEX")
+          PY
+          grep -Fq 'android.intent.category.HOME' artifacts/plume-mullvad/manifest.txt
+          if grep -Fq 'net.mullvad.mullvadvpn.feature.appearance.impl.obfuscation.MainActivityAlt' artifacts/plume-mullvad/manifest.txt; then
+            echo "::error::Mullvad smartphone launcher aliases are still present"
+            exit 1
+          fi
+          cp "$apk" artifacts/plume-mullvad/Plume-Launcher-Advanced-Mullvad-arm64-debug.apk
+          # The original Mullvad RELEASE build intentionally has signingConfig=null.
+          # Treat its output as an unsigned R8/release validation artifact, never as
+          # an installable update. Only the debug APK is ready for sideloading.
+          release_dir=.build/plume-mullvad/mullvadvpn-app/android/app/build/outputs/apk/ossProd/release
+          release_apk=$(find "$release_dir" -maxdepth 1 -type f -name '*.apk' -print -quit)
+          test -n "$release_apk" && test -s "$release_apk"
+          test "$(find "$release_dir" -maxdepth 1 -type f -name '*.apk' | wc -l)" -eq 1
+          python3 tools/mullvad/check_apk.py "$release_apk"
+          release_in_container="/build/android/app/build/outputs/apk/ossProd/release/$(basename "$release_apk")"
+          docker run --rm -v "$PWD/.build/plume-mullvad/mullvadvpn-app:/build:ro" "$image" \
+            aapt dump badging "$release_in_container" > artifacts/plume-mullvad/release-badging.txt
+          docker run --rm -v "$PWD/.build/plume-mullvad/mullvadvpn-app:/build:ro" "$image" \
+            aapt dump xmltree "$release_in_container" AndroidManifest.xml > artifacts/plume-mullvad/release-manifest.txt
+          grep -Fq "package: name='dev.plume.advanced'" artifacts/plume-mullvad/release-badging.txt
+          grep -Fxq "native-code: 'arm64-v8a'" artifacts/plume-mullvad/release-badging.txt
+          grep -Fq 'dev.plume.MainActivity' artifacts/plume-mullvad/release-manifest.txt
+          grep -Fq 'net.mullvad.mullvadvpn.app.MullvadApplication' artifacts/plume-mullvad/release-manifest.txt
+          grep -Fq 'net.mullvad.mullvadvpn.app.service.MullvadVpnService' artifacts/plume-mullvad/release-manifest.txt
+          grep -Fq 'net.mullvad.mullvadvpn.app.VpnActivity' artifacts/plume-mullvad/release-manifest.txt
+          grep -Fq 'android.intent.category.HOME' artifacts/plume-mullvad/release-manifest.txt
+          if grep -Eq 'PlumeVpnDebugActivity|net.mullvad.mullvadvpn.feature.appearance.impl.obfuscation.MainActivityAlt' artifacts/plume-mullvad/release-manifest.txt; then
+            echo "::error::Legacy or Mullvad-phone entry is exported in release manifest"
+            exit 1
+          fi
+          cp "$release_apk" artifacts/plume-mullvad/Plume-Launcher-Advanced-Mullvad-arm64-release-unsigned.apk
+          (cd artifacts/plume-mullvad && sha256sum \
+            Plume-Launcher-Advanced-Mullvad-arm64-debug.apk \
+            Plume-Launcher-Advanced-Mullvad-arm64-release-unsigned.apk > SHA256SUMS)
+          {
+            echo '### Plume + Mullvad: same single package in Debug and Release variants'
+            echo 'Package: dev.plume.advanced; flavor: ossProd; ABI: arm64-v8a'
+            echo "Debug APK bytes: $(stat -c %s "$apk")"
+            echo "Unsigned R8 release APK bytes: $(stat -c %s "$release_apk")"
+            echo 'Release is UNSIGNED by original Mullvad build configuration: sign with the existing Plume update key before installation.'
+            echo 'APK sizes, manifests, checksums and both variant outputs are under **Artifacts**.'
+          } >> "$GITHUB_STEP_SUMMARY"
+          # Keep numeric bytes visible in the downloadable job log, not just the UI summary.
+          echo "M12 APK BYTES debug=$(stat -c %s "$apk") release_unsigned=$(stat -c %s "$release_apk")"
+
+      - name: Upload integrated debug APK and evidence
+        uses: actions/upload-artifact@v5
+        with:
+          name: Plume-Mullvad-ARM64-Debug-${{ github.run_number }}
+          path: artifacts/plume-mullvad/
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
