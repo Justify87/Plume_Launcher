@@ -5153,7 +5153,7 @@ class MainActivity : Activity() {
             nuvioProviderFeeds = NuvioProviderFeeds.EMPTY
             nuvioDashboardFeed = NuvioDashboardFeed.EMPTY
             if (::vDesign.isInitialized) vDesign.bindFeed(nuvioDashboardFeed)
-                return
+            return
         }
         io.execute {
             val list = try {
