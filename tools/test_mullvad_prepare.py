@@ -298,6 +298,12 @@ class PreparationTests(unittest.TestCase):
             (root / "app/src/main/AndroidManifest.xml").write_text(
                 (prepare.ROOT / "app/src/main/AndroidManifest.xml").read_text()
             )
+            (root / "app/build.gradle.kts").write_text(
+                'android { defaultConfig {\n'
+                '        versionName = "1.7.1"\n'
+                '        versionCode = 10\n'
+                '} }\n'
+            )
             (root / "CHANGELOG.md").write_text("## 1.7.1\n- Test\n")
             class_names = (upstream / "android/lib/common/src/main/kotlin/net/mullvad/"
                            "mullvadvpn/lib/common/constant/ClassNames.kt")
@@ -323,6 +329,8 @@ class PreparationTests(unittest.TestCase):
                 )
                 self.assertIn('implementation(project(":plume-ui"))', host)
                 self.assertIn('net.mullvad.mullvadvpn', (upstream / "android/app/build.gradle.kts").read_text())
+                self.assertIn('val version = "1.7.1"',
+                              (generated / "plume-ui/build.gradle.kts").read_text())
                 self.assertTrue((generated / "plume-ui/src/main/AndroidManifest.xml").exists())
                 self.assertTrue((generated / "app/src/ossProdDebug/AndroidManifest.xml").exists())
                 self.assertTrue((generated / "app/src/ossProd/kotlin/net/mullvad/mullvadvpn/app/VpnActivity.kt").exists())
