@@ -52,7 +52,7 @@ def prepare(root: Path, version: str, notes_output: Path | None = None) -> int:
         # Supported for main branches protected by required PR checks: prepare
         # version/changelog in a reviewed PR, then publish this exact commit.
         # Also permits recovering an interrupted publish after the main push.
-        heading = re.search(rf"(?m)^## {re.escape(version)}[ \\t]*$", changelog)
+        heading = re.search(rf"(?m)^## {re.escape(version)}[ \t]*$", changelog)
         if heading is None:
             raise ValueError(f"Source is already v{version}, but changelog heading is missing")
         next_heading = HEADING.search(changelog, heading.end())
@@ -61,7 +61,7 @@ def prepare(root: Path, version: str, notes_output: Path | None = None) -> int:
             raise ValueError(f"Release section ## {version} needs at least one bullet")
         if notes_output is not None:
             notes_output.parent.mkdir(parents=True, exist_ok=True)
-            notes_output.write_text(f"# Plume Launcher Advanced v{version}\\n\\n{notes}\\n", encoding="utf-8")
+            notes_output.write_text(f"# Plume Launcher Advanced v{version}\n\n{notes}\n", encoding="utf-8")
         return current_code
     markers = list(UNRELEASED.finditer(changelog))
     if len(markers) != 1:
@@ -73,7 +73,7 @@ def prepare(root: Path, version: str, notes_output: Path | None = None) -> int:
     notes = changelog[start:next_heading.start()].strip()
     if not any(line.startswith("- ") and line[2:].strip() for line in notes.splitlines()):
         raise ValueError("Unreleased changelog must have at least one release-note bullet")
-    if re.search(rf"(?m)^## {re.escape(version)}[ \\t]*$", changelog):
+    if re.search(rf"(?m)^## {re.escape(version)}[ \t]*$", changelog):
         raise ValueError(f"Release heading ## {version} already exists")
 
     # Preserve all Unreleased notes under the new version, keep a fresh empty
