@@ -8,8 +8,11 @@ Er ersetzt nicht den vollständigen PR-Regressionstest und ist **kein Release**.
 
 1. Öffne [GitHub Actions](https://github.com/Justify87/Plume_Launcher/actions)
    und wähle **Build Plume Launcher Advanced Debug APK**.
-2. Wähle **Run workflow** und den gewünschten Git-Branch (z. B. `main`).
-   Standardmäßig sollte der aktuell ausgewählte Branch verwendet werden.
+2. Wähle **Run workflow**. Lass das Workflow-Dropdown auf **main**,
+   damit immer der aktuelle Debug-Workflow ausgeführt wird. Gib im Feld
+   **source_ref** die zu bauende Quellversion an: `main`, einen Feature-Branch
+   oder einen Commit-SHA. Damit kannst du auch ältere Feature-Branches testen,
+   ohne deren möglicherweise veraltete Workflow-Dateien auszuführen.
 3. Nach grünem Build den Artefakt-Eintrag
    `Plume-Mullvad-ARM64-Debug-<run number>` herunterladen und entpacken.
    Die Datei für die Installation heißt
