@@ -32,7 +32,7 @@ android {
         // Preserve the original Plume generated resource without modifying its Kotlin.
         val changelog = file("CHANGELOG.md").readText().replace("\r", "")
         val section = { v: String -> changelog.substringAfter("\n## $v\n", "").substringBefore("\n## ") }
-        val version = "1.7.1"
+        val version = "__PLUME_VERSION_NAME__"
         val minor = version.split('.').take(2).joinToString(".")
         val notes = (section(version) + if (minor != version) "\n" + section(minor) else "")
             .lines().filter { it.startsWith("- ") || it.startsWith("### ") }
@@ -183,7 +183,7 @@ def plume_library_build() -> str:
     names = re.findall(r'(?m)^\s*versionName\s*=\s*"([^"]+)"', build)
     if len(names) != 1 or not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+(?:-(?:beta|rc)[0-9]+)?", names[0]):
         raise RuntimeError("Exactly one valid Plume versionName is required")
-    original = 'val version = "1.7.1"'
+    original = 'val version = "__PLUME_VERSION_NAME__"'
     if PLUME_LIBRARY_BUILD.count(original) != 1:
         raise RuntimeError("Staged Plume version template changed unexpectedly")
     return PLUME_LIBRARY_BUILD.replace(original, f'val version = "{names[0]}"', 1)
