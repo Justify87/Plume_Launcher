@@ -1,3 +1,79 @@
+# V-Design — kanonischer State (M05)
+
+> **Aktueller Stand** (14.11.2026, Europe/Berlin). Frühere M00–M04-Statusangaben im nachfolgenden Text sind historische Momentaufnahmen, insbesondere der bereits gemergte M04-PR #37.
+
+```yaml
+schema: plume-v-design-handoff/v1
+checked_on: "2026-11-14 (Europe/Berlin)"
+repository: Justify87/Plume_Launcher
+target_application_id: dev.plume.advanced
+baseline_branch: main
+baseline_sha_observed: fdd10f3394463bd5d4142c9978834d78464905cc
+predecessor_milestone: M04
+predecessor_pr: 37
+predecessor_merged: true
+predecessor_merge_sha: fdd10f3394463bd5d4142c9978834d78464905cc
+nuvio_branch: dev
+nuvio_sha_observed: be4b84a84e004a2d36405601683df000d8dc446a
+milestone: M05
+status: code_docs_ci_success_evidence_followup_pending_hardware_pending
+work_branch: feature/vdesign-m05-navigation-interaction
+work_code_head_before_docs: d80aa6fdc5e4d55d2a5b003ee7ce4638ec59296d
+draft_pr: 38
+draft_pr_merged: false
+reference_path: docs/v-design/REFERENCE.png
+reference_blob: d1b14c00a6478cb3b49fcbbd637e0aa71db5df18
+reference_sha256: 95af66ad04f462867b5d52825c7e1946ac68b5e40bed52c07f4e74c085218f25
+reference_bytes: 249663
+reference_dimensions: "1536x864"
+reference_format: jpeg_jfif_misnamed_png
+reference_verified_in_m05: true
+m04_final_predecessor_ci_run: 43524952681
+m04_final_predecessor_ci_result: completed_success
+m05_code_ci_run: 43528175980
+m05_code_ci_status_at_documentation: cancelled_on_subsequent_docs_commit
+m05_code_docs_ci_run: 43528616572
+m05_code_docs_ci_check_job: 132240568044
+m05_code_docs_ci_sha: 1e8a7cb5e7d2c823a32e4069cfa96e1a71a11b0e
+m05_code_docs_ci_result: completed_success
+m05_release_apk_before_bytes: 545714
+m05_release_apk_after_bytes: 550334
+m05_release_apk_delta_bytes: 4620
+m05_docs_head_ci: pending_evidence_followup_run
+m05_native_mullvad_job: skipped_branch_filter
+m05_local_gradle: not_run_no_android_sdk_checkout
+m05_emulator: not_run
+m05_shield_pro_2019: hardware_pending
+m05_real_home_screenshot: not_run
+next_milestone: M06_remove_legacy_home_and_mode
+blockers:
+  - CI of the evidence-only documentation follow-up must be independently inspected
+  - Android TV/Shield HOME, DPAD, overlay, real Nuvio episode playback, HDMI and VPN runtime still untested
+  - M06 removes legacy hidden home views and mode after preserving all reachable functions
+```
+
+## Tatsächlich implementiertes M05
+
+- **Baseline:** [M04 PR #37](https://github.com/Justify87/Plume_Launcher/pull/37) am `main@fdd10f3394463bd5d4142c9978834d78464905cc` gemergt, CI [Run 43524952681](https://github.com/Justify87/Plume_Launcher/actions/runs/43524952681) auf M04-Code-und-Docs-HEAD tatsächlich `completed/success`. Nuvio `dev@be4b84a84e004a2d36405601683df000d8dc446a` ausschließlich gelesen. Historische Mullvad-Docs liegen korrekt in `docs/archive/legacy-features/mullvad-vpn/`; Originalgitlink `third_party/mullvadvpn-app` blieb unberührt.
+- **Referenz erneut geprüft:** Originalbytes von `REFERENCE.png` aus GitHub-Base64 gelesen, JPEG/JFIF-Header sowie SOF0-Maße 1536×864 eigenständig geprüft, SHA-256 `95af66ad04f462867b5d52825c7e1946ac68b5e40bed52c07f4e74c085218f25` für 249663 Bytes unabhängig neu berechnet. Kein Real-App-Screenshot/Pixelvergleich.
+- **Fokus:** `VDesignFocusNavigator.kt` trifft reine, deterministische Entscheidungen anhand der echten 4 visuellen Reihen und Kartenbreiten. `VDesignHomeView.kt` führt D-Pad aus, überspringt leere Bereiche, führt aus der ersten erreichbaren Karte zurück zur Sidebar und merkt pro Kategorie den stabilen Medien-Schlüssel. Alle Fokusziele sind aktuelle, angehängte, sichtbare Views. UPCOMING >8 bleibt per Viererschritt-Paging und Identitätserhalt erreichbar; weder 14 leere Kachel-Dummies noch alte Home-Views sind fokussierbar.
+- **Lebenszyklus:** `MainActivity.kt` verdrahtet `onResume/onNewIntent/onBackPressed`, All-Apps-/Settings-Schließung und das D-Pad vor `homeNav`; kein unerwarteter Alt-Layout-Fokus. HOME kehrt zum aktuellen V-Design zurück, Back zu Sidebar/Overlays. VPN-Rückkehr verwendet den alten, bestehenden integrierten Activity-Einstieg. `refreshVDesignNavigation()` entfernt nicht installierte Links; Menu-Fokus fällt auf tatsächlich sichtbare Sidebar-Einträge zurück.
+- **Aktionen:** Sidebar Nuvio/SmartTube als echte installierte App-Ziele; `Übersicht` langes OK für vorhandenes All Apps; `Einstellungen` normales OK fürs existierende Settings-Overlay, langes OK für HDMI/Quellen, Android-/WLAN-Systemeinstellungen, Power und vorhandene Home-Einrichtung. Kein sechster sichtbarer Sidebarpunkt. Die kompakte Hilfe steht in `contentDescription`.
+- **Nuvio-Intent:** `VDesignLaunchPolicy.kt` validiert exakte explizite Nuvio MainActivity, Publisher-Paket/Aktion, Daten-/Selector-Freiheit. Für MainActivity-Start entsteht ein frisches Intent, das nur die dokumentierten skalaren Nuvio-Felder kopiert; UPCOMING bekommt ausnahmslos `launchMode=detail` ohne `videoId`; nur nachgewiesene In-Progress-/Available-`stream`-Intents mit echter Video-ID starten Playback, sonst ehrlicher Detail-/Unavailable-Fallback. Nuvios eigener Classic-Mischkanal und SmartTube-Content bleiben unberührt.
+- **Tests/CI:** Neue JVM-Klassen `VDesignFocusNavigatorTest` und `VDesignLaunchPolicyTest` committed. Code-PR [Draft #38](https://github.com/Justify87/Plume_Launcher/pull/38), erster korrigierter Code-HEAD-Lauf [43528175980](https://github.com/Justify87/Plume_Launcher/actions/runs/43528175980) bei Dokumentation `in_progress`; keine erfundene grüne Abnahme. Lokales SDK/TV-/Shield-Testgerät nicht verfügbar (`not_run/hardware_pending`). Nach dem Evidence-Docs-Commit dessen neuen finalen CI-HEAD separat prüfen; dieser Snapshot bleibt nur historisch für den vorherigen Quell-HEAD.
+- **Review:** [REVIEWS.md](REVIEWS.md) M05, [TEST_MATRIX.md](TEST_MATRIX.md) M05; **genau nächster Meilenstein M06**. Ohne Nutzerfreigabe bleibt [PR #38](https://github.com/Justify87/Plume_Launcher/pull/38) Draft und ungemergt.
+
+### M05 CI-Finalisierung nach dem ersten Code-und-Docs-Commit
+
+- **Unveränderlicher Code-und-Docs-HEAD** [`1e8a7cb5`](https://github.com/Justify87/Plume_Launcher/commit/1e8a7cb5e7d2c823a32e4069cfa96e1a71a11b0e): [Run 43528616572](https://github.com/Justify87/Plume_Launcher/actions/runs/43528616572), [Job check 132240568044](https://github.com/Justify87/Plume_Launcher/actions/runs/43528616572/job/132240568044) **completed/success**. `./gradlew testDebugUnitTest lintDebug`, `assembleDebug assembleRelease`, Repo-Regeln, Installer-/Spotify-/Mullvad-Offline-Tests bestanden.
+- Im Check-Log tatsächlich gemessen: Release `545714 → 550334` Bytes (**+4620**). Bestehende Lint-Baseline beibehalten, keine neuen Permissions. [Native Mullvad Job 132240569945](https://github.com/Justify87/Plume_Launcher/actions/runs/43528616572/job/132240569945) **skipped** durch Branchfilter (keine Rust/JNI-Runtime-Aussage).
+- Frühere Runs [43528093899](https://github.com/Justify87/Plume_Launcher/actions/runs/43528093899) und [43528175980](https://github.com/Justify87/Plume_Launcher/actions/runs/43528175980) **cancelled** durch nachfolgende Commits, nicht als Success zählen. Dieser CI-Evidenznachtrag erzeugt erneut einen SHA; dessen CI ist beim Schreiben noch **pending** und darf nicht voreilig als passed markiert werden.
+- Physische Shield Pro 2019, Emulator, Live-Nuvio, VPN-Tunnel und Referenz-Pixelvergleich bleiben **not_run/hardware_pending**; gesamter Meilenstein weiterhin **partial** bis Geräte-Abnahme.
+
+---
+
+## Historische Vorstände (M00–M04; keine aktuellen PR-/CI-Behauptungen)
+
 # V-Design — kanonischer State (M04)
 
 > Ausschließlich dieser erste Block beschreibt den aktuellen Stand. M00–M03 unten sind **historische** Reviewstände, keine aktuellen offenen PRs.

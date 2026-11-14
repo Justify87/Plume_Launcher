@@ -581,6 +581,11 @@ class MainActivity : Activity() {
         refreshVDesignNavigation()
         vDesign.bindFeed(nuvioDashboardFeed)
         scheduleVDesignMidnight()
+        ui.post {
+            if (!isDestroyed && ::vDesign.isInitialized && vDesign.isShown &&
+                settingsScrim.visibility != View.VISIBLE && allApps.visibility != View.VISIBLE &&
+                !vDesign.hasFocus() && setupDialog?.isShowing != true) vDesign.restoreFocus()
+        }
         refreshWatchNext()
         refreshYouTubeSubscriptions()
         showWeather()
@@ -1066,7 +1071,7 @@ class MainActivity : Activity() {
         // Home from an app goes back to the tile or card it was started from, wherever focus is now. If Plume did not start the app,
         // or the tile or card is gone, Home starts again at the first tile.
         if (::vDesign.isInitialized) {
-            vDesign.focusOverview()
+            vDesign.restoreFocus()
             return
         }
         if (homeLayoutMode == HomeLayoutMode.OVERVIEW) {
@@ -1086,6 +1091,7 @@ class MainActivity : Activity() {
         when {
             settingsScrim.visibility == View.VISIBLE -> pageBack?.invoke() ?: closeLauncherSettings()
             allApps.visibility == View.VISIBLE -> closeAllApps()
+            ::vDesign.isInitialized && vDesign.hasFocus() -> vDesign.focusRememberedSidebar()
             !::vDesign.isInitialized && homeLayoutMode == HomeLayoutMode.OVERVIEW && backPage != null -> {
                 homePage = backPage
                 sidebarSelection = HomeSidebarView.OVERVIEW
@@ -2554,7 +2560,11 @@ class MainActivity : Activity() {
         pageBack = null
         settingsScrim.visibility = View.GONE
         homeFocusable(allApps.visibility != View.VISIBLE) // the PIN can open over All apps
-        (panelFrom?.takeIf { it.isAttachedToWindow && it.isShown } ?: findViewById(R.id.launcherSettings)).requestFocus()
+        val previous = panelFrom?.takeIf { it.isAttachedToWindow && it.isShown }
+        if (previous?.requestFocus() != true) {
+            if (!::vDesign.isInitialized || !vDesign.restoreFocus())
+                findViewById<View>(R.id.launcherSettings).requestFocus()
+        }
         panelFrom = null
     }
 
@@ -4014,6 +4024,7 @@ class MainActivity : Activity() {
         }
         if (editing && editKey(e, confirm)) return true
         if (e.action == KeyEvent.ACTION_DOWN && settingsScrim.visibility != View.VISIBLE && allApps.visibility != View.VISIBLE) {
+            if (::vDesign.isInitialized && vDesign.handleDpad(currentFocus, e.keyCode)) return true
             currentFocus?.let { homeNav(it, e.keyCode) }?.let { it.requestFocus(); return true }
         }
         return super.dispatchKeyEvent(e)
@@ -4149,7 +4160,7 @@ class MainActivity : Activity() {
         vDesign.bindFeed(nuvioDashboardFeed)
         vDesign.post {
             if (ready && settingsScrim.visibility != View.VISIBLE && allApps.visibility != View.VISIBLE)
-                vDesign.focusOverview()
+                vDesign.restoreFocus()
         }
     }
 
@@ -4186,7 +4197,23 @@ class MainActivity : Activity() {
                     }
                 }
             }
-        }, onAllApps = { openAllApps() })
+        }, onAllApps = {
+            if (!holdFired) { holdFired = true; openAllApps() }
+        }, onSystemActions = { anchor ->
+            if (!holdFired) { holdFired = true; showVDesignSystemActions(anchor) }
+        })
+    }
+
+    /** Long OK on Settings retains the old invisible top bar's system entry points. */
+    private fun showVDesignSystemActions(anchor: View) {
+        val shortcuts = buildList<Pair<String, () -> Unit>> {
+            if (sources.isNotEmpty()) add("HDMI / Quellen" to { showSources(anchor) })
+            add("Android-Einstellungen" to { unlock { openSettings(Settings.ACTION_SETTINGS) } })
+            add("WLAN-Einstellungen" to { unlock { openSettings(Settings.ACTION_WIFI_SETTINGS) } })
+            add("Power" to { powerDialog(anchor) })
+            add("Home-Einrichtung" to { startHomeSetup() })
+        }
+        holdMenu(anchor, shortcuts, below = true)
     }
 
     /** One local civil-day timer only while foreground; M04 can rebind dates without polling. */
@@ -4435,47 +4462,57 @@ class MainActivity : Activity() {
         toast(getString(R.string.tv_feed_unavailable))
     }
 
-    /** Categorized Nuvio TV preview programs, never SmartTube or the legacy mixed channel. */
+    /** Only typed Nuvio TV programs can launch, never SmartTube or the legacy mixed channel. */
     private fun openVDesignMedia(item: NuvioMediaItem) {
         val pkg = item.sourcePackage.takeIf(AndroidTvMediaSource::isNuvioPackage)
             ?: return toast(getString(R.string.tv_feed_unavailable))
-        val parsed = try {
+        val raw = try {
             item.intentUri?.takeIf { it.isNotBlank() }?.let {
                 Intent.parseUri(it, Intent.URI_INTENT_SCHEME)
             }
+        } catch (_: Exception) { null } ?: return toast(getString(R.string.tv_feed_unavailable))
+
+        // Strip provider flags, data, categories, selector, ClipData and arbitrary extras.
+        // Only scalar fields published by Nuvio's AndroidTvChannelManager are copied.
+        if (!VDesignLaunchPolicy.safeComponent(pkg, raw.component?.packageName,
+                raw.component?.className, raw.`package`, raw.action,
+                raw.data?.scheme, raw.selector != null)) {
+            return toast(getString(R.string.tv_feed_unavailable))
+        }
+        fun string(key: String): String? = try { raw.getStringExtra(key) } catch (_: Exception) { null }
+        fun episodeNumber(key: String): Int? = try {
+            raw.getIntExtra(key, -1).takeIf { it >= 0 }
         } catch (_: Exception) { null }
-        // Nuvio writes an explicit MainActivity component. Do not launch arbitrary components,
-        // implicit web links, selectors or another application's intent from a TV provider.
-        val direct = parsed?.takeIf { intent ->
-            intent.component?.packageName == pkg &&
-                intent.component?.className == "com.nuvio.tv.MainActivity" &&
-                (intent.`package` == null || intent.`package` == pkg) &&
-                (intent.action == null || intent.action == Intent.ACTION_VIEW)
-        }?.apply {
+
+        val id = string("contentId")
+        val type = string("contentType")?.lowercase(java.util.Locale.ROOT)
+        val video = string("videoId")
+        val name = string("name")
+        val mode = VDesignLaunchPolicy.mode(
+            item.section, id, type, video, name, string("launchMode"))
+        if (mode == VDesignLaunchPolicy.Mode.UNAVAILABLE)
+            return toast(getString(R.string.tv_feed_unavailable))
+        val direct = Intent(Intent.ACTION_VIEW).apply {
+            component = ComponentName(pkg, "com.nuvio.tv.MainActivity")
             setPackage(pkg)
-            action = Intent.ACTION_VIEW
-            selector = null
-            clipData = null
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-            // UPCOMING is NEVER playable even if a malformed publisher says "stream".
-            if (item.section == NuvioSection.UPCOMING) {
-                putExtra("launchMode", "detail")
-                removeExtra("videoId")
-            }
+            putExtra("contentId", id)
+            putExtra("contentType", type)
+            putExtra("launchMode", if (mode == VDesignLaunchPolicy.Mode.STREAM) "stream" else "detail")
+            for (key in listOf("name", "poster", "backdrop", "logo", "episodeTitle"))
+                string(key)?.let { putExtra(key, it) }
+            for (key in listOf("season", "episode"))
+                episodeNumber(key)?.let { putExtra(key, it) }
+            // Future episodes never carry a playable videoId.
+            if (mode == VDesignLaunchPolicy.Mode.STREAM) putExtra("videoId", video)
         }
-        val fallback = if (item.section == NuvioSection.UPCOMING) null else try {
-            packageManager.getLeanbackLaunchIntentForPackage(pkg)
-        } catch (_: Exception) { null }
-        for (target in listOfNotNull(direct, fallback)) {
-            try {
-                startApp(target, currentFocus)
-                prefs.edit().putLong("t_$pkg", System.currentTimeMillis()).apply()
-                return
-            } catch (e: Exception) {
-                android.util.Log.w("Plume", "V-Design Nuvio deep link failed: $pkg", e)
-            }
+        try {
+            startApp(direct, currentFocus)
+            prefs.edit().putLong("t_$pkg", System.currentTimeMillis()).apply()
+        } catch (e: Exception) {
+            android.util.Log.w("Plume", "V-Design Nuvio deep link failed: $pkg", e)
+            toast(getString(R.string.tv_feed_unavailable))
         }
-        toast(getString(R.string.tv_feed_unavailable))
     }
 
     /** Accept only an exact YouTube video ID; never silently open an unrelated launcher page. */
@@ -4582,7 +4619,7 @@ class MainActivity : Activity() {
             tag == VDesignHomeView.OVERVIEW && allApps.visibility != View.VISIBLE &&
                 settingsScrim.visibility != View.VISIBLE -> openAllApps()
             tag == VDesignHomeView.SETTINGS && allApps.visibility != View.VISIBLE &&
-                settingsScrim.visibility != View.VISIBLE -> showSources(v)
+                settingsScrim.visibility != View.VISIBLE -> showVDesignSystemActions(v)
             allApps.visibility == View.VISIBLE && tag != null -> unlock { // grid: pin to the front of the row (unhiding it)
                 prefs.edit().putStringSet("row_hidden", rowHiddenSet() - tag).apply()
                 saveOrder(listOf(tag) + sortedApps().map { it.pkg }.filter { it != tag })
@@ -4866,9 +4903,9 @@ class MainActivity : Activity() {
      * The system's own power dialog (power off, restart; Cancel leaves everything as it was). Only the Home button service can
      * ask for it, so without the service the icon offers to turn that on.
      */
-    private fun powerDialog() {
+    private fun powerDialog(anchor: View = findViewById(R.id.powerButton)) {
         val service = HomeOverride.running
-            ?: return holdMenu(findViewById(R.id.powerButton), listOf(getString(R.string.power_needs_home) to { turnOnHomeButton() }), below = true)
+            ?: return holdMenu(anchor, listOf(getString(R.string.power_needs_home) to { turnOnHomeButton() }), below = true)
         Remap.powerMenu(service)
     }
 
@@ -5184,7 +5221,7 @@ class MainActivity : Activity() {
         if (::vDesign.isInitialized) vDesign.visibility = View.VISIBLE
         homeFocusable(true)
         renderApps()
-        if (::vDesign.isInitialized) vDesign.focusOverview()
+        if (::vDesign.isInitialized) vDesign.restoreFocus()
         else findViewById<View>(R.id.allAppsButton).requestFocus() // back where it was opened from
     }
 

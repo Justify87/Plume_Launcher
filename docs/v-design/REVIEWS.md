@@ -134,3 +134,37 @@ Das erneute systematische Zeitdaten-Review fand, dass `MainActivity` im Classic-
 ### M04 Binder-Zusatzreview: genau 3+3+8 ohne Dummy
 - `VDesignCardSlots` erlaubt nur die drei M02-Nuvio-Abschnitte mit tatsächlich vorhandenem Item; verfügbare Sichtplätze dürfen weder andere Kategorien noch erfundene Daten zeigen. Die Zähler stammen weiterhin aus den vollständigen Datenlisten.
 - Paginierung für 13 UPCOMING-Einträge endet beim echten letzten Element `offset=5`; bottom row down bzw. top row up muss innerhalb `0..max(total-8,0)` bleiben. Tests `VDesignCardSlotsTest.kt` für diesen Randfall und Leerstand committed in [3516fb](https://github.com/Justify87/Plume_Launcher/commit/3516fb0463747a72b84604e3b6b9490b0ceb33f8), Run-Status vor finaler CI nicht behauptet. Renderer source-reviewed, Screenshot/GPU/Shield `not_run`. **Handoff M05 unverändert.**
+
+
+## M05 — Navigation, Interaktion, Fokus und Intent-Grenzen (2026-11-14)
+
+**Zielzustand:** **Code und JVM-Testfälle implementiert**, [Draft PR #38](https://github.com/Justify87/Plume_Launcher/pull/38) nicht gemergt; **CI-/Emulator-/Hardware-Abnahme noch nicht vollständig**, daher **partial_hardware_pending**, kein vollwertiges `passed`.
+
+### Reale Basis und Scope
+
+- M04 [#37](https://github.com/Justify87/Plume_Launcher/pull/37) merged, `main@fdd10f3394463bd5d4142c9978834d78464905cc`; letzter M04-Source-CI [43524952681](https://github.com/Justify87/Plume_Launcher/actions/runs/43524952681) `completed/success`. Nuvio `dev@be4b84a84e004a2d36405601683df000d8dc446a` read-only.
+- GitHub-Originalreferenz unabhängig erneut geprüft, SHA-256 `95af66ad04f462867b5d52825c7e1946ac68b5e40bed52c07f4e74c085218f25`, JPEG/JFIF 1536×864, 249663 Bytes. Kein Ersatz-Referenzbild, keine Live-Pixelmessung.
+- Dateien: neue `VDesignFocusNavigator.kt`, `VDesignLaunchPolicy.kt`, `VDesignFocusNavigatorTest.kt`, `VDesignLaunchPolicyTest.kt`, Anpassungen `VDesignHomeView.kt`, `VDesignCardView.kt`, eng begrenzte Lifecycle-/Action-/Intent-Verkabelung in `MainActivity.kt`. Kein Manifest-/Gradle-/Mullvad-Submodul-Eingriff, keine neue Berechtigung.
+
+### Review der kritischen Verhaltensgrenzen
+
+- **Fokusmatrix**: 4 geometrische Reihen mit Hero-Breite, nur tatsächlich gebundene/fokussierbare Zellen, keine rechts/links Wrap-Überraschungen, ↑/↓ überspringt leere Reihen und wählt nach tatsächlicher horizontaler Überlappung. Beim ersten erreichbaren linken Element führt ← in zuletzt fokussierte Sidebar-Zeile. UPCOMING-Paging 8-Slot-Fenster mit echten Count/Offsets; Key-Speicher aktualisiert sich beim Card-Fokus.
+- **Refresh, Resume, HOME**: Media-IDs/Sections und Sidebar-Key werden anstelle eines dauerhaft gehaltenen View-Objekts gespeichert. `bindFeed` stellt auf exakte aktuelle Episode, ggf. gleiches Segment oder erste reale Karte/Sidebar wieder her; `restoreFocus()` vermeidet detached/unsichtbare Views. `onResume` setzt Fokus nur ohne aktiven Overlay-/Setup-Dialog. `onNewIntent(HOME)` schließt Overlays, danach V-Design-Resume statt Legacy-Topbar. `onBackPressed` schließt zuerst Overlay; Karten-Back zum gemerkten Sidebarziel. Echtgeräte-Test noch **nicht** ausgeführt.
+- **Intent-Fallbacks**: TV-Provider-`intent_uri` ist untrusted. Paket + Component + Aktion, kein Data-Scheme/Selector und nur Publisher-Skalarfelder; kein Fremdcomponent, keine kopierten Flags/ClipData/unsichere Extras. `launchMode`/Video-ID wird gegen Sektion geprüft. `UPCOMING` besitzt **keinen Stream-/generischen App-Fallback**, sondern nur Detail oder ehrliche Unavailable-Rückmeldung; `AVAILABLE` startet eine konkrete veröffentlichte Folge, falls Publisher-Intent sie belegt, sonst Details. Gültiges `MainActivity`-/Extra-Format gegen Nuvio-Quell-HEAD verifiziert. Laufzeit auf Shield bleibt offen.
+- **Escape/Back**: All Apps/Settings werden im gleichen Layer wie bisher geöffnet; beim Schließen `vDesign.restoreFocus` statt pauschalem Overview-Reset. Power/HDMI/OS-Settings/Home-Einrichtung trotz unsichtbarer Topbar per Settings-Long-OK erreichbar. VPN führt zur echten integrierten Mullvad-Activity und läuft über bestehendes `returnFocusFromVpn`, keine parallele VPN-Implementierung.
+- **Folgerisiko für M06**: Versteckte Alt-Hosts/Alt-Mode noch als technische Abhängigkeit im Activity-Code. `dispatchKeyEvent` priorisiert V-Design, schickt bei nicht erkanntem Fokus durch vorhandenen Legacy-Handler. M06 muss Alt-Hosts sauber entfernen und alle Settings-/Pin-/Home-Setup-/Power-Rückwege erneut testen, statt UI-Refactor im M05-Risikoscope.
+- **Offen:** reale Fernbedienung/Home-Service, Android TV HOME/Back, PIN/Overlay/Long-OK, App-Deinstallations-Refresh, Provider-Opt-in, seriengenaue Nuvio-Fortsetzung, echtes VPN, HDMI/Power, Focus-Accessibility und Performance. Ohne Emulator/Shield und TV-Provider keine Hardware-Erfolge.
+
+### Tatsächlich ausgeführte Prüfungen
+
+- Source-/Git-Compare und Original-SHA erfolgreich, neue JVM-Unit-Tests **committed, Lauf zunächst ausstehend**. Android/Gradle lokal `not_run` (kein Checkout/Android-SDK, Container kann GitHub DNS nicht erreichen); Android-TV-Emulator, NVIDIA Shield Pro 2019, echte Nuvio-/Mullvad-Session `not_run/hardware_pending`. APK-Size/Mem/GPU in M05 bis CI nicht gemessen.
+- [CI-Code-HEAD 43528175980](https://github.com/Justify87/Plume_Launcher/actions/runs/43528175980), [check Job 132239022875](https://github.com/Justify87/Plume_Launcher/actions/runs/43528175980/job/132239022875) zur Dokumentationszeit **in_progress**, Repo-Regelcheck `success`, noch keine volle Gradle-/Buildbestätigung. Mullvad-native Job `skipped`, daher keine JNI-/Tunnel-Runtime-Evidenz. Nach finalem Code-und-Docs-Commit aktuellen CI-Run/Job neu ermitteln; die vorherigen Statusaussagen gelten nur als historische Momentaufnahme.
+- Keine Mergefreigabe angefragt/erteilt, PR bleibt **Draft**. **Exakt nächster Meilenstein: M06**.
+
+
+
+### M05 CI-Abschluss des Code-und-Docs-Commits; Evidence-Docs-Follow-up bleibt unabhängig (2026-11-14)
+
+Nach tatsächlich beobachtetem Workflow [43528616572](https://github.com/Justify87/Plume_Launcher/actions/runs/43528616572) auf exakt `1e8a7cb5e7d2c823a32e4069cfa96e1a71a11b0e` ist [check Job 132240568044](https://github.com/Justify87/Plume_Launcher/actions/runs/43528616572/job/132240568044) **completed/success**. Log: `./gradlew testDebugUnitTest lintDebug` **BUILD SUCCESSFUL**, danach `./gradlew assembleDebug assembleRelease` **BUILD SUCCESSFUL**. Repo-Regelprüfung, ADB-Installer-Regressionen, Spotify- und Mullvad-Offline-Python-Suites ebenfalls erfolgreich. Release-Größe gemessen **545714 → 550334 Bytes (+4620)**. Bestehende Lint-Baseline unverändert, Quellvergleich weiterhin nur 7 Plume-Code-/Testdateien plus M05-Docs; keine Original-Mullvad-Gitlink/Manifest-Änderung. [Mullvad native job 132240569945](https://github.com/Justify87/Plume_Launcher/actions/runs/43528616572/job/132240569945) `skipped`, keine Live-VPN-/Shield-Abnahme.
+
+Vorheriger [Run 43528175980](https://github.com/Justify87/Plume_Launcher/actions/runs/43528175980) ist nach dem Dokumentationscommit **cancelled**; er wird nicht als Pass gezählt. **Dieses Evidence-Update ist ein neuer HEAD mit gesondertem künftigem CI-Run**; nicht voreilig als passed ausgeben. Source-/CI-Gates für M05 sind auf `1e8a7cb5` nachweislich erfolgreich, Gesamt-Hardware-Gate weiterhin `hardware_pending`; PR #38 bleibt Draft/ungemergt.

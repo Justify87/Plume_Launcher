@@ -40,10 +40,16 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
 
     private val anchored = mutableListOf<Pair<View, VDesignCanvas.Box>>()
     private val menu = mutableListOf<View>()
+    private val cardBoxes = mutableMapOf<VDesignCardView, VDesignCanvas.Box>()
+    private var lastSidebarKey = OVERVIEW
+    private var lastSection: NuvioSection? = null
+    private var preferMediaOnReturn = false
+    private val lastMediaKey = mutableMapOf<NuvioSection, String>()
     private val titleAvailable: TextView
     private val titleUpcoming: TextView
     private var open: (String) -> Unit = {}
     private var allApps: () -> Unit = {}
+    private var systemActions: (View) -> Unit = {}
     private var onMediaOpen: (NuvioMediaItem) -> Unit = {}
     private var artworkLoader: (ImageView, String?) -> Unit = { _, _ -> }
     private var mediaSourceIcon: (String) -> Drawable? = { null }
@@ -126,23 +132,15 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
             loadArtwork = { image, uri -> artworkLoader(image, uri) },
             sourceMark = { pkg -> mediaSourceIcon(pkg) })
         view.onSelect = { onMediaOpen(it) }
-        if (kind == VDesignCardView.Kind.COMPACT) {
-            val slot = upcomingCards.size
-            view.setOnKeyListener { _, key, event ->
-                if (event.action != KeyEvent.ACTION_DOWN) return@setOnKeyListener false
-                val direction = when (key) {
-                    KeyEvent.KEYCODE_DPAD_DOWN -> 1
-                    KeyEvent.KEYCODE_DPAD_UP -> -1
-                    else -> 0
-                }
-                val next = VDesignCardSlots.nextUpcomingOffset(
-                    latestFeed.upcoming.size, upcomingOffset, slot, direction)
-                if (next == upcomingOffset) return@setOnKeyListener false
-                upcomingOffset = next
-                bindUpcoming()
-                true // same focused physical card, newly exposed logical row
+        view.onFocused = { card ->
+            val item = card.media
+            if (item != null) {
+                lastSection = item.section
+                lastMediaKey[item.section] = item.stableId
+                preferMediaOnReturn = true
             }
         }
+        cardBoxes[view] = box
         mount(view, box)
         into += view
     }
@@ -176,8 +174,9 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
 
     /** Reuse the 14 slots across provider refreshes and local-midnight invalidation. */
     fun bindFeed(feed: NuvioDashboardFeed) {
-        val focusedId = (progressCards + availableCards + upcomingCards)
-            .firstOrNull { it.isFocused }?.media?.stableId
+        val focusedCard = cards().firstOrNull { it.isFocused }
+        val focusedId = focusedCard?.media?.stableId
+        val focusedSection = focusedCard?.media?.section
         latestFeed = feed
         lastNow = Instant.now()
         lastZone = ZoneId.systemDefault()
@@ -200,11 +199,12 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
         }
         upcomingOffset = upcomingOffset.coerceAtMost((feed.upcoming.size - 8).coerceAtLeast(0))
         bindUpcoming()
-        if (focusedId != null) {
-            val cards = progressCards + availableCards + upcomingCards
-            val restored = cards.firstOrNull { it.media?.stableId == focusedId }
-                ?: cards.firstOrNull { it.isFocusable }
-            if (restored == null) focusOverview() else restored.requestFocus()
+        if (focusedId != null && isShown) {
+            val restored = cards().firstOrNull {
+                it.media?.stableId == focusedId && it.media?.section == focusedSection
+            } ?: cards().firstOrNull { it.media?.section == focusedSection && it.isFocusable }
+                ?: cards().firstOrNull { it.isFocusable }
+            if (restored == null) focusRememberedSidebar() else restored.requestFocus()
         }
     }
 
@@ -213,16 +213,23 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
             card.bind(VDesignCardSlots.media(latestFeed, NuvioSection.UPCOMING,
                 index, upcomingOffset), lastNow, lastZone, lastLocale)
         }
+        upcomingCards.firstOrNull { it.isFocused }?.media?.let {
+            lastMediaKey[NuvioSection.UPCOMING] = it.stableId
+            lastSection = NuvioSection.UPCOMING
+        }
     }
 
     fun artworkReady(uri: String, bitmap: Bitmap) {
         (progressCards + availableCards + upcomingCards).forEach { it.artworkReady(uri, bitmap) }
     }
 
-    fun bindNavigation(items: List<Navigation>, onOpen: (String) -> Unit, onAllApps: () -> Unit) {
+    fun bindNavigation(items: List<Navigation>, onOpen: (String) -> Unit, onAllApps: () -> Unit,
+        onSystemActions: (View) -> Unit) {
         open = onOpen
         allApps = onAllApps
-        val focusedKey = menu.firstOrNull { it.isFocused }?.tag
+        systemActions = onSystemActions
+        val focusedKey = menu.firstOrNull { it.isFocused }?.tag as? String
+        if (focusedKey != null) lastSidebarKey = focusedKey
         for (view in menu) {
             removeView(view)
             anchored.removeAll { it.first === view }
@@ -235,7 +242,11 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
                 gravity = Gravity.CENTER_VERTICAL
                 setPadding((12 * scale()).toInt(), 0, (8 * scale()).toInt(), 0)
                 tag = item.key
-                contentDescription = item.label
+                contentDescription = when (item.key) {
+                    OVERVIEW -> item.label + ". Langes OK: Alle Apps"
+                    SETTINGS -> item.label + ". Langes OK: System, HDMI und Power"
+                    else -> item.label
+                }
                 isClickable = true
                 isFocusable = true
             }
@@ -269,9 +280,16 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
                 }
             }
             style(false)
-            bar.setOnFocusChangeListener { _, focused -> style(focused) }
+            bar.setOnFocusChangeListener { _, focused ->
+                style(focused)
+                if (focused) {
+                    lastSidebarKey = item.key
+                    preferMediaOnReturn = false
+                }
+            }
             bar.setOnClickListener { open(item.key) }
             if (item.key == OVERVIEW) bar.setOnLongClickListener { allApps(); true }
+            if (item.key == SETTINGS) bar.setOnLongClickListener { systemActions(bar); true }
             menu += bar
             // Slot indices preserve ordering if optional apps or VPN are unavailable.
             val y = when (item.key) {
@@ -284,9 +302,109 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
             }
             mount(bar, VDesignCanvas.Box(12, y, 194, 58))
         }
-        if (focusedKey != null) menu.firstOrNull { it.tag == focusedKey }?.requestFocus()
+        if (focusedKey != null && isShown) {
+            (menu.firstOrNull { it.tag == focusedKey } ?: menu.firstOrNull())?.requestFocus()
+        }
     }
 
-    fun focusOverview() = menu.firstOrNull { it.tag == OVERVIEW }?.requestFocus() == true
-    fun focusVpn() = menu.firstOrNull { it.tag == VPN }?.requestFocus() == true
+    private fun cards(): List<VDesignCardView> = progressCards + availableCards + upcomingCards
+    private fun focusableCards(): List<VDesignCardView> =
+        cards().filter { it.media != null && it.isFocusable && it.isAttachedToWindow && it.isShown }
+
+    private fun focusSidebar(key: String): Boolean {
+        val target = menu.firstOrNull { it.tag == key && it.isFocusable && it.isAttachedToWindow && it.isShown }
+            ?: menu.firstOrNull { it.isFocusable && it.isAttachedToWindow && it.isShown }
+        return target?.requestFocus() == true
+    }
+
+    fun focusRememberedSidebar(): Boolean = focusSidebar(lastSidebarKey)
+    fun focusOverview(): Boolean = focusSidebar(OVERVIEW)
+    fun focusVpn(): Boolean = focusSidebar(VPN)
+
+    private fun rememberedCard(): VDesignCardView? {
+        val section = lastSection
+        val id = section?.let { lastMediaKey[it] }
+        if (section == NuvioSection.UPCOMING && id != null) {
+            val index = latestFeed.upcoming.indexOfFirst { it.stableId == id }
+            if (index >= 0 && index !in upcomingOffset until upcomingOffset + 8) {
+                upcomingOffset = (index / 4 * 4).coerceAtMost(
+                    (latestFeed.upcoming.size - 8).coerceAtLeast(0))
+                bindUpcoming()
+            }
+        }
+        val live = focusableCards()
+        return live.firstOrNull { it.media?.section == section && it.media?.stableId == id }
+            ?: live.firstOrNull { it.media?.section == section }
+            ?: live.firstOrNull()
+    }
+
+    /** Never persist a View reference; restore only real, attached, currently bound cells. */
+    fun restoreFocus(): Boolean {
+        if (!isShown) return false
+        if (preferMediaOnReturn && rememberedCard()?.requestFocus() == true) return true
+        return focusRememberedSidebar() || rememberedCard()?.requestFocus() == true
+    }
+
+    /** Called before legacy homeNav: all visible V-Design D-pad moves are explicit. */
+    fun handleDpad(focused: View?, keyCode: Int): Boolean {
+        if (!isShown || focused == null) return false
+        val direction = when (keyCode) {
+            KeyEvent.KEYCODE_DPAD_UP -> VDesignFocusNavigator.Direction.UP
+            KeyEvent.KEYCODE_DPAD_DOWN -> VDesignFocusNavigator.Direction.DOWN
+            KeyEvent.KEYCODE_DPAD_LEFT -> VDesignFocusNavigator.Direction.LEFT
+            KeyEvent.KEYCODE_DPAD_RIGHT -> VDesignFocusNavigator.Direction.RIGHT
+            else -> return false
+        }
+        val liveCards = focusableCards()
+        val cells = liveCards.mapNotNull { card ->
+            cardBoxes[card]?.let { box ->
+                card.media?.let { VDesignFocusNavigator.Cell(it.section, cardsForSectionSlot(card), box) }
+            }
+        }
+        val menuKey = (focused.tag as? String)?.takeIf { key ->
+            menu.any { it === focused && it.tag == key }
+        }
+        val target = if (menuKey != null) {
+            val preferred = rememberedCard()?.let { card ->
+                cells.firstOrNull { it.section == card.media?.section && it.slot == cardsForSectionSlot(card) }
+            } ?: cells.firstOrNull()
+            VDesignFocusNavigator.fromSidebar(menuKey, menu.mapNotNull { it.tag as? String },
+                direction, preferred)
+        } else {
+            val card = focused as? VDesignCardView ?: return false
+            val current = cells.firstOrNull {
+                it.section == card.media?.section && it.slot == cardsForSectionSlot(card)
+            } ?: return focusRememberedSidebar()
+            if (current.section == NuvioSection.UPCOMING &&
+                (direction == VDesignFocusNavigator.Direction.UP ||
+                    direction == VDesignFocusNavigator.Direction.DOWN)) {
+                val delta = if (direction == VDesignFocusNavigator.Direction.DOWN) 1 else -1
+                val offset = VDesignCardSlots.nextUpcomingOffset(
+                    latestFeed.upcoming.size, upcomingOffset, current.slot, delta)
+                if (offset != upcomingOffset) {
+                    upcomingOffset = offset
+                    bindUpcoming()
+                    if (!card.isFocusable) {
+                        if (focusableCards().firstOrNull()?.requestFocus() != true) focusRememberedSidebar()
+                    }
+                    return true
+                }
+            }
+            VDesignFocusNavigator.next(current, cells, direction, lastSidebarKey)
+        }
+        when (target) {
+            VDesignFocusNavigator.Target.Stay -> {}
+            is VDesignFocusNavigator.Target.Sidebar -> focusSidebar(target.key)
+            is VDesignFocusNavigator.Target.Card -> liveCards.firstOrNull {
+                it.media?.section == target.section && cardsForSectionSlot(it) == target.slot
+            }?.requestFocus()
+        }
+        return true
+    }
+
+    private fun cardsForSectionSlot(card: VDesignCardView): Int = when {
+        card in progressCards -> progressCards.indexOf(card)
+        card in availableCards -> availableCards.indexOf(card)
+        else -> upcomingCards.indexOf(card)
+    }
 }

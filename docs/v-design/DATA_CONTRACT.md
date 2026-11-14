@@ -75,3 +75,10 @@ Die Nuvio-Channelmanager-Implementierung kodiert einen expliziten `Intent(contex
 - `episodeTitle` nur bei Verfügbarkeit, `seasonNumber`/`episodeNumber` separat optional. Bei UPCOMING nur bestehendes `LocalDate` + dynamischer `daysUntilRelease`-Countdown.
 - `showNewBadge` false, solange die Quell-App den erforderlichen strukturierten Indikator nicht veröffentlicht. Die vorhandene `shortDescription` ist kein maschinenlesbares Flag.
 - Streng validierte TV-Intents zu expliziter Nuvio-MainActivity; UPCOMING nur `detail`. Nuvio-Classic/Legacy-Continue bleibt in Nuvio unverändert; Plume mischt ihn nicht unter neue Kategorien.
+
+
+## M05 — Intent-Policy nach Source-Review gegen Nuvio `dev@be4b84a84e004a2d36405601683df000d8dc446a`
+
+Der originale `AndroidTvChannelManager.programValues()` veröffentlicht per `Intent(context, MainActivity::class.java)` eine explizite `ACTION_VIEW`-MainActivity, `contentId`/`contentType`/`videoId`/`name`/`poster`/`backdrop`/`logo`/`episodeTitle`/`launchMode` als Strings und `season`/`episode` als optionale Integers. Nuvio MainActivity liest `launchMode` `stream` bzw. `detail`, verarbeitet auch `onNewIntent` mit diesen Feldern. Die Datenherkunft bleibt die drei separaten freigegebenen Preview-Kanäle, nicht der Publisher-Mischkanal `CONTINUE`.
+
+M05 `openVDesignMedia()` überprüft die erlaubte explizite Komponente/Paketbindung, neutralisiert untrusted Intent-Daten/Selector/Flags/ClipData und kopiert nur diese skalaren veröffentlichten Felder in einen neuen Intent. `VDesignLaunchPolicy.mode()`: `UPCOMING -> detail` (ohne `videoId`), `IN_PROGRESS` und `AVAILABLE -> stream` nur bei belegtem Stream-Mode plus Video-ID/Name, andernfalls `detail` sofern `contentId` und `contentType` valide. Bei fehlender Identität/invalidem Intent kein generischer App- oder Stream-Fallback. Das Verhalten wahrt echte Serien-/Episoden-Extras, **ersetzt aber keine physische Abnahme**, besonders wenn ein installierter Nuvio-Build von der geprüften `dev`-Quelle abweicht.

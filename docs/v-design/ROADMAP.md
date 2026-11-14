@@ -2,14 +2,14 @@
 
 **Regel:** Jeder Schritt beginnt am **tatsächlich gemergten** Vorgänger oder, solange dessen PR ungemergt ist, auf dessen **echtem PR-HEAD** (Stacking). Kanonischer Status in `STATE.md`, Tests in `TEST_MATRIX.md`; keine `passed`-Erfindungen.
 
-| Schritt | Abhängigkeit | Konkretes Deliverable | Stand 2026-11-13 | Branch / PR | Review |
+| Schritt | Abhängigkeit | Konkretes Deliverable | Stand 2026-11-14 | Branch / PR | Review |
 | --- | --- | --- | --- | --- | --- |
 | M00 | Plume baseline; #32 + #33 merged | Originalreferenz, Verträge, Baseline, Inventar | **source/reference+CI passed; hardware not applicable** | [#32](https://github.com/Justify87/Plume_Launcher/pull/32) + [#33](https://github.com/Justify87/Plume_Launcher/pull/33) merged; [CI success 43509990732](https://github.com/Justify87/Plume_Launcher/actions/runs/43509990732) | `REVIEWS.md#M00` |
 | M01 | M00 merged `59c7988` | Exakte Nuvio-Provider-/Paket-/Opt-in-Zuordnung, separate ungerenderte Daten | **merged into main `3d4abbdf`; final CI success, hardware pending** | [#34](https://github.com/Justify87/Plume_Launcher/pull/34) merged; [run 43514084610](https://github.com/Justify87/Plume_Launcher/actions/runs/43514084610) success | `REVIEWS.md#M01` |
 | M02 | M01 merged `3d4abbdf` | Drei Datenkategorien, Episode-Dedupe, Prozent vs. Dauer, civil date/Countdown | **merged `main@3f77ba55`; code CI success, Shield pending** | [#35](https://github.com/Justify87/Plume_Launcher/pull/35) merged; [run 43517654027](https://github.com/Justify87/Plume_Launcher/actions/runs/43517654027) success on code HEAD | `REVIEWS.md#M02` |
 | M03 | M02 merged `3f77ba55` | Ein sichtbarer V-Home-Host, 14 neutrale Geometrieplätze, fünf Sidebar-Ziele und echter Nuvio-Count | **merged `main@763869b8`; code+docs CI success on `8160f2bf`; Shield pending** | [#36](https://github.com/Justify87/Plume_Launcher/pull/36) merged | `REVIEWS.md#M03` |
-| M04 | M03 merged `763869b8` | 14 echte Nuvio-Hero-/Standard-/Compact-Cards, Poster/Progress/Datum und Intents | **code committed, PR CI in progress, Shield pending** | [Draft #37](https://github.com/Justify87/Plume_Launcher/pull/37), `feature/vdesign-m04-card-styling` | `REVIEWS.md#M04` |
-| M05 | M04 | D-Pad, All Apps, Settings, HDMI, Back/HOME und Details-/Playback-Ziele | not_started | — | pending |
+| M04 | M03 merged `763869b8` | 14 echte Nuvio-Hero-/Standard-/Compact-Cards, Poster/Progress/Datum und Intents | **merged `main@fdd10f3`; final CI passed; Shield pending** | [#37](https://github.com/Justify87/Plume_Launcher/pull/37) merged, [CI 43524952681](https://github.com/Justify87/Plume_Launcher/actions/runs/43524952681) success | `REVIEWS.md#M04` |
+| M05 | M04 merged `fdd10f3` | D-Pad, All Apps, Settings, HDMI, Back/HOME und Details-/Playback-Ziele | **code+docs CI passed auf 1e8a7cb5; Evidence-Docs-Run pending; Shield pending** | [Draft #38](https://github.com/Justify87/Plume_Launcher/pull/38), `feature/vdesign-m05-navigation-interaction` | `REVIEWS.md#M05` |
 | M06 | M05 | Classic/Overview + `home_layout_mode` **wirklich entfernen**, Pref-Migration, alte Settings-Pfade sichern | not_started | — | pending |
 | M07 | M06 | Screenshotvergleich 16:9, Ressourcennutzung, Missing-Permissions, Test-/CI-Fixes | not_started | — | pending |
 | M08 | M07 | Gesamtabnahme, Shield Pro 2019 und Release-Handoff | not_started | — | pending |
@@ -67,3 +67,10 @@
 
 
 **M04 Testbarkeit:** Der gezielte JVM-Binder `VDesignCardSlots` (Commit `3516fb`) prüft 3+3+8-Slot-Zuordnung und Upcoming-Paging ohne Android-UI-Simulator. Reale Layout-/Bildprüfung bleibt M07/M08. Erster finaler CI-Gate ist weiterhin abzuwarten; M05 folgt.
+
+
+## M05-Übergabe 2026-11-14
+
+M04 PR #37 ist real gemergt auf `fdd10f3394463bd5d4142c9978834d78464905cc`; M05 Draft [#38](https://github.com/Justify87/Plume_Launcher/pull/38) verwendet ausschließlich diese Basis, [Code-HEAD d80aa6f](https://github.com/Justify87/Plume_Launcher/commit/d80aa6fdc5e4d55d2a5b003ee7ce4638ec59296d) vor Dokumentation. Keine zweite visuelle Home-Seite, keine neue Permission, keine Änderung am Mullvad-Gitlink. Die neuen räumlichen Focus- und Intent-Unit-Tests sind eingecheckt; Gradle-Lauf [43528175980](https://github.com/Justify87/Plume_Launcher/actions/runs/43528175980) zu diesem Zeitpunkt noch nicht final bestätigt. Physische Shield-, VPN- und Nuvio-Runtime-Gates bleiben `hardware_pending`. Nächster Schritt **M06**, erst nach Review des finalen PR-HEAD und ohne implizite Mergefreigabe.
+
+**M05 Code+Docs-CI-Nachtrag:** [Run 43528616572](https://github.com/Justify87/Plume_Launcher/actions/runs/43528616572), Check [132240568044](https://github.com/Justify87/Plume_Launcher/actions/runs/43528616572/job/132240568044) auf `1e8a7cb5e7d2c823a32e4069cfa96e1a71a11b0e`: **completed/success** für JVM/Lint/Debug+Release/Offline. APK `545714 → 550334` Bytes (+4620). Nativer Mullvad-Job skipped, Shield-Runtime pending. Nachgezogenes CI-Evidence-Dokument erzeugt neuen SHA, dessen Lauf erneut beobachten. PR #38 bleibt ungemergter Draft; exakt M06 danach.
