@@ -387,7 +387,6 @@ class MainActivity : Activity() {
                 // Online again (e.g. Wi-Fi coming up after boot): fetch any posters that failed meanwhile.
                 if (caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)) {
                     retryPosters()
-                    retryPosters()
                 }
             }
         }
@@ -1040,6 +1039,10 @@ class MainActivity : Activity() {
             return donePopup()
         }
         returnTo = null
+        if (movingTop != null) endTopMove(false)
+        if (settingsScrim.visibility == View.VISIBLE) closeLauncherSettings()
+        if (allApps.visibility == View.VISIBLE) closeAllApps()
+        // Home always returns to the same single V-Design, including when an overlay was open.
         vDesign.restoreFocus()
     }
 
@@ -3349,10 +3352,19 @@ class MainActivity : Activity() {
     // ---------- apps row ----------
 
     /** Labels and icons come from each app's resources, ~200 ms on this TV: done off the UI thread. */
-    /** Refresh only the surfaces that still exist; legacy rows are no longer inflated. */
+    /** Refresh only the existing surfaces, retaining the focused All Apps tile when possible. */
     private fun refreshVisibleApps() {
         refreshVDesignNavigation()
-        if (allApps.visibility == View.VISIBLE) openAllApps()
+        if (allApps.visibility == View.VISIBLE) {
+            val focusedPackage = if (settingsScrim.visibility != View.VISIBLE) currentFocus?.tag as? String else null
+            openAllApps()
+            if (focusedPackage != null) {
+                (0 until allAppsGrid.childCount).asSequence()
+                    .map { allAppsGrid.getChildAt(it) }
+                    .firstOrNull { it.tag == focusedPackage }
+                    ?.requestFocus()
+            }
+        }
     }
 
     private fun refreshApps() {
@@ -3753,12 +3765,7 @@ class MainActivity : Activity() {
         return super.dispatchKeyEvent(e)
     }
 
-    /**
-     * The home screen is three rows: top bar, apps, Continue Watching. Left/Right stay inside a row.
-     * Right from the last app returns to the first; other row ends stop focus. Up/Down move between
-     * rows and land where you last were, not on whatever happens to sit nearest on screen.
-     * Returns the view to focus (itself = stay), or null to let Android handle the key.
-     */
+    /** Mount the sole V-Design Home view above the wallpaper and below All Apps/settings overlays. */
     private fun setupVDesign() {
         val root = findViewById<FrameLayout>(R.id.root)
         vDesign = VDesignHomeView(this)
@@ -3840,7 +3847,7 @@ class MainActivity : Activity() {
         ui.postDelayed(vDesignDayTick, delay)
     }
 
-    /** The shared top bar and the unchanged Classic rows are independent of the new body. */
+    /** Launch only verified Nuvio preview-item targets from the sole V-Design. */
     private fun openVDesignMedia(item: NuvioMediaItem) {
         val pkg = item.sourcePackage.takeIf(AndroidTvMediaSource::isNuvioPackage)
             ?: return toast(getString(R.string.tv_feed_unavailable))
@@ -3966,8 +3973,6 @@ class MainActivity : Activity() {
                 YouTubeSubscriptions.media(videos, null, age).map { item ->
                     item.copy(packageAliases = smartTube?.let { setOf(it) } ?: emptySet())
                 })
-            ui.post {
-            }
         }
     }
 
