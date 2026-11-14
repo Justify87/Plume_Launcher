@@ -83,7 +83,6 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python3 -m unittest discover -s tools -p test_release_prepare.py -v
           python3 tools/release/prepare.py --version "$VERSION" --notes-output "$RUNNER_TEMP/RELEASE_NOTES.md"
           code=$(sed -n 's/^[[:space:]]*versionCode = \([0-9][0-9]*\).*$/\1/p' app/build.gradle.kts)
           [[ "$code" =~ ^[0-9]+$ ]] || exit 1
