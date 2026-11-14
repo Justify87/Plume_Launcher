@@ -291,7 +291,7 @@ class PreparationTests(unittest.TestCase):
             root = Path(tmp)
             (root / "app").mkdir()
             (root / "app/build.gradle.kts").write_text(
-                'versionName = "0.1.0"\\nversionCode = 11\\n'
+                'versionName = "0.1.0"\nversionCode = 11\n'
             )
             with patch.object(prepare, "ROOT", root):
                 generated = prepare.plume_library_build()
@@ -419,8 +419,8 @@ class ReleasePreparationTest(unittest.TestCase):
         ).replace("versionCode = 10", "versionCode = 11"))
         changelog = self.root / "CHANGELOG.md"
         changelog.write_text(
-            "# Plume Launcher Advanced changelog\\n\\n"
-            "## Unreleased\\n\\n## 0.1.0\\n\\n- First Advanced release\\n",
+            "# Plume Launcher Advanced changelog\n\n"
+            "## Unreleased\n\n## 0.1.0\n\n- First Advanced release\n",
             encoding="utf-8"
         )
         before = (build.read_text(), changelog.read_text())
@@ -437,13 +437,13 @@ class ReleasePreparationTest(unittest.TestCase):
         ).replace("versionCode = 10", "versionCode = 11"))
         changelog = self.root / "CHANGELOG.md"
         changelog.write_text(
-            "# Plume Launcher Advanced changelog\\n\\n"
-            "## Unreleased\\n\\n- Fix focus regression\\n\\n"
-            "## 0.1.0\\n\\n- First Advanced release\\n", encoding="utf-8"
+            "# Plume Launcher Advanced changelog\n\n"
+            "## Unreleased\n\n- Fix focus regression\n\n"
+            "## 0.1.0\n\n- First Advanced release\n", encoding="utf-8"
         )
         self.assertEqual(12, release.prepare(self.root, "0.1.1"))
         self.assertEqual(("0.1.1", 12), release.read_version(build.read_text()))
-        self.assertIn("## 0.1.1\\n\\n- Fix focus regression", changelog.read_text())
+        self.assertIn("## 0.1.1\n\n- Fix focus regression", changelog.read_text())
         self.assertIn("## 0.1.0", changelog.read_text())
 
     def test_already_prepared_version_is_accepted_without_extra_commit(self):
