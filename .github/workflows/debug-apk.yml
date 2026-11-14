@@ -34,17 +34,17 @@ jobs:
           test "$image" = 'ghcr.io/mullvad/mullvadvpn-app-build-android@sha256:ca22c11fb8a15321f897fa169c9c9d1f7d0d9edfeea16fa04af4de71ebcf4286'
           echo "Mullvad source and Android toolchain pinned."
 
+      - name: Set up Java for APK signing checks and unit tests
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 17
+
       - name: Run fast integration source and APK validator tests
         run: |
           set -euo pipefail
           python3 -m unittest discover -s tools -p test_mullvad_prepare.py -v
           python3 -m unittest discover -s tools -p test_mullvad_apk.py -v
-
-      - name: Set up Java for APK signature verification
-        uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: 17
 
       - name: Fetch original Mullvad Android build container
         shell: bash
