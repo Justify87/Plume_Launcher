@@ -259,3 +259,20 @@ Damit sind Unit- und Code-/Docs-CI-Gates nachgewiesen, aber **nicht** physische 
 | M06 Code+Docs, 3. CI-Anlauf | [43534378039](https://github.com/Justify87/Plume_Launcher/actions/runs/43534378039), [Check 132259774709](https://github.com/Justify87/Plume_Launcher/actions/runs/43534378039/job/132259774709): 218 Tests, 1× `SettingsTransferTest` `org.json`-RuntimeException | **completed_failure** |
 | M06 pure Migration nach JVM-Stub-Korrektur | [cabf0a7](https://github.com/Justify87/Plume_Launcher/commit/cabf0a76705759254f69f8c8754591fbbfff3c3f), [Run 43534832233](https://github.com/Justify87/Plume_Launcher/actions/runs/43534832233) | **in_progress_at_documentation** |
 | M06 vollständiger JSON-Dateiimport unter Android | nicht durch plain JVM `validate()` abgedeckt, Emulator/Shield erforderlich | **not_run** |
+
+
+## M06 — nachgewiesene letzte Code-CI (nicht Hardware)
+
+| Gate | Run / Job / Quelle | Beobachtet |
+| --- | --- | --- |
+| Vollständiger Code-HEAD | [`3e8a1351285a72c99fa4f2c6526873845693eadc`](https://github.com/Justify87/Plume_Launcher/commit/3e8a1351285a72c99fa4f2c6526873845693eadc), [Run 43583732764](https://github.com/Justify87/Plume_Launcher/actions/runs/43583732764) | **completed_success** |
+| Kotlin Unit-Tests + Lint | [Check 132413775845](https://github.com/Justify87/Plume_Launcher/actions/runs/43583732764/job/132413775845): `./gradlew testDebugUnitTest lintDebug` | **BUILD SUCCESSFUL** |
+| Debug-/Release-APK | gleicher Job: `./gradlew assembleDebug assembleRelease` | **BUILD SUCCESSFUL** |
+| APK-Größe gegen `main` | gleicher Check-Log: `APK: 550334 -> 509570 bytes (-40764)` | **−40764 B, gemessen** |
+| Installer-/Offline-Regressionen | gleicher Check: 44 ADB-Installer-Checks ohne Fehler, Spotify und Mullvad-Skript-/APK-Validator-Offline-Tests erfolgreich | **passed_ci** |
+| Mullvad ARM64-/Tunnel-Runtime | nativer Job [132413776867](https://github.com/Justify87/Plume_Launcher/actions/runs/43583732764/job/132413776867) | **skipped_branch_filter**, runtime not_run |
+| Voriger Lint-Fehler | [43534832233](https://github.com/Justify87/Plume_Launcher/actions/runs/43534832233), [43535233277](https://github.com/Justify87/Plume_Launcher/actions/runs/43535233277) | **completed_failure**, danach `return` korrigiert |
+| Superseded Zwischen-Runs | [43583143770](https://github.com/Justify87/Plume_Launcher/actions/runs/43583143770), [43583423993](https://github.com/Justify87/Plume_Launcher/actions/runs/43583423993), [43583586974](https://github.com/Justify87/Plume_Launcher/actions/runs/43583586974) | **cancelled_by_new_commits** |
+| Statische Erreichbarkeit und Alt-Design | `MainActivity` keine `HomeLayoutMode` / `HomeSidebarView` / `OverviewHomeView` / `R.id.appRow` / `R.id.watchRow`, XML keine zwei alten Home-Hosts | **passed_static_review** |
+| Android-Funktionstests | Shield-Pro-2019-D-Pad/HOME/Back/All Apps/PIN/HDMI/VPN/Nuvio/Wallpaper/Direct Boot/JSON-Import | **not_run_hardware_pending** |
+| Dokumentations-Folge-Commit | neuer Git-SHA nach diesem Code-CI; eigenen Workflow-Run ermitteln | **pending_new_ci** |

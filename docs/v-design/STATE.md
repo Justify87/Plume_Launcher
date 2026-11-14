@@ -8,7 +8,7 @@ checked_on: "2026-11-14 (Europe/Berlin)"
 repository: Justify87/Plume_Launcher
 target_application_id: dev.plume.advanced
 milestone: M06
-status: code_committed_ci_followup_running_hardware_pending
+status: code_ci_passed_hardware_pending_draft_pr_unmerged
 baseline_main_sha: de9bb87eef0ee13cbdcc9a884363839b17c2e602
 predecessor_m05_pr: 38
 predecessor_m05_merged: true
@@ -19,6 +19,10 @@ code_commit_1: 8e1ec2728f3a4035d5e1efb34bd33f27201d1598
 code_commit_2: e48abd7c7d5554a5b5e2482df173ba38ebe76d0a
 code_commit_3: d5d88e502ea960419756625523553d596f29de2d
 code_commit_4: cabf0a76705759254f69f8c8754591fbbfff3c3f
+code_commit_5: e321acd57a3ea7bafe6bd7d3ddf0c8ce58a24184
+code_commit_6: 877a049230f175260a690da192d34fdf8b85e322
+code_commit_7: 37d9a7e54af7d7ba8bd20dd946beb1f574799504
+code_commit_8: 3e8a1351285a72c99fa4f2c6526873845693eadc
 draft_pr: 39
 draft_pr_merged: false
 first_code_ci_run: 43533466727
@@ -30,7 +34,20 @@ second_code_ci_result: completed_failure_legacy_youtube_test_ref
 third_code_ci_run: 43534292196
 third_code_ci_result: completed_failure_android_json_stub_in_new_test
 fourth_code_ci_run: 43534832233
-fourth_code_ci_result_at_documentation: in_progress
+fourth_code_ci_result: completed_failure_lint_indentation
+fifth_code_ci_run: 43535233277
+fifth_code_ci_result: completed_failure_same_lint_indentation
+intermediate_code_ci_runs: "43583143770,43583423993,43583586974"
+intermediate_code_ci_result: cancelled_on_followup_commits
+m06_code_ci_sha: 3e8a1351285a72c99fa4f2c6526873845693eadc
+m06_code_ci_run: 43583732764
+m06_code_ci_check_job: 132413775845
+m06_code_ci_result: completed_success
+m06_code_ci_native_mullvad_job: skipped_branch_filter
+m06_release_apk_baseline_bytes: 550334
+m06_release_apk_current_bytes: 509570
+m06_release_apk_delta_bytes: -40764
+m06_docs_head_ci: pending_after_documentation_commit
 mullvad_native_job: skipped_branch_filter
 reference_path: docs/v-design/REFERENCE.png
 reference_git_blob: d1b14c00a6478cb3b49fcbbd637e0aa71db5df18
@@ -42,7 +59,7 @@ shield_pro_2019: not_run_hardware_pending
 emulator: not_run
 next_milestone: M07
 blockers:
-  - latest M06 CI job result must be observed and compilation/test failures fixed
+  - documentation-only follow-up HEAD CI separately check; code SHA is confirmed successful
   - Shield HOME, D-Pad, Direct Boot, provider availability, All Apps, VPN and wallpaper need physical testing
   - hidden clock/topbar compatibility host can be consolidated after behavioral validation; it is not a Home alternative
 ```
@@ -55,7 +72,7 @@ blockers:
 - **Direktstart:** Bei gesperrtem Benutzer wird ein Daten-freies `VDesignHomeView` mit Overview-Sidebar gezeigt. Keine Credential-Preferences oder TV-Listings vor Entsperren.
 - **Kompatibilität:** Versteckte Clock-/Topbar-Views sind als interne System- und Styling-Helfer weiterhin im `content`-Container, aber `visibility=gone`; das ist **kein auswählbarer zweiter Home-Renderer**. Das ist gezielt belassene technische Schuld und zu testen.
 - **Nicht angefasst:** Nuvio-`CONTINUE`-Mischkanal, SmartTube als V-Content-Kachel, Mullvad-Rust/JNI/Submodule, Android-Manifest-Berechtigungen. Normbild wurde angesehen und als identischer Git-Blob beibehalten.
-- **Abnahme:** statische Sichtbarkeits-/Referenzsuche durchgeführt, erster CI-Compilerlauf fehlgeschlagen; zweiter Lauf kompilierte produktiven Code, scheiterte aber an entfernten Overview-Referenzen im YouTube-Unit-Test; Test auf businesslogische RSS-Deduplizierung migriert; dritter Run kompilierte 218 Tests und lieferte 1 Fehlschlag im neu eingeführten JSON-Importtest wegen Android-`org.json`-JVM-Stub. [cabf0a7](https://github.com/Justify87/Plume_Launcher/commit/cabf0a76705759254f69f8c8754591fbbfff3c3f) prüft stattdessen die reine `SettingsTransfer.validate`-Migrationslogik. Vierter CI-Run [43534832233](https://github.com/Justify87/Plume_Launcher/actions/runs/43534832233) war beim Dokumentieren `in_progress`; vollständiger Dateiimport bleibt als Android-Runtime-Test offen. Keine realen Shield-Bilder, Performance-/HOME-/VPN-Runtime-Erfolge.
+- **Abnahme:** Source-/Diff-Review und finaler [M06 Code-CI-Run 43583732764](https://github.com/Justify87/Plume_Launcher/actions/runs/43583732764) auf `3e8a1351285a72c99fa4f2c6526873845693eadc`: **completed/success** (Unit, lint, Debug/Release APK, Installer und Offline-Suites). Vollständiger Dateiimport und Shield-VPN bleiben Hardwaretests. Keine realen Shield-Bilder, Performance-/HOME-/VPN-Runtime-Erfolge.
 
 ---
 
@@ -279,3 +296,12 @@ Die **1536×864 Referenzbildpixel** werden nicht als Android-dp interpretiert: `
 
 
 **M04 Binder-Test-Nachtrag vor finalem Docs-Commit:** `VDesignCardSlots.kt` bindet die 3/3/8 Plätze als reine, Android-freie Projektion, begrenzt Upcoming-Paging auf die tatsächliche Listenlänge und erhält volle Counts. `VDesignHomeView` nutzt die geprüfte Projektion. `VDesignCardSlotsTest.kt` deckt 1/0/1 echte Elemente, >8, letzte Position und Paginierungsgrenzen ab. [Code-Commit 3516fb](https://github.com/Justify87/Plume_Launcher/commit/3516fb0463747a72b84604e3b6b9490b0ceb33f8). **Testquellen hinzugefügt, Ausführung erst durch finalen CI-Run nachzuweisen.**
+
+
+## M06 Abnahme-Nachtrag zum geprüften Code-HEAD (2026-11-14)
+
+Nach berechtigtem PR-Code-Fix für `refreshWatchNext()` (Lint-SuspiciousIndentation) wurden HOME-Overlay-Schließung, Fokuswiederherstellung nach All-Apps-Refresh, PIN-Lock-Langdruck und weiterhin gespeicherte benutzerdefinierte App-Icons im V-Sidebar-/All-Apps-Renderer gezielt korrigiert. Gespeicherte Bannerdateien werden nicht gelöscht, der obsolete Bannereditor ist aus der aktiven All-Apps-Bedienung entfernt.
+
+**Nachweis:** [Run 43583732764](https://github.com/Justify87/Plume_Launcher/actions/runs/43583732764) / [Check-Job 132413775845](https://github.com/Justify87/Plume_Launcher/actions/runs/43583732764/job/132413775845) auf Code-HEAD `3e8a1351285a72c99fa4f2c6526873845693eadc` **completed/success**. `./gradlew testDebugUnitTest lintDebug` und `./gradlew assembleDebug assembleRelease` wirklich erfolgreich. APK `550334 → 509570 B` (`−40764 B`). Repo/ADB-/Spotify-/Mullvad-Offline-Suites: passed; nativer Mullvad-APK-Job skipped. Es gab **keinen** Shield-Pro-2019-Test, kein echtes VPN-Tunnel-Profil und keinen echten Android-JSON-Importtest.
+
+Die Text-Dokumentationsänderung erzeugt einen eigenen Git-HEAD und Actions-Run, dessen Status nicht mit dem Code-CI verwechselt werden darf. PR #39 ist weiterhin Draft/unmerged, kein implizites Merge.

@@ -1,8 +1,8 @@
 # M06 → M07: operativer Handoff
 
-**Ergebnis:** Quellcode-Migration auf einzelnem V-Home; Draft-PR [#39](https://github.com/Justify87/Plume_Launcher/pull/39) **offen, kein Merge**. Grundlage tatsächlich gemergter M05 PR #38 (`main@de9bb87eef0ee13cbdcc9a884363839b17c2e602`).
+**Ergebnis:** Quellcode-Migration auf einzelnem V-Home; Code-CI auf `3e8a135` [completed/success](https://github.com/Justify87/Plume_Launcher/actions/runs/43583732764); Draft-PR [#39](https://github.com/Justify87/Plume_Launcher/pull/39) **offen, kein Merge**. Grundlage tatsächlich gemergter M05 PR #38 (`main@de9bb87eef0ee13cbdcc9a884363839b17c2e602`).
 
-- M06 Branch `feature/vdesign-m06-remove-legacy-home`, Code-HEAD vor Docs `cabf0a76705759254f69f8c8754591fbbfff3c3f`. Bei neuem HEAD nicht alte CI-Status übertragen.
+- M06 Branch `feature/vdesign-m06-remove-legacy-home`, Code-HEAD vor Docs `3e8a1351285a72c99fa4f2c6526873845693eadc`. Bei neuem HEAD nicht alte CI-Status übertragen.
 - `MainActivity.setupVDesign` und `VDesignHomeView` sind einzige Home-Renderer; alte XML `classicHome`/`overviewHome` und Home-Mode-Klassen gelöscht. Long-OK `Übersicht` → Alle Apps; `Einstellungen` → System/HDMI/Power. All Apps Long-OK zeigt App-Aktionen statt unsichtbarem Home-Row-Pinning.
 - `MainActivity.refreshWatchNext` bleibt für echte Nuvio-TV-Provider-Snapshots. V-Design bindet `NuvioDashboardFeed` für `:in-progress`, `:available`, `:upcoming` und verwendet `VDesignLaunchPolicy`. Nuvio-`CONTINUE` ist weiterhin **ein eigenständiger Publisher-Mischkanal**.
 - Ältere SettingsTransfer-Version-1-Dateien mit `home_layout_mode` / `row_size` / `row_align` / `row_show` / `row_drop` sind zulässig; diese abgeschalteten Keys werden beim Import ignoriert. Keine komplette Settings-Löschung. `row_hidden` und `order` bleiben für Bestandsdaten portabel.
@@ -104,3 +104,12 @@ M03-Code-Run [43520674555](https://github.com/Justify87/Plume_Launcher/actions/r
 
 ### M04 Binder-/Paging-Regression ergänzend
 `VDesignCardSlots.media(feed, section, slot, offset)` und `nextUpcomingOffset(total,current,slot,direction)` sind die kleine reine Binding-Schnittstelle. [3516fb](https://github.com/Justify87/Plume_Launcher/commit/3516fb0463747a72b84604e3b6b9490b0ceb33f8) ersetzt die lokalen manuellen Indizes in `VDesignHomeView`, Unit-Tests für 3+3+8, echte Empty States und Scroll-Grenzen ergänzt. CI auf diesem Commit plus finalem Docs-HEAD separat auswerten. **Nächster Schritt M05.**
+
+
+### M06 finale technische Übergabe
+
+Geprüfter Code-HEAD: [`3e8a135`](https://github.com/Justify87/Plume_Launcher/commit/3e8a1351285a72c99fa4f2c6526873845693eadc). CI [Run 43583732764](https://github.com/Justify87/Plume_Launcher/actions/runs/43583732764) / [Check 132413775845](https://github.com/Justify87/Plume_Launcher/actions/runs/43583732764/job/132413775845) **success** (JVM, Lint, Debug/Release-APK, Repo-/Offline-Regressionen). Release APK `550334 → 509570 B (-40764 B)`. Native Mullvad-APK-Job `skipped`; **keine** Tunnel-/JNI-Laufzeitbestätigung und keine echte Shield-Bedienbestätigung.
+
+Neu im M06-Code-Review: `onNewIntent` schließt erneut Einstellungen/All Apps/Topbar-Move auf HOME; `refreshVisibleApps` restauriert möglichst den fokussierten All-Apps-Paket-Key; langes OK im All-Apps-Grid respektiert die bestehende PIN-Sperre; bereits vorhandene eigene App-Icon-Dateien werden sowohl in Sidebar als auch All Apps gelesen. Nicht genutzte Bannerdateien bleiben gespeichert, der obsolete Bannereditor wird nicht mehr angeboten. Weiterhin nur ein V-Home-Renderer und kein Home-Mode-Schalter.
+
+**M07-Startpunkt:** M06 [PR #39](https://github.com/Justify87/Plume_Launcher/pull/39), wirklich aktuellen HEAD und CI nach dem Docs-Commit prüfen. Vor einer Shield-Abnahme weder globale Preferences löschen noch die verbliebenen unsichtbaren Clock-/Topbar-Systemhelfer blind entfernen. HOME/Back/All Apps Long-OK/PIN/TV-Provider/Upgrade-Prefs/SettingsTransfer.decode/Direct Boot/Wallpaper/Mullvad echte Hardware-Pflicht. Kein Merge ohne ausdrückliche Nutzerfreigabe.
