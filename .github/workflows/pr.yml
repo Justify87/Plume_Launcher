@@ -32,12 +32,12 @@ jobs:
           set -euo pipefail
           changed="$RUNNER_TEMP/pr-changed-files.txt"
           git diff --name-only "$BASE"...HEAD > "$changed"
-          if grep -Eq '^(tools/plume-install\\.sh$|tools/plume-install-test/)' "$changed"; then
+          if grep -Eq '^(tools/plume-install\.sh$|tools/plume-install-test/)' "$changed"; then
             echo 'installer=true' >> "$GITHUB_OUTPUT"
           else
             echo 'installer=false' >> "$GITHUB_OUTPUT"
           fi
-          if grep -Eq '^tools/(spotify_podcast_probe|test_spotify_podcast_probe)\\.py$' "$changed"; then
+          if grep -Eq '^tools/(spotify_podcast_probe|test_spotify_podcast_probe)\.py$' "$changed"; then
             echo 'spotify=true' >> "$GITHUB_OUTPUT"
           else
             echo 'spotify=false' >> "$GITHUB_OUTPUT"
