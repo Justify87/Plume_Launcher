@@ -286,6 +286,18 @@ class PreparationTests(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             prepare.route_original_notifications_to_tv(updated)
 
+    def test_plume_library_uses_advanced_0_1_0_version(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "app").mkdir()
+            (root / "app/build.gradle.kts").write_text(
+                'versionName = "0.1.0"\nversionCode = 11\n'
+            )
+            with patch.object(prepare, "ROOT", root):
+                generated = prepare.plume_library_build()
+            self.assertIn('val version = "0.1.0"', generated)
+            self.assertNotIn('val version = "1.7.1"', generated)
+
     def test_prepare_isolation_and_single_application(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -399,6 +411,40 @@ class ReleasePreparationTest(unittest.TestCase):
             with self.subTest(name=name), self.assertRaises(ValueError):
                 release.prepare(self.root, name)
         self.assertEqual(original, (self.root / "app/build.gradle.kts").read_text())
+
+    def test_advanced_0_1_0_first_release_is_already_prepared(self):
+        build = self.root / "app/build.gradle.kts"
+        build.write_text(build.read_text().replace(
+            'versionName = "1.7.1"', 'versionName = "0.1.0"'
+        ).replace("versionCode = 10", "versionCode = 11"))
+        changelog = self.root / "CHANGELOG.md"
+        changelog.write_text(
+            "# Plume Launcher Advanced changelog\n\n"
+            "## Unreleased\n\n## 0.1.0\n\n- First Advanced release\n",
+            encoding="utf-8"
+        )
+        before = (build.read_text(), changelog.read_text())
+        notes = self.root / "first-release.md"
+        self.assertEqual(11, release.prepare(self.root, "0.1.0", notes))
+        self.assertEqual(before, (build.read_text(), changelog.read_text()))
+        self.assertIn("First Advanced release", notes.read_text())
+        self.assertIn("v0.1.0", notes.read_text())
+
+    def test_next_advanced_release_increases_android_code(self):
+        build = self.root / "app/build.gradle.kts"
+        build.write_text(build.read_text().replace(
+            'versionName = "1.7.1"', 'versionName = "0.1.0"'
+        ).replace("versionCode = 10", "versionCode = 11"))
+        changelog = self.root / "CHANGELOG.md"
+        changelog.write_text(
+            "# Plume Launcher Advanced changelog\n\n"
+            "## Unreleased\n\n- Fix focus regression\n\n"
+            "## 0.1.0\n\n- First Advanced release\n", encoding="utf-8"
+        )
+        self.assertEqual(12, release.prepare(self.root, "0.1.1"))
+        self.assertEqual(("0.1.1", 12), release.read_version(build.read_text()))
+        self.assertIn("## 0.1.1\n\n- Fix focus regression", changelog.read_text())
+        self.assertIn("## 0.1.0", changelog.read_text())
 
     def test_already_prepared_version_is_accepted_without_extra_commit(self):
         original = (self.root / "app/build.gradle.kts").read_text()
