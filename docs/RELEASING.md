@@ -10,7 +10,13 @@ YubiKey-Signer, F-Droid-Pipeline und seine `android/20xx.xx`-Tags sind **nicht**
 Der vorhandene `.github/workflows/debug-apk.yml` liefert Debug-APKs und unsignierte
 R8-Releases. Eine Debug-APK aus GitHub Actions ist **keine** dauerhaft updatefähige
 Release-APK. Die neue `.github/workflows/release.yml` bricht ab, wenn kein dauerhafter
-Release-Schlüssel eingerichtet wurde.
+Release-Schlüssel eingerichtet wurde. Dies war die exakte Ursache des fehlgeschlagenen
+ersten `v0.1.0`-Release-Laufs [#43644701229](https://github.com/Justify87/Plume_Launcher/actions/runs/43644701229):
+**alle vier Signing-Secrets und die Zertifikats-Variable waren im Job leer.**
+Die Veröffentlichung darf in diesem Fall nicht auf eine wechselnde Debug-Signatur
+zurückfallen. Ein neuer Vorabtest benennt fehlende Einstellungen einzeln und
+überprüft danach die Keystore-Datei, beide Passwörter, den Alias und das
+erwartete Zertifikat **vor dem teuren Mullvad-Container-Build**.
 
 Erzeuge einen neuen Schlüssel lokal und sichere die Datei und Passwörter **außerhalb
 des Repositories** (Keystore und Kennwörter niemals committen oder im Chat versenden):
@@ -34,6 +40,25 @@ Die Ausgabe enthält den **SHA256-Fingerabdruck des Zertifikats**. In GitHub
 
 Unter Linux: `base64 -w0 plume-release.jks`. Unter macOS:
 `base64 < plume-release.jks | tr -d '\n'`. Den Wert nur im GitHub-Secrets-Dialog eintragen.
+
+**Einrichtung für deinen ersten Release (einmalig):**
+
+1. Öffne [Settings → Actions Secrets](https://github.com/Justify87/Plume_Launcher/settings/secrets/actions).
+   Trage die vier obigen Namen jeweils unter **Repository secrets** ein.
+2. Unter **Variables** am gleichen Ort `PLUME_RELEASE_CERT_SHA256` anlegen.
+   Den Fingerabdruck aus `keytool -list -v` verwenden; der Fingerabdruck
+   ist öffentlich, der Keystore und die Passwörter sind geheim.
+3. **Kein** geheimer Wert gehört in einen Issue, PR, Chat oder Git-Commit.
+   Der Keystore muss für alle zukünftigen Updates sicher aufbewahrt werden.
+4. Erst dann den Release-Workflow von `main` mit `version=0.1.0`
+   starten; beim ersten Test empfiehlt sich `publish=false`, damit ein
+   privater **Draft** entsteht, den du vor der Veröffentlichung prüfen kannst.
+
+Der Workflow führt vor dem Build `keytool -exportcert` und `keytool -certreq`
+aus und vergleicht den Fingerabdruck mit der GitHub-Variable. Es wird dabei
+kein privater Schlüssel ausgegeben oder gespeichert. Der spätere Schritt
+`apksigner verify --print-certs` vergleicht die Signatur der fertigen APK
+ebenfalls mit demselben Fingerabdruck.
 
 **Wichtig:** Falls bereits eine mit einem anderen Release-Schlüssel signierte
 `dev.plume.advanced`-APK installiert wurde, ist ein Daten-erhaltendes Update
@@ -88,7 +113,9 @@ normale aufsteigende Updates (`0.1.1`, `0.2.0`, ...) vorgesehen.
   kann der Workflow diesen Commit selbst pushen. Er überschreibt niemals
   einen inzwischen geänderten `main`-HEAD.
 - **Geschützter main-Branch:** Wenn eine Branch-Protection direkte Bot-Pushes
-  blockiert, Version vorher in einem normalen PR vorbereiten:
+  blockiert, Version vorher in einem normalen PR vorbereiten. Der Release-Workflow
+  erkennt diesen Fall nun bereits vor dem Mullvad-Build und gibt einen
+  handlungsfähigen Fehler aus:
   `python3 tools/release/prepare.py --version 0.1.1` auf einem
   Feature-Branch ausführen, die Änderungen an `CHANGELOG.md` und
   `app/build.gradle.kts` prüfen, dann über PR + CI mergen.
