@@ -181,3 +181,7 @@ Vorheriger [Run 43528175980](https://github.com/Justify87/Plume_Launcher/actions
 - **Hardware:** Fresh Install, Upgrade mit alten `home_layout_mode`-Prefs, SettingsTransfer, HOME-Rolle, Direct Boot, HDMI, All Apps, Wallet/WLAN/Wallpaper und VPN-Start auf Shield und Emulator **not_run**. Keine Screenshotübereinstimmung behauptet.
 - **Freigabe:** PR bleibt Draft/unmerged. M07 folgt erst nach tatsächlichem M06-CI, PR-Review und ausdrücklichem Merge.
 
+
+### M06 Zusatzreview — Android-JSON-Stubs bei reinen JVM-Tests
+
+[Run 43534378039](https://github.com/Justify87/Plume_Launcher/actions/runs/43534378039), Check [132259774709](https://github.com/Justify87/Plume_Launcher/actions/runs/43534378039/job/132259774709) **completed/failure**. Produktiv- und Unit-Test-Quellen kompilierten; **218 Tests, 1 fehlgeschlagen**, `SettingsTransferTest:79`, `java.lang.RuntimeException` beim direkten `SettingsTransfer.decode()` mit `org.json` außerhalb einer Android-Laufzeit. Das ist ein unzulässiger JVM-Testaufbau, nicht Beleg eines Export-Crashes auf Shield. [cabf0a7](https://github.com/Justify87/Plume_Launcher/commit/cabf0a76705759254f69f8c8754591fbbfff3c3f) ersetzt die dekodierende Probe durch den pure-JVM `SettingsTransfer.validate`-Migrationsvertrag für alte Keys; Dateiimport mit echtem Android-JSON auf Gerät weiterhin `not_run`. [Run 43534832233](https://github.com/Justify87/Plume_Launcher/actions/runs/43534832233) war bei diesem Review `in_progress`, **nicht als Pass** eingetragen.

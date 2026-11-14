@@ -8,7 +8,7 @@ checked_on: "2026-11-14 (Europe/Berlin)"
 repository: Justify87/Plume_Launcher
 target_application_id: dev.plume.advanced
 milestone: M06
-status: code_committed_ci_test_fix_pending_final_run_hardware_pending
+status: code_committed_ci_followup_running_hardware_pending
 baseline_main_sha: de9bb87eef0ee13cbdcc9a884363839b17c2e602
 predecessor_m05_pr: 38
 predecessor_m05_merged: true
@@ -18,6 +18,7 @@ work_branch: feature/vdesign-m06-remove-legacy-home
 code_commit_1: 8e1ec2728f3a4035d5e1efb34bd33f27201d1598
 code_commit_2: e48abd7c7d5554a5b5e2482df173ba38ebe76d0a
 code_commit_3: d5d88e502ea960419756625523553d596f29de2d
+code_commit_4: cabf0a76705759254f69f8c8754591fbbfff3c3f
 draft_pr: 39
 draft_pr_merged: false
 first_code_ci_run: 43533466727
@@ -27,7 +28,9 @@ second_code_ci_run: 43533837289
 second_code_ci_check_job: 132257870564
 second_code_ci_result: completed_failure_legacy_youtube_test_ref
 third_code_ci_run: 43534292196
-third_code_ci_result_at_documentation: in_progress
+third_code_ci_result: completed_failure_android_json_stub_in_new_test
+fourth_code_ci_run: 43534832233
+fourth_code_ci_result_at_documentation: in_progress
 mullvad_native_job: skipped_branch_filter
 reference_path: docs/v-design/REFERENCE.png
 reference_git_blob: d1b14c00a6478cb3b49fcbbd637e0aa71db5df18
@@ -52,7 +55,7 @@ blockers:
 - **Direktstart:** Bei gesperrtem Benutzer wird ein Daten-freies `VDesignHomeView` mit Overview-Sidebar gezeigt. Keine Credential-Preferences oder TV-Listings vor Entsperren.
 - **Kompatibilität:** Versteckte Clock-/Topbar-Views sind als interne System- und Styling-Helfer weiterhin im `content`-Container, aber `visibility=gone`; das ist **kein auswählbarer zweiter Home-Renderer**. Das ist gezielt belassene technische Schuld und zu testen.
 - **Nicht angefasst:** Nuvio-`CONTINUE`-Mischkanal, SmartTube als V-Content-Kachel, Mullvad-Rust/JNI/Submodule, Android-Manifest-Berechtigungen. Normbild wurde angesehen und als identischer Git-Blob beibehalten.
-- **Abnahme:** statische Sichtbarkeits-/Referenzsuche durchgeführt, erster CI-Compilerlauf fehlgeschlagen; zweiter Lauf kompilierte produktiven Code, scheiterte aber an entfernten Overview-Referenzen im YouTube-Unit-Test; Test auf businesslogische RSS-Deduplizierung migriert, dritter Run noch nicht als bestanden behauptet. Keine realen Shield-Bilder, Performance-/HOME-/VPN-Runtime-Erfolge.
+- **Abnahme:** statische Sichtbarkeits-/Referenzsuche durchgeführt, erster CI-Compilerlauf fehlgeschlagen; zweiter Lauf kompilierte produktiven Code, scheiterte aber an entfernten Overview-Referenzen im YouTube-Unit-Test; Test auf businesslogische RSS-Deduplizierung migriert; dritter Run kompilierte 218 Tests und lieferte 1 Fehlschlag im neu eingeführten JSON-Importtest wegen Android-`org.json`-JVM-Stub. [cabf0a7](https://github.com/Justify87/Plume_Launcher/commit/cabf0a76705759254f69f8c8754591fbbfff3c3f) prüft stattdessen die reine `SettingsTransfer.validate`-Migrationslogik. Vierter CI-Run [43534832233](https://github.com/Justify87/Plume_Launcher/actions/runs/43534832233) war beim Dokumentieren `in_progress`; vollständiger Dateiimport bleibt als Android-Runtime-Test offen. Keine realen Shield-Bilder, Performance-/HOME-/VPN-Runtime-Erfolge.
 
 ---
 

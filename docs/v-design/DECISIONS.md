@@ -79,3 +79,7 @@ Das tatsächliche 1536×864-JPEG-Mockup wurde angesehen und SHA-geprüft: Sideba
 ## D-018 — Retired Preferences nur ignorieren, nie destruktiv löschen (M06, 2026-11-14)
 
 **Entscheidung:** Alte `home_layout_mode`-/`row_*`-/`names`-/`top_bar`-Keys werden bei SettingsTransfer-Import nicht mehr als aktive UI-Optionen übernommen. Gespeicherte Altwerte werden nicht global gelöscht oder beim Programmstart migriert/überschrieben; tragende App-Reihenfolge, TV-Kanalwahl, Wallpaper, Hidden-Watch-Konfigurationen und Home-Role bleiben erhalten. Unbekannte Keys im bisherigen v1-JSON werden weiterhin ignoriert. Regressionstest deckt explizit ungültige Alt-Felder plus gültige aktive Einstellungen ab.
+
+## D-019 — Unit-Migration ohne Android-JSON-Stub und klarer Runtime-Grenze (M06, 2026-11-14)
+
+Eine `SettingsTransfer.decode()`-Probe in Plain JVM führt ohne Android-Laufzeit zu `org.json`-Stub-`RuntimeException`. Reine Migrationsregeln für aktive/retirierte Keys werden mit `SettingsTransfer.validate(map)` getestet, wie [cabf0a7](https://github.com/Justify87/Plume_Launcher/commit/cabf0a76705759254f69f8c8754591fbbfff3c3f). Das beweist **nicht**, dass Dateiauswahl, JSON-Laufzeit-Decoder, SharedPreferences-Commit und Neustart auf Android getestet sind; dieses Hardware-/Emulator-Gate bleibt für M07 offen. Kein Umbau des produktiven JSON-Decoders nur zur Erleichterung eines JVM-Tests.

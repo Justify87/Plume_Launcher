@@ -255,3 +255,7 @@ Damit sind Unit- und Code-/Docs-CI-Gates nachgewiesen, aber **nicht** physische 
 | Shield Pro 2019, HOME, Long OK, VPN, Provider, Direct Boot, All Apps, Wallpaper | kein Gerät/Emulator im Ausführungsumfeld | **not_run_hardware_pending** |
 | Original Mullvad JNI/Submodule, Nuvio dev, Permissions | keiner der betreffenden Pfade in Code-Commit geändert | **passed_diff_scope_only; runtime_not_run** |
 
+
+| M06 Code+Docs, 3. CI-Anlauf | [43534378039](https://github.com/Justify87/Plume_Launcher/actions/runs/43534378039), [Check 132259774709](https://github.com/Justify87/Plume_Launcher/actions/runs/43534378039/job/132259774709): 218 Tests, 1× `SettingsTransferTest` `org.json`-RuntimeException | **completed_failure** |
+| M06 pure Migration nach JVM-Stub-Korrektur | [cabf0a7](https://github.com/Justify87/Plume_Launcher/commit/cabf0a76705759254f69f8c8754591fbbfff3c3f), [Run 43534832233](https://github.com/Justify87/Plume_Launcher/actions/runs/43534832233) | **in_progress_at_documentation** |
+| M06 vollständiger JSON-Dateiimport unter Android | nicht durch plain JVM `validate()` abgedeckt, Emulator/Shield erforderlich | **not_run** |
