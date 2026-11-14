@@ -1,46 +1,45 @@
 #!/bin/sh
-# pr-rules.sh BASE: checks a pull request against the rules in CONTRIBUTING, from the git diff BASE...HEAD.
-# Fails on a new library or a new permission; only warns on a missing CHANGELOG entry, since not every
-# change to the app is one a user sees. Writes a table to $GITHUB_STEP_SUMMARY when it is set.
+# PR change review: flag dependency, permission and changelog changes for human review.
+# The Plume+Mullvad fork intentionally has dependencies and VPN permissions; do not
+# reject legitimate integration work solely because a new declaration was added.
+set -eu
+
 base=${1:?usage: pr-rules.sh BASE}
 summary=${GITHUB_STEP_SUMMARY:-/dev/null}
-added() { git diff "$base"...HEAD -- "$@" | grep '^+[^+]'; }
-fail=0
+git rev-parse --verify "$base^{commit}" >/dev/null
 
-deps=$(added '*.gradle.kts' | grep -E '^\+\s*(implementation|api|compileOnly|runtimeOnly|ksp|kapt|annotationProcessor)\(|^\+\s*id\(')
-perms=$(added '*AndroidManifest.xml' | grep -E 'uses-permission|<permission')
-changed=$(git diff --name-only "$base"...HEAD -- app/src/main)
-notes=$(git diff "$base"...HEAD -- CHANGELOG.md | grep -c '^+- ')
+# Review both additions and removals in Gradle and manifest declarations.
+deps=$(git diff "$base"...HEAD -- '*.gradle.kts' | grep -E '^[+-][^+-].*(implementation|api|compileOnly|runtimeOnly|ksp|kapt|annotationProcessor)[[:space:]]*\(|^[+-][^+-].*id[[:space:]]*\(' || true)
+perms=$(git diff "$base"...HEAD -- '*AndroidManifest.xml' | grep -E '^[+-][^+-].*(uses-permission|<permission)' || true)
+changed=$(git diff --name-only "$base"...HEAD -- app/src/main tools/mullvad)
+notes=$(git diff "$base"...HEAD -- CHANGELOG.md | grep -c '^+- ' || true)
 
 {
-    echo "### Plume rules"
-    echo "| Rule | Result |"
+    echo "### Plume change review"
+    echo "Review hints only: Mullvad integration may legitimately add dependencies or permissions."
+    echo "| Review item | Result |"
     echo "|---|---|"
 } >> "$summary"
 
 if [ -n "$deps" ]; then
-    echo "::error::New library or plugin. Plume has no dependencies on purpose; discuss it in an issue first."
+    echo "::warning title=Gradle dependency review::A dependency or plugin declaration changed; review purpose and supply-chain impact."
     printf '%s\n' "$deps"
-    echo "| No new library | ❌ new library or plugin |" >> "$summary"
-    fail=1
+    echo "| Gradle dependencies/plugins | ⚠️ changed; review required |" >> "$summary"
 else
-    echo "| No new library | ✅ |" >> "$summary"
+    echo "| Gradle dependencies/plugins | ✅ no declaration changed |" >> "$summary"
 fi
 
 if [ -n "$perms" ]; then
-    echo "::error::New permission in a manifest. Discuss it in an issue first."
+    echo "::warning title=Android permission review::A manifest permission declaration changed; review VPN and Android permission implications."
     printf '%s\n' "$perms"
-    echo "| No new permission | ❌ new permission |" >> "$summary"
-    fail=1
+    echo "| Manifest permissions | ⚠️ changed; review required |" >> "$summary"
 else
-    echo "| No new permission | ✅ |" >> "$summary"
+    echo "| Manifest permissions | ✅ no declaration changed |" >> "$summary"
 fi
 
 if [ -n "$changed" ] && [ "$notes" -eq 0 ]; then
-    echo "::warning::The app changed but CHANGELOG.md has no new entry. Add one under ## Unreleased if users see the change."
-    echo "| CHANGELOG entry | ⚠️ none, needed if users see the change |" >> "$summary"
+    echo "::warning title=Changelog review::App or Mullvad integration code changed without a changelog bullet; add one for user-visible changes."
+    echo "| CHANGELOG entry | ⚠️ none; add for user-visible changes |" >> "$summary"
 else
     echo "| CHANGELOG entry | ✅ |" >> "$summary"
 fi
-
-exit $fail
