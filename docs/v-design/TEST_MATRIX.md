@@ -279,3 +279,32 @@ Damit sind Unit- und Code-/Docs-CI-Gates nachgewiesen, aber **nicht** physische 
 
 | M06 Code+Docs-HEAD | [ba52e586](https://github.com/Justify87/Plume_Launcher/commit/ba52e586ea9929783d359b9bc29aab7016b09416), [Run 43584273457](https://github.com/Justify87/Plume_Launcher/actions/runs/43584273457), `check` | **completed_success** |
 | M06 native Mullvad Job auf Docs-HEAD | [Run 43584273457](https://github.com/Justify87/Plume_Launcher/actions/runs/43584273457), `mullvad-apk` | **skipped_branch_filter** |
+
+
+## M07 — Referenz-/Performance-/Regressionsevidenz (2026-11-14)
+
+| Prüfpunkt | Konkrete Evidenz | Status |
+| --- | --- | --- |
+| M06-Vorgänger tatsächlich gemergt | [PR #39](https://github.com/Justify87/Plume_Launcher/pull/39), `main@eac085e3a2e8e2380d3b113bffc38a2f6c13fd74` | **passed_git** |
+| Nuvio `dev` unverändert | `dev@be4b84a84e004a2d36405601683df000d8dc446a`, Plume-only Diff | **passed_source_scope** |
+| Referenz-Byte-SHA | 249663 echte GitHub-Bytes dekodiert und SHA-256 `95af66ad04f462867b5d52825c7e1946ac68b5e40bed52c07f4e74c085218f25` direkt neu berechnet; JPEG/JFIF, 1536×864 | **passed_binary_reference** |
+| Referenz-Screenshot vs. Launcher (identischer Ausschnitt) | Kein Android-TV-Emulator/Shield verfügbar; keine App-Screenshots erzeugt | **visual_comparison: not_run** |
+| Anker und statische 16:9-Geometrie | `VDesignCanvas` und `VDesignHomeView` mit Referenz-Sidebar/Hero/3 Reihen; Full-HD & inset viewport pure JVM Tests im Code | **passed_static + passed_ci_unit; no runtime overlay** |
+| Accessibility Font-Scale, lange deutsche Titel, Overscan | Nur vorhandene Ellipsize-/16:9-Quellstrategie überprüft, kein realer Render | **not_run_hardware** |
+| Posters Offline → Online/Resume | Vorher URIs unverändert → keine neue Request; M07 kontrolliert fehlende Art, existierendes Download-Dedupe | **passed_source_review; on-device repro not_run** |
+| Ungültige URLs, leere/nicht browsable Kanäle, fehlendes Datum | `VDesignCardText.supportedArtwork`, M01/M02-Nulllogik und M07-Empty-States statisch geprüft, echte Provider/Netzwerke nicht simuliert | **passed_static; runtime not_run** |
+| Byte-Obergrenze und Tall-Poster-Sampling | 8 MiB je Input, max. 2048px Höhe per `VDesignPosterDecodePolicy`; reine JVM-Tests committed | **passed_ci_unit, no heap benchmark** |
+| Kein per-poster-Kartenlisten-Neubau | Direkt über drei unveränderte 3/3/8-Listen iteriert | **passed_source_scope, no frame benchmark** |
+| Realer Heap, Main-Thread-Jank, FPS, Poster-Latenz | Keine Tool-/Device-Messung, keine Vorher-/Nachher-Zahlen | **not_measured** |
+| M07 Code-HEAD | `8dce8de2a8bcf84ee2062157080b9029108c399e`, [CI Run 43588790615](https://github.com/Justify87/Plume_Launcher/actions/runs/43588790615), [check 132428880587](https://github.com/Justify87/Plume_Launcher/actions/runs/43588790615/job/132428880587) | **completed_success** |
+| `./gradlew testDebugUnitTest lintDebug` | Real im oben genannten CI-Job ausgeführt | **passed_ci** |
+| `./gradlew assembleDebug assembleRelease` | Real im oben genannten CI-Job ausgeführt | **passed_ci** |
+| Release APK-Größe gegen Main | CI-Log `APK: 509570 -> 509922 bytes (352)` | **measured +352 B standalone** |
+| ADB-Installer, Spotify, Mullvad-Staging/APK-Validator (offline) | gleicher `check`-Job, erfolgreiche Schritte | **passed_ci** |
+| Kombinierte Mullvad ARM64 Debug+unsigned Release | [native 132428880906](https://github.com/Justify87/Plume_Launcher/actions/runs/43588790615/job/132428880906), bei Dokumentation Build-Schritt noch laufend | **in_progress; NOT passed** |
+| Gitlink/Rust/JNI/VpnService/Permissions/App-ID | Source-/Git-Tree-Prüfung: `third_party/mullvadvpn-app` mode 160000 `aa47f606...`, kein Diff | **passed_static_immutability; runtime not_run** |
+| Finaler Dokumentations-HEAD CI | neuer SHA erst nach Dokumentationscommit, getrennt beobachten | **pending_new_run** |
+| Lokaler Gradle-/Android-Test | kein Android SDK und kein Netz-Checkout in Ausführungsumgebung | **not_run** |
+| Shield Pro 2019 HOME/D-Pad/Back, TV Provider, Mullvad VPN/Tunnel, Direct Boot | physisches Gerät nicht verbunden | **hardware_pending** |
+
+**Bildunterschiede vor/nach:** **keine wahrheitsgemäße Pixelvergleichstabelle möglich**, da kein echter Live-Launcher-Screenshot existiert. Zuordenbare Code-Defekte (Poster-Retry, ungebundene Bytes, leere Sektionen) sind oben mit Ursache und Korrektur dokumentiert, nicht als fotografisch belegter Unterschied ausgegeben. `docs/v-design/evidence/` bleibt absichtlich ohne erfundene Datei. `DATA_CONTRACT.md` bleibt in der Provider-Semantik gleich; Nuvio-`CONTINUE` wird nicht auf drei Feeds aufgespalten.

@@ -1,3 +1,25 @@
+# M07 → M08: aktueller operativer Handoff (2026-11-14)
+
+**Ausgangspunkt:** M06 [PR #39](https://github.com/Justify87/Plume_Launcher/pull/39) in `main@eac085e3a2e8e2380d3b113bffc38a2f6c13fd74` gemergt; Nuvio `dev@be4b84a84e004a2d36405601683df000d8dc446a` nur gelesen. **Branch** `feature/vdesign-m07-visual-qa-performance`, **Draft-PR [#40](https://github.com/Justify87/Plume_Launcher/pull/40)** ungemergt, Source-/Test-HEAD `8dce8de2a8bcf84ee2062157080b9029108c399e`. Kanonischer Status: [STATE.md](STATE.md).
+
+- **Bild:** Echter GitHub-Originalblob `d1b14c00a6478cb3b49fcbbd637e0aa71db5df18` SHA-256 `95af66ad04f462867b5d52825c7e1946ac68b5e40bed52c07f4e74c085218f25` unabhängig berechnet, 1536×864 JPEG/JFIF trotz `.png`; Normbild gelesen, aber `visual_comparison: not_run`, keine Screenshots in `evidence/`.
+- **Fixes:** `VDesignCardView.retryMissingArtwork`, `VDesignHomeView.retryMissingArtwork`, `MainActivity.retryPosters/onResume` schließen den Offline-/Transient-Poster-Rebind-Fehler; 8-MiB-Downloadgrenze und reine `VDesignPosterDecodePolicy` reduzieren unkontrollierte Bitmap-IO/Speicherlast. Null-/Leer-Nuvio-Listen zeigen „Keine Einträge“ und keine Fakedaten. Unveränderte 14 Slots, 3 Nuvio-Kanäle, kein Classic-/Overview-Modus.
+- **Tests bisher:** [Run 43588790615](https://github.com/Justify87/Plume_Launcher/actions/runs/43588790615) auf `8dce8de2a8bcf84ee2062157080b9029108c399e`, [check Job 132428880587](https://github.com/Justify87/Plume_Launcher/actions/runs/43588790615/job/132428880587) **completed/success** inkl. Unit/Lint/Debug+Release, ADB-Installer, Spotify/Mullvad-Offline; Release `509570 → 509922 B (+352)`. [Native kombinierter APK-Job 132428880906](https://github.com/Justify87/Plume_Launcher/actions/runs/43588790615/job/132428880906) beim Schreiben `in_progress`; nachfolgende Dokumentations-HEAD-CI separat prüfen. Lokales `./gradlew` `not_run` (kein Android SDK/Checkout), Shield/Emulator `not_run`.
+- **Original Mullvad:** Gitlink `third_party/mullvadvpn-app@aa47f606b1a159214c7279344128119fa91be5fd`, Rust/JNI/VpnService/Relay-Generator, Paket `dev.plume.advanced`, ARM64-Bedingungen und Permissions nicht geändert. Integrations-Dokumentation liegt tatsächlich unter `docs/archive/legacy-features/mullvad-vpn/`, nicht `docs/mullvad-integration/`.
+- **Risiko:** Android-TV-/Shield-RAM, Überschreiten der 8-MiB-URL-Grenze, Host-Inset-vs-DisplayMetrics-Schriftmaßstab, lange Titel, echte Nuvio-Provider-Browsability, Focus Return, VPN-Start und Direct Boot sind nicht gerätegeprüft; keine simulierten Erfolgswerte.
+
+## Exakt nächster Meilenstein M08 — reale Abschlussmatrix
+
+1. Aktuellen PR-SHA und beide Check-/Native-Jobstatus einschließlich `check_apk.py`, ABI `arm64-v8a`, Manifest `VpnService`, JNI/Relay-Gates und Debug/unsigned-Release-Build überprüfen. Nur echtes kombiniertes Debug-APK auf Shield installieren, nicht die kleine Standalone-APK mit integrierter Mullvad-APK verwechseln. Keine automatische PR-Freigabe oder Merge.
+2. Shield Pro 2019 oder Android-TV-Emulator: 1920×1080 16:9 (auch Safe-Inset), Screenshots vom **laufenden** V-Home bei Hero-Fokus, weiterer Fokusposition, Nuvio leer/teilgefüllt und langen deutschen Titeln erfassen, unter `docs/v-design/evidence/` nur echte Aufnahmen ablegen. Seitengeometrie in identischen Ausschnitten mit Original vergleichen, sichtbare Abweichungen vor/nach Behebung nach Koordinate dokumentieren. Mindestens normale und erhöhte Android-Schriftgröße prüfen.
+3. Installiert/deinstalliert Nuvio/SmartTube, `:in-progress`/`:available`/`:upcoming` browsable und fehlend, Permissions verweigert, null Cursor, fehlendes Release-Date und fehlerhafte Poster-URL, Off-/Online-Wechsel, App-Return, Provider-/Profil-Refresh, D-Pad alle Reihen/Paging, HOME/Back, All Apps/Settings/HDMI/Wallpaper/Setup/Direct Boot überprüfen. Keine falsche Medien-/Countdown- oder Neu-Badge-Angabe zulassen.
+4. Mit `adb shell dumpsys meminfo dev.plume.advanced` und `adb shell dumpsys gfxinfo dev.plume.advanced framestats` unter identischen Wiederholbedingungen reale Vorher-/Nachher-Werte erheben; optional Perfetto für Poster-Decoder/Main-Thread. Ohne Zahlen `not_measured`, keine Performancezusage.
+5. Mullvad Original-Services/JNI im **tatsächlichen** Ein-APK-Build: D-Pad-VPN-Activity, Login/Konto/Relay, Verbindung/Trennung, Split-Tunneling, Boot-/Reconnect-Gates, keine unerwartete zweite App, keine nicht dokumentierten ABI/Signatur-Änderungen. Vorhandene M12-Hardwaregates aus archivierter `TEST_MATRIX.md` verwenden. Ohne Gerät `hardware_pending`.
+
+**M08 schließt nur belegte Gates. Kein Merge ohne explizite Freigabe.**
+
+---
+
 # M06 → M07: operativer Handoff
 
 **Ergebnis:** Quellcode-Migration auf einzelnem V-Home; Code-CI auf `3e8a135` [completed/success](https://github.com/Justify87/Plume_Launcher/actions/runs/43583732764); Draft-PR [#39](https://github.com/Justify87/Plume_Launcher/pull/39) **offen, kein Merge**. Grundlage tatsächlich gemergter M05 PR #38 (`main@de9bb87eef0ee13cbdcc9a884363839b17c2e602`).
