@@ -1,5 +1,7 @@
-# Fast pull-request validation; the full combined Mullvad APK is built only when
-# integration inputs change (and remains manually buildable from debug-apk.yml).
+# Every pull request validates both the standalone launcher and the actual combined
+# Plume+Mullvad APK. The manual integrated APK workflow remains available unchanged.
+# This is intentionally stricter than branch-name/path filtering: UI and entry-point
+# edits can break integrated Mullvad Kotlin compilation without touching VPN files.
 name: Pull request checks
 
 on:
@@ -18,33 +20,24 @@ jobs:
     timeout-minutes: 30
     env:
       BASE: ${{ github.event.pull_request.base.sha }}
-    outputs:
-      integrated: ${{ steps.scope.outputs.integrated }}
     steps:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
-      - name: Identify changed components
+      - name: Identify optional tool test changes
         id: scope
         shell: bash
         run: |
           set -euo pipefail
           changed="$RUNNER_TEMP/pr-changed-files.txt"
           git diff --name-only "$BASE"...HEAD > "$changed"
-          if grep -Eq '^(tools/mullvad/|third_party/mullvadvpn-app(/|$)|\.gitmodules$|\.github/workflows/debug-apk\.yml$|app/src/main/AndroidManifest\.xml$|app/build\.gradle\.kts$|build\.gradle\.kts$|settings\.gradle\.kts$|gradle/libs\.versions\.toml$)' "$changed"; then
-            echo 'integrated=true' >> "$GITHUB_OUTPUT"
-            echo 'Combined Mullvad APK check: integration inputs changed.'
-          else
-            echo 'integrated=false' >> "$GITHUB_OUTPUT"
-            echo 'Combined Mullvad APK check: not needed for this PR.'
-          fi
-          if grep -Eq '^(tools/plume-install\.sh$|tools/plume-install-test/)' "$changed"; then
+          if grep -Eq '^(tools/plume-install\\.sh$|tools/plume-install-test/)' "$changed"; then
             echo 'installer=true' >> "$GITHUB_OUTPUT"
           else
             echo 'installer=false' >> "$GITHUB_OUTPUT"
           fi
-          if grep -Eq '^tools/(spotify_podcast_probe|test_spotify_podcast_probe)\.py$' "$changed"; then
+          if grep -Eq '^tools/(spotify_podcast_probe|test_spotify_podcast_probe)\\.py$' "$changed"; then
             echo 'spotify=true' >> "$GITHUB_OUTPUT"
           else
             echo 'spotify=false' >> "$GITHUB_OUTPUT"
@@ -61,13 +54,8 @@ jobs:
         if: ${{ steps.scope.outputs.spotify == 'true' }}
         run: python3 -m unittest discover -s tools -p 'test_spotify_podcast_probe.py' -v
 
-      # The combined APK workflow runs these exact Python tests itself.
-      # Run them here only when there is no integrated build to avoid duplication.
-      - name: Mullvad staging and APK validator regression tests (offline)
-        if: ${{ steps.scope.outputs.integrated != 'true' }}
-        run: |
-          python3 -m unittest discover -s tools -p 'test_mullvad_prepare.py' -v
-          python3 -m unittest discover -s tools -p 'test_mullvad_apk.py' -v
+      # Mullvad staging/ZIP regression tests run once in the integrated workflow
+      # below, directly before container compilation.
 
       - uses: actions/setup-java@v5
         with:
@@ -90,10 +78,10 @@ jobs:
           if-no-files-found: ignore
 
   mullvad-apk:
-    # Path-based instead of branch-name-based; use the unchanged pinned
-    # combined APK workflow and keep its manual workflow_dispatch entry.
+    # The normal Plume Gradle build cannot compile the Mullvad Android/Rust
+    # integration. Keep its pinned container build as a full PR gate.
+    # Run for *every* PR, not just VPN branches or a handpicked path list.
     needs: check
-    if: ${{ needs.check.outputs.integrated == 'true' }}
     uses: ./.github/workflows/debug-apk.yml
     with:
       variant: integrated
