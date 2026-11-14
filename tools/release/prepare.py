@@ -13,8 +13,8 @@ import re
 ROOT = Path(__file__).resolve().parents[2]
 VERSION = re.compile(r"^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-(beta|rc)([1-9][0-9]*))?$")
 NAME_LINE = re.compile(r'(?m)^(\s*versionName\s*=\s*")([^"]+)(".*)$')
-CODE_LINE = re.compile(r"(?m)^(\s*versionCode\s*=\s*)([0-9]+)(\s*)$")
-UNRELEASED = re.compile(r"(?m)^## Unreleased\s*$")
+CODE_LINE = re.compile(r"(?m)^([ \t]*versionCode[ \t]*=[ \t]*)([0-9]+)([ \t]*)$")
+UNRELEASED = re.compile(r"(?m)^## Unreleased[ \t]*$")
 HEADING = re.compile(r"(?m)^## [^\n]+$")
 
 
@@ -58,9 +58,8 @@ def prepare(root: Path, version: str, notes_output: Path | None = None) -> int:
     notes = changelog[start:next_heading.start()].strip()
     if not any(line.startswith("- ") and line[2:].strip() for line in notes.splitlines()):
         raise ValueError("Unreleased changelog must have at least one release-note bullet")
-    if HEADING.search(f"## {version}\n"):
-        if re.search(rf"(?m)^## {re.escape(version)}\s*$", changelog):
-            raise ValueError(f"Release heading ## {version} already exists")
+    if re.search(rf"(?m)^## {re.escape(version)}[ \\t]*$", changelog):
+        raise ValueError(f"Release heading ## {version} already exists")
 
     # Preserve all Unreleased notes under the new version, keep a fresh empty
     # Unreleased section, and preserve every older release unchanged.
