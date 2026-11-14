@@ -410,7 +410,21 @@ class MainActivity : Activity() {
         // broadcast cannot leave the home screen empty. Do not read prefs, files or the cache yet.
         registerReceiver(unlockReceiver, IntentFilter(Intent.ACTION_USER_UNLOCKED))
         if (!getSystemService(UserManager::class.java).isUserUnlocked) {
+            // Device-protected resources only: never read credential-protected preferences or TV listings.
+            // Still render the same V-Design shell instead of falling back to a removed Classic home.
             setContentView(R.layout.activity_main)
+            val root = findViewById<FrameLayout>(R.id.root)
+            val lockedHome = VDesignHomeView(this).apply {
+                bindFeed(NuvioDashboardFeed.EMPTY)
+                bindNavigation(
+                    listOf(VDesignHomeView.Navigation(VDesignHomeView.OVERVIEW,
+                        getString(R.string.home_layout_overview), getDrawable(R.drawable.ic_home))),
+                    onOpen = {}, onAllApps = {}, onSystemActions = {},
+                )
+            }
+            root.addView(lockedHome, root.indexOfChild(findViewById<View>(R.id.allApps)),
+                FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT))
+            lockedHome.post { lockedHome.focusOverview() }
             return
         }
         ready = true
@@ -2498,7 +2512,6 @@ class MainActivity : Activity() {
         val rowHidden = rowHiddenSet().count { pkg -> apps.any { it.pkg == pkg } }
         val chFlip = prefs.getStringSet("ch_flip", emptySet())!!
         val channelsOn = (if (WATCH_NEXT in chFlip) 0 else 1) + appChannels().distinctBy { (_, p, n) -> channelKey(p, n) }.count { (_, p, n) -> channelOn(n, channelKey(p, n), chFlip) }
-        val names = rowNames()
         // Rows with more than two values also step back with Left; two-value rows flip either way.
         val steps = mutableMapOf<Int, (Int) -> Unit>(
             R.string.icon_style to { d ->
@@ -3981,10 +3994,19 @@ class MainActivity : Activity() {
                 settingsScrim.visibility != View.VISIBLE -> openAllApps()
             tag == VDesignHomeView.SETTINGS && allApps.visibility != View.VISIBLE &&
                 settingsScrim.visibility != View.VISIBLE -> showVDesignSystemActions(v)
-            allApps.visibility == View.VISIBLE && tag != null -> unlock {
-                prefs.edit().putStringSet("row_hidden", rowHiddenSet() - tag).apply()
-                saveOrder(listOf(tag) + sortedApps().map { it.pkg }.filter { it != tag })
-                closeAllApps()
+            allApps.visibility == View.VISIBLE && tag != null -> {
+                val app = sortedApps().firstOrNull { it.pkg == tag }
+                if (app != null) holdMenu(v, listOfNotNull(
+                    getString(R.string.open) to { launch(app) },
+                    if (app.pkg.startsWith(HDMI)) null else getString(R.string.change_app_picture) to {
+                        unlock { appPictures(app.pkg, app.label) }
+                    },
+                    if (app.pkg.startsWith(HDMI)) null else getString(R.string.app_info) to {
+                        openSettings(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                            Uri.fromParts("package", app.pkg, null))
+                    },
+                    if (canUninstall(app.pkg)) getString(R.string.uninstall) to { uninstall(app.pkg) } else null,
+                ))
             }
             v.parent === wifi.parent -> topMenu(v)
         }
@@ -5447,15 +5469,16 @@ class MainActivity : Activity() {
         refreshWatchNext()
     }
 
-    /** Small source-app mark for the details line: its logo when we have one (brand colour with colour icons), else its icon (greyscale unless colour). */
+    /** Actual source branding on V-Design cards is independent of retired Classic row preferences. */
     private fun sourceIcon(pkg: String?): Drawable? {
         if (pkg == null) return null
-        val colour = cwColour()
-        val tint = BRAND_COLOURS[pkg]?.takeIf { colour } ?: watchInk // a mark without its brand colour goes with the card's text
-        LOGOS[pkg]?.takeIf { !it.second }?.let { return getDrawable(it.first)!!.mutate().apply { setTint(tint) } }
+        val tint = BRAND_COLOURS[pkg] ?: 0xFFE5E1EF.toInt()
+        LOGOS[pkg]?.takeIf { !it.second }?.let {
+            return getDrawable(it.first)!!.mutate().apply { setTint(tint) }
+        }
         return try {
-            packageManager.getApplicationIcon(pkg).mutate().apply { if (!colour) colorFilter = GREYSCALE }
-        } catch (e: PackageManager.NameNotFoundException) {
+            packageManager.getApplicationIcon(pkg).mutate()
+        } catch (_: PackageManager.NameNotFoundException) {
             null
         }
     }

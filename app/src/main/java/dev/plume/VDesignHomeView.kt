@@ -19,7 +19,7 @@ import java.time.Instant
 import java.time.ZoneId
 import java.util.Locale
 
-/** Reference-anchored single visible V-Design home host. Legacy XML stays hidden until M06. */
+/** Reference-anchored sole productive V-Design home host; no Classic/Overview layout switch. */
 internal class VDesignHomeView(context: Context) : FrameLayout(context) {
     companion object {
         const val OVERVIEW = "vdesign:overview"

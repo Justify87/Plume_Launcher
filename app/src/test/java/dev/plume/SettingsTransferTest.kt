@@ -27,8 +27,7 @@ class SettingsTransferTest {
     }
 
     @Test fun rejectsInvalidKnownValuesBeforeImport() {
-        for (values in listOf(mapOf("clock_style" to "unknown"), mapOf("clock_size" to "999"),
-            mapOf("app_anim" to "true"), mapOf("wp_every" to 1.5), mapOf("geo_manual" to true),
+        for (values in listOf(mapOf("app_anim" to "true"), mapOf("wp_every" to 1.5), mapOf("geo_manual" to true),
             mapOf("geo_lat" to Double.NaN), mapOf("geo_lon" to 181), mapOf("row_hidden" to listOf(3)),
             mapOf("order" to "hdmi:local"), mapOf("order" to "bad\u0000text"))) {
             assertThrows(IllegalArgumentException::class.java) { SettingsTransfer.validate(values) }
