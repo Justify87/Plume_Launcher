@@ -13,7 +13,7 @@ class SettingsTransferTest {
             "wp_light" to "video:local.mp4", "order" to "com.netflix.ninja,hdmi:local/HW1,org.videolan.vlc",
             "row_hidden" to setOf("hdmi:local/HW1", "com.spotify.tv.android"), "geo_lat" to 20f,
         ))
-        assertEquals(setOf("theme", "row_name", "order", "row_hidden"), result.keys)
+        assertEquals(setOf("theme", "order", "row_hidden"), result.keys)
         assertEquals("com.netflix.ninja,org.videolan.vlc", result["order"])
         assertEquals(setOf("com.spotify.tv.android"), result["row_hidden"])
     }
@@ -30,7 +30,7 @@ class SettingsTransferTest {
         for (values in listOf(mapOf("clock_style" to "unknown"), mapOf("clock_size" to "999"),
             mapOf("app_anim" to "true"), mapOf("wp_every" to 1.5), mapOf("geo_manual" to true),
             mapOf("geo_lat" to Double.NaN), mapOf("geo_lon" to 181), mapOf("row_hidden" to listOf(3)),
-            mapOf("order" to "hdmi:local"), mapOf("row_name" to "bad\u0000text"))) {
+            mapOf("order" to "hdmi:local"), mapOf("order" to "bad\u0000text"))) {
             assertThrows(IllegalArgumentException::class.java) { SettingsTransfer.validate(values) }
         }
     }
@@ -43,7 +43,7 @@ class SettingsTransferTest {
 
     @Test fun acceptsAllPublishedDisplayChoices() {
         for (style in ICON_STYLE_KEYS) assertEquals(style, SettingsTransfer.validate(mapOf("icon_style" to style))["icon_style"])
-        for (align in listOf("left", "centre", "right")) assertEquals(align, SettingsTransfer.validate(mapOf("row_align" to align))["row_align"])
+        for (align in listOf("left", "centre", "right")) assertFalse(SettingsTransfer.validate(mapOf("row_align" to align)).containsKey("row_align"))
     }
 
     @Test fun failedCommitRestoresDestinationSettings() {
@@ -70,4 +70,20 @@ class SettingsTransferTest {
         assertEquals(original, stored)
         assertEquals(2, commits)
     }
+    @Test fun oldExportWithObsoleteHomeModeAndRowsIsSafe() {
+        val old = """{"format":"plume-settings","version":1,"settings":{
+          "home_layout_mode":"classic", "row_size":"nonsense", "row_align":"centre",
+          "row_show":"never", "row_drop":"unexpected", "cw_colour":"broken",
+          "names":"focus", "row_name":"Old row", "top_bar":"power,plume",
+          "theme":"dark", "sort":"manual", "order":"com.netflix.ninja",
+          "row_hidden":["com.spotify.tv.android"]}}""".toByteArray()
+        val imported = SettingsTransfer.decode(old)
+        assertEquals("dark", imported["theme"])
+        assertEquals("manual", imported["sort"])
+        assertEquals("com.netflix.ninja", imported["order"])
+        assertEquals(setOf("com.spotify.tv.android"), imported["row_hidden"])
+        assertFalse(imported.keys.any { it in setOf("home_layout_mode", "row_size", "row_align",
+            "row_show", "row_drop", "cw_colour", "names", "row_name", "top_bar") })
+    }
+
 }
