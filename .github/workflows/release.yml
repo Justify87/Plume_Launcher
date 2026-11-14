@@ -1,0 +1,233 @@
+# Manual, guarded release of the *combined* Plume+Mullvad ARM64 application.
+# Inspired by Mullvad's prepare-release/tag/sign/publish separation but uses
+# GitHub Releases and a repository-specific persistent Android signing key.
+name: Release Plume Launcher Advanced
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "New version (e.g. 1.8.0 or 1.8.0-beta1; no leading v)"
+        type: string
+        required: true
+      reviewed_changelog:
+        description: "I reviewed the Unreleased changelog for this version"
+        type: boolean
+        required: true
+        default: false
+      publish:
+        description: "Publish publicly after successful build (otherwise create a draft)"
+        type: boolean
+        required: true
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: plume-release-main
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build, sign and create v${{ inputs.version }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    env:
+      VERSION: ${{ inputs.version }}
+      REPO: ${{ github.repository }}
+      PUBLISH: ${{ inputs.publish }}
+      REVIEWED_CHANGELOG: ${{ inputs.reviewed_changelog }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout release source and pinned Mullvad submodules
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          submodules: recursive
+          persist-credentials: true
+
+      - name: Verify release input, source, tag and signing configuration
+        shell: bash
+        env:
+          HAS_KEYSTORE: ${{ secrets.PLUME_RELEASE_KEYSTORE_BASE64 }}
+          HAS_STORE_PASSWORD: ${{ secrets.PLUME_RELEASE_KEYSTORE_PASSWORD }}
+          HAS_KEY_ALIAS: ${{ secrets.PLUME_RELEASE_KEY_ALIAS }}
+          HAS_KEY_PASSWORD: ${{ secrets.PLUME_RELEASE_KEY_PASSWORD }}
+          EXPECTED_CERT: ${{ vars.PLUME_RELEASE_CERT_SHA256 }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = 'refs/heads/main' || { echo "::error::Run releases only from main"; exit 1; }
+          test "$REVIEWED_CHANGELOG" = 'true' || { echo "::error::Review the Unreleased changelog first"; exit 1; }
+          [[ "$VERSION" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-(beta|rc)[1-9][0-9]*)?$ ]] ||
+            { echo "::error::Expected version like 1.8.0 or 1.8.0-beta1"; exit 1; }
+          test -z "$(git status --porcelain --ignore-submodules=all)" ||
+            { echo "::error::Checkout must be clean"; exit 1; }
+          test "$(git -C third_party/mullvadvpn-app rev-parse HEAD)" = aa47f606b1a159214c7279344128119fa91be5fd
+          test "$(cat third_party/mullvadvpn-app/building/android-container-image.txt)" = 'ghcr.io/mullvad/mullvadvpn-app-build-android@sha256:ca22c11fb8a15321f897fa169c9c9d1f7d0d9edfeea16fa04af4de71ebcf4286'
+          test -n "$HAS_KEYSTORE" && test -n "$HAS_STORE_PASSWORD" && test -n "$HAS_KEY_ALIAS" &&
+            test -n "$HAS_KEY_PASSWORD" && test -n "$EXPECTED_CERT" ||
+            { echo "::error::Configure release keystore secrets and PLUME_RELEASE_CERT_SHA256 variable first; see docs/RELEASING.md"; exit 1; }
+          git fetch --tags origin
+          if git show-ref --verify --quiet "refs/tags/v$VERSION" ||
+             git ls-remote --exit-code --tags origin "refs/tags/v$VERSION" >/dev/null 2>&1; then
+            echo "::error::Version tag v$VERSION already exists"
+            exit 1
+          fi
+          if gh release view "v$VERSION" --repo "$REPO" >/dev/null 2>&1; then
+            echo "::error::GitHub Release v$VERSION already exists"
+            exit 1
+          fi
+
+      - name: Prepare monotonic versionCode and release notes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s tools -p test_release_prepare.py -v
+          python3 tools/release/prepare.py --version "$VERSION" --notes-output "$RUNNER_TEMP/RELEASE_NOTES.md"
+          code=$(sed -n 's/^[[:space:]]*versionCode = \([0-9][0-9]*\).*$/\1/p' app/build.gradle.kts)
+          [[ "$code" =~ ^[0-9]+$ ]] || exit 1
+          echo "VERSION_CODE=$code" >> "$GITHUB_ENV"
+
+      - name: Run Plume and integration regression tests
+        run: |
+          set -euo pipefail
+          sh tools/plume-install-test/run.sh
+          python3 -m unittest discover -s tools -p test_spotify_podcast_probe.py -v
+          python3 -m unittest discover -s tools -p test_mullvad_prepare.py -v
+          python3 -m unittest discover -s tools -p test_mullvad_apk.py -v
+
+      - name: Set up Java 17 and Gradle
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v5
+
+      - name: Validate Plume unit tests, lint and Kotlin compilation
+        run: ./gradlew testDebugUnitTest lintDebug assembleDebug
+
+      - name: Pull pinned Mullvad Android container
+        run: docker pull "$(cat third_party/mullvadvpn-app/building/android-container-image.txt)"
+
+      - name: Compile combined ARM64 Debug and unsigned R8 Release
+        run: |
+          set -euo pipefail
+          bash tools/mullvad/build-integrated.sh --no-configuration-cache --max-workers=2 :app:assembleOssProdRelease
+          grep -Fq "val version = \"$VERSION\"" .build/plume-mullvad/mullvadvpn-app/android/plume-ui/build.gradle.kts
+
+      - name: Verify integrated APK before signing
+        shell: bash
+        run: |
+          set -euo pipefail
+          base=.build/plume-mullvad/mullvadvpn-app/android/app/build/outputs/apk/ossProd
+          debug=$(find "$base/debug" -maxdepth 1 -name '*.apk' -type f -print -quit)
+          release=$(find "$base/release" -maxdepth 1 -name '*.apk' -type f -print -quit)
+          test -s "$debug" && test -s "$release"
+          test "$(find "$base/debug" -maxdepth 1 -name '*.apk' -type f | wc -l)" -eq 1
+          test "$(find "$base/release" -maxdepth 1 -name '*.apk' -type f | wc -l)" -eq 1
+          python3 tools/mullvad/check_apk.py "$debug"
+          python3 tools/mullvad/check_apk.py "$release"
+          aapt=$(find "$ANDROID_HOME/build-tools" -maxdepth 2 -name aapt -type f | sort -V | tail -n 1)
+          test -x "$aapt"
+          "$aapt" dump badging "$release" > "$RUNNER_TEMP/release-badging.txt"
+          "$aapt" dump xmltree "$release" AndroidManifest.xml > "$RUNNER_TEMP/release-manifest.txt"
+          grep -Fq "package: name='dev.plume.advanced'" "$RUNNER_TEMP/release-badging.txt"
+          grep -Fq "versionCode='$VERSION_CODE'" "$RUNNER_TEMP/release-badging.txt"
+          grep -Fq "versionName='$VERSION'" "$RUNNER_TEMP/release-badging.txt"
+          grep -Fxq "native-code: 'arm64-v8a'" "$RUNNER_TEMP/release-badging.txt"
+          for component in 'dev.plume.MainActivity' 'net.mullvad.mullvadvpn.app.MullvadApplication' 'net.mullvad.mullvadvpn.app.service.MullvadVpnService' 'net.mullvad.mullvadvpn.app.VpnActivity' 'android.intent.category.HOME'; do
+            grep -Fq "$component" "$RUNNER_TEMP/release-manifest.txt"
+          done
+          if grep -Eq 'PlumeVpnDebugActivity|MainActivityAlt' "$RUNNER_TEMP/release-manifest.txt"; then
+            echo "::error::Unexpected debug harness or Mullvad phone launcher in release"
+            exit 1
+          fi
+          printf 'RELEASE_UNSIGNED_APK=%s\n' "$release" >> "$GITHUB_ENV"
+
+      - name: Sign release APK with stable private key and verify certificate
+        shell: bash
+        env:
+          KEYSTORE_B64: ${{ secrets.PLUME_RELEASE_KEYSTORE_BASE64 }}
+          PLUME_STORE_PASSWORD: ${{ secrets.PLUME_RELEASE_KEYSTORE_PASSWORD }}
+          PLUME_KEY_ALIAS: ${{ secrets.PLUME_RELEASE_KEY_ALIAS }}
+          PLUME_KEY_PASSWORD: ${{ secrets.PLUME_RELEASE_KEY_PASSWORD }}
+          EXPECTED_CERT: ${{ vars.PLUME_RELEASE_CERT_SHA256 }}
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p artifacts/release
+          keystore="$RUNNER_TEMP/plume-release.jks"
+          trap 'rm -f "$keystore"' EXIT
+          printf '%s' "$KEYSTORE_B64" | base64 --decode > "$keystore"
+          test -s "$keystore"
+          apksigner=$(find "$ANDROID_HOME/build-tools" -maxdepth 2 -name apksigner -type f | sort -V | tail -n 1)
+          test -x "$apksigner"
+          "$apksigner" sign --min-sdk-version 28 --v4-signing-enabled false \
+            --ks "$keystore" --ks-key-alias "$PLUME_KEY_ALIAS" \
+            --ks-pass env:PLUME_STORE_PASSWORD --key-pass env:PLUME_KEY_PASSWORD \
+            --out artifacts/release/Plume-Launcher-Advanced.apk "$RELEASE_UNSIGNED_APK"
+          "$apksigner" verify --min-sdk-version 28 --verbose --print-certs \
+            artifacts/release/Plume-Launcher-Advanced.apk > "$RUNNER_TEMP/signature-report.txt"
+          cert=$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' "$RUNNER_TEMP/signature-report.txt" | head -n 1)
+          actual=$(printf '%s' "$cert" | tr '[:lower:]' '[:upper:]' | tr -d ': ')
+          expected=$(printf '%s' "$EXPECTED_CERT" | tr '[:lower:]' '[:upper:]' | tr -d ': ')
+          test -n "$actual" && test "$actual" = "$expected" ||
+            { echo "::error::Release signing certificate differs from PLUME_RELEASE_CERT_SHA256"; exit 1; }
+          printf '%s\n' "$actual" > artifacts/release/SIGNER_SHA256.txt
+          python3 tools/mullvad/check_apk.py artifacts/release/Plume-Launcher-Advanced.apk
+          (cd artifacts/release && sha256sum Plume-Launcher-Advanced.apk > SHA256SUMS)
+
+      - name: Publish release commit to main after verified build
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Fail on any intervening main change; never overwrite another commit.
+          remote=$(git ls-remote origin refs/heads/main | cut -f1)
+          test "$remote" = "$GITHUB_SHA" ||
+            { echo "::error::main changed during the build; rerun from updated main"; exit 1; }
+          if git ls-remote --exit-code --tags origin "refs/tags/v$VERSION" >/dev/null 2>&1; then
+            echo "::error::Tag appeared during the build; refusing to publish"
+            exit 1
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add app/build.gradle.kts CHANGELOG.md
+          git diff --cached --quiet && { echo "::error::No release source changes"; exit 1; }
+          git commit -m "release: v$VERSION"
+          # A protected main branch may reject this push. Do not bypass protection.
+          git push origin HEAD:refs/heads/main
+          echo "RELEASE_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+
+      - name: Create Git tag and draft GitHub Release with signed artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=(--repo "$REPO" --target "$RELEASE_SHA" --title "Plume Launcher Advanced v$VERSION" \
+            --notes-file "$RUNNER_TEMP/RELEASE_NOTES.md" --draft)
+          if [[ "$VERSION" == *-beta* || "$VERSION" == *-rc* ]]; then
+            args+=(--prerelease)
+          fi
+          # GitHub creates v<version> for the exact release commit. No tag/release
+          # is created until every build, APK and signing verification passed.
+          gh release create "v$VERSION" artifacts/release/Plume-Launcher-Advanced.apk \
+            artifacts/release/SHA256SUMS artifacts/release/SIGNER_SHA256.txt "${args[@]}"
+          if [[ "$PUBLISH" == 'true' ]]; then
+            if [[ "$VERSION" == *-beta* || "$VERSION" == *-rc* ]]; then
+              gh release edit "v$VERSION" --repo "$REPO" --draft=false --prerelease
+            else
+              gh release edit "v$VERSION" --repo "$REPO" --draft=false --latest
+            fi
+          fi
+          gh release view "v$VERSION" --repo "$REPO" --json url,isDraft,isPrerelease,tagName \
+            --jq '.url + " (tag=" + .tagName + ", draft=" + (.isDraft|tostring) + ")"' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload signed APK for workflow audit
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: Plume-Signed-Release-${{ inputs.version }}
+          path: artifacts/release/
+          if-no-files-found: ignore
+          retention-days: 14
