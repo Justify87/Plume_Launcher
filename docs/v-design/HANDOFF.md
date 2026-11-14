@@ -1,3 +1,20 @@
+# M06 → M07: operativer Handoff
+
+**Ergebnis:** Quellcode-Migration auf einzelnem V-Home; Draft-PR [#39](https://github.com/Justify87/Plume_Launcher/pull/39) **offen, kein Merge**. Grundlage tatsächlich gemergter M05 PR #38 (`main@de9bb87eef0ee13cbdcc9a884363839b17c2e602`).
+
+- M06 Branch `feature/vdesign-m06-remove-legacy-home`, Code-HEAD vor Docs `d5d88e502ea960419756625523553d596f29de2d`. Bei neuem HEAD nicht alte CI-Status übertragen.
+- `MainActivity.setupVDesign` und `VDesignHomeView` sind einzige Home-Renderer; alte XML `classicHome`/`overviewHome` und Home-Mode-Klassen gelöscht. Long-OK `Übersicht` → Alle Apps; `Einstellungen` → System/HDMI/Power. All Apps Long-OK zeigt App-Aktionen statt unsichtbarem Home-Row-Pinning.
+- `MainActivity.refreshWatchNext` bleibt für echte Nuvio-TV-Provider-Snapshots. V-Design bindet `NuvioDashboardFeed` für `:in-progress`, `:available`, `:upcoming` und verwendet `VDesignLaunchPolicy`. Nuvio-`CONTINUE` ist weiterhin **ein eigenständiger Publisher-Mischkanal**.
+- Ältere SettingsTransfer-Version-1-Dateien mit `home_layout_mode` / `row_size` / `row_align` / `row_show` / `row_drop` sind zulässig; diese abgeschalteten Keys werden beim Import ignoriert. Keine komplette Settings-Löschung. `row_hidden` und `order` bleiben für Bestandsdaten portabel.
+- Direkter Boot vor Unlock rendert die **V-Shell mit Empty State**, ohne Credential-Preferences/TV-Provider. Physische Shield-Abnahme dieses Pfads steht aus. Versteckte Clock-/Topbar-Hilfsviews im `content`-Host sind kein Home-Layout und wurden für Wallpaper-/Systemaktionen-Kompatibilität nicht blind gelöscht.
+- **Tests:** erster CI-Lauf [43533466727](https://github.com/Justify87/Plume_Launcher/actions/runs/43533466727) fehlgeschlagen wegen `rowNames`/`cwColour`. Folgekorrigierter Code [e48abd7](https://github.com/Justify87/Plume_Launcher/commit/e48abd7c7d5554a5b5e2482df173ba38ebe76d0a), [Folge-CI 43533837289](https://github.com/Justify87/Plume_Launcher/actions/runs/43533837289) **failed** an altem YouTube-Overview-Unit-Test. Mit [d5d88e5](https://github.com/Justify87/Plume_Launcher/commit/d5d88e502ea960419756625523553d596f29de2d) auf `YouTubeSubscriptions.dedupe` migriert; [dritter Run 43534292196](https://github.com/Justify87/Plume_Launcher/actions/runs/43534292196) **zum Schreibzeitpunkt in_progress**. Kein lokales Gradle, kein Android SDK, kein Emulator, keine Shield-Testbehauptung.
+
+## Exakt nächster Meilenstein — M07
+
+Auf dem **wirklich geprüften M06 PR-HEAD** bzw. dessen freigegebenen Merge-Stamm arbeiten. Zuerst CI, dann Shield Pro 2019: HOME-Rolle, Device Protected Direct Boot, D-Pad/Back/Focus Return, All Apps install/deinstall, HDMI/CEC, Wallpaper/Theme/Settings, Mullvad-VPN-Start/JNI und echte Nuvio-Preview-Kanäle. Mit echten Screenshots gegen Originalbild prüfen; offene visuelle Änderungen nicht still in M06 reintroduzieren. Keine alten Home-Modi wiederherstellen. Alte Mockup-Beispielmedien sind keine gültige Datenquelle.
+
+---
+
 # M05 → M06: operativer Handoff
 
 **CI-Nachtrag (nach Code+Docs):** [Run 43528616572](https://github.com/Justify87/Plume_Launcher/actions/runs/43528616572), [Check 132240568044](https://github.com/Justify87/Plume_Launcher/actions/runs/43528616572/job/132240568044) für `1e8a7cb5e7d2c823a32e4069cfa96e1a71a11b0e`: **completed/success**, `testDebugUnitTest lintDebug assembleDebug assembleRelease` erfolgreich; Release `545714 → 550334` B (**+4620**). Mullvad-native skipped, Hardware pending. Dieser Evidence-Docs-Commit ist ein neuer SHA; sein Run bleibt separat zu prüfen.

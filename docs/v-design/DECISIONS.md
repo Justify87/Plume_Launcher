@@ -70,3 +70,12 @@ Das tatsächliche 1536×864-JPEG-Mockup wurde angesehen und SHA-geprüft: Sideba
 ## D-016 — Harte Publisher-Intent-Grenze und erreichbare versteckte Topbar-Aktionen (M05, 2026-11-14)
 
 **Problem:** TV-`intent_uri` enthält fremdgesteuerte Intent-Parameter; bei UPCOMING darf niemals Playback vorab stattfinden. Die bislang unsichtbare Topbar versteckte Power, System-/WLAN-Settings und Home-Setup. **Entscheidung:** Nur explizite Nuvio-`com.nuvio.tv.MainActivity` mit passendem Runtime-Paket, korrekter VIEW-Aktion und ohne fremdes URI-Scheme/Selector wird akzeptiert. Ein *neuer* Intent kopiert ausschließlich vom Nuvio-Publisher belegte skalare Felder, `UPCOMING` setzt Detail ohne Video-ID, In-Progress/Available Stream nur bei belegtem `launchMode=stream` mit Video-ID und Titel. Unsichere/fehlende Daten ergeben Detail oder Unavailable-Meldung, nicht generischen Stream. `Einstellungen`-Long-OK öffnet ein vorhandene Systemeinstiege verwendendes Menü für Quellen/HDMI, OS-/WLAN-Settings, Power und Home-Einrichtung; `Übersicht`-Long-OK öffnet Alle Apps. Norm-Sidebar bleibt bei maximal fünf Einträgen. Keine zusätzlichen Berechtigungen, kein neues VPN-Modul. **Tests:** Quellreview gegen Nuvio-Channel-Publisher plus reine Launch-Unit-Tests; echte Shield-Intent-/HOME-Abnahme offen.
+
+
+## D-017 — Single V home statt Classic/Overview-Einstiegsbaum (M06, 2026-11-14)
+
+**Entscheidung:** Beide alten Home-Hosts, der UI-Schalter `home_layout_mode`, alte Fokus-/Rendererklassen und ihre veralteten Tests werden entfernt. V-Design ist für regulären Start und Direct Boot der einzige Home-View-Baum. Installierte Apps, All Apps, TV-Provider-Abfragen, HDMI-Systemaktionen, Medien-Deep-Links, Wallpaper-/Settings-Unterbau und Mullvad bleiben. Interne `content`-Clock-/Topbar-Helfer sind verborgen und nicht als Home erreichbar; ihre Extraktion ist separate Kompatibilitätsarbeit, keine Reaktivierung eines zweiten Designs.
+
+## D-018 — Retired Preferences nur ignorieren, nie destruktiv löschen (M06, 2026-11-14)
+
+**Entscheidung:** Alte `home_layout_mode`-/`row_*`-/`names`-/`top_bar`-Keys werden bei SettingsTransfer-Import nicht mehr als aktive UI-Optionen übernommen. Gespeicherte Altwerte werden nicht global gelöscht oder beim Programmstart migriert/überschrieben; tragende App-Reihenfolge, TV-Kanalwahl, Wallpaper, Hidden-Watch-Konfigurationen und Home-Role bleiben erhalten. Unbekannte Keys im bisherigen v1-JSON werden weiterhin ignoriert. Regressionstest deckt explizit ungültige Alt-Felder plus gültige aktive Einstellungen ab.

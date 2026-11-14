@@ -237,3 +237,21 @@ Der frühere failed-Lint-Run 43516551245 bleibt als historische Evidenz erhalten
 | Dieser CI-Evidence-Docs-Commit | Neuer HEAD und GitHub-Actions-Run erst nach Push auszuwerten | **pending_new_ci** |
 
 Damit sind Unit- und Code-/Docs-CI-Gates nachgewiesen, aber **nicht** physische Device-/HOME-/VPN-/Nuvio-Playback-Tests oder Pixelvergleich.
+
+
+## M06 — Home-Einzelvertrag, Migration, reale CI-Evidenz
+
+| Gate | Beobachtete Evidenz | Stand |
+| --- | --- | --- |
+| Alt-View-Bäume entfernt | GitHub-Quellprüfung `activity_main.xml`: 0× `classicHome`, `overviewHome`, `appRow`, `watchRow`, `homeBodyHost`; `VDesignHomeView` verbleibt | **passed_static_source** |
+| Alt-Modus und Renderer unerreichbar | `MainActivity.kt`: 0× `HomeLayoutMode`, `homeLayoutMode`, `HomeSidebarView`, `OverviewHomeView`, `HomePageState`, `R.id.appRow`, `R.id.watchRow`; Mode-Kotlin-Dateien gelöscht | **passed_static_source** |
+| Altdaten-Import | `SettingsTransferTest.oldExportWithObsoleteHomeModeAndRowsIsSafe`, `restore` lässt abgeschaltete lokale Schlüssel in Ruhe | **test_committed_ci_pending** |
+| Direct Boot V-only | gesperrter User erhält `VDesignHomeView` ohne Credential-Preferences und ohne TV-Provider | **passed_source_review; hardware_not_run** |
+| Erster PR CI-Run (Compiler) | [43533466727](https://github.com/Justify87/Plume_Launcher/actions/runs/43533466727), [Check 132256619151](https://github.com/Justify87/Plume_Launcher/actions/runs/43533466727/job/132256619151) | **completed_failure — rowNames/cwColour** |
+| Korrigierter Code nach Erst-Fehler | `e48abd7c7d5554a5b5e2482df173ba38ebe76d0a`, [Folge-Run 43533837289](https://github.com/Justify87/Plume_Launcher/actions/runs/43533837289) | **completed_failure — alter YouTube-Overview-Unit-Test** |
+| YouTube-Dedupe-Unit-Test migriert | [d5d88e5](https://github.com/Justify87/Plume_Launcher/commit/d5d88e502ea960419756625523553d596f29de2d), [dritter Run 43534292196](https://github.com/Justify87/Plume_Launcher/actions/runs/43534292196) | **in_progress zum Doku-Schreibzeitpunkt** |
+| JVM, lint, debug/release APK am letzten HEAD | realen **finalen** CI SHA/Job nach Docs-Commit neu prüfen | **not_yet_confirmed** |
+| Gradle lokal | kein SDK/Checkout für lokalen Build | **not_run** |
+| Shield Pro 2019, HOME, Long OK, VPN, Provider, Direct Boot, All Apps, Wallpaper | kein Gerät/Emulator im Ausführungsumfeld | **not_run_hardware_pending** |
+| Original Mullvad JNI/Submodule, Nuvio dev, Permissions | keiner der betreffenden Pfade in Code-Commit geändert | **passed_diff_scope_only; runtime_not_run** |
+

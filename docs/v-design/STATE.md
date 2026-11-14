@@ -1,3 +1,61 @@
+# V-Design — kanonischer State (M06)
+
+> **M06 ist implementiert auf Draft-PR #39, noch nicht gemergt.** Der darunter erhaltene M05-Block ist ein historischer Stand, dessen Aussage „PR #38 offen“ durch den verifizierten Merge überholt ist. Dies ist der einzige kanonische Statusort.
+
+```yaml
+schema: plume-v-design-handoff/v1
+checked_on: "2026-11-14 (Europe/Berlin)"
+repository: Justify87/Plume_Launcher
+target_application_id: dev.plume.advanced
+milestone: M06
+status: code_committed_ci_test_fix_pending_final_run_hardware_pending
+baseline_main_sha: de9bb87eef0ee13cbdcc9a884363839b17c2e602
+predecessor_m05_pr: 38
+predecessor_m05_merged: true
+predecessor_m05_merge_sha: de9bb87eef0ee13cbdcc9a884363839b17c2e602
+nuvio_dev_sha: be4b84a84e004a2d36405601683df000d8dc446a
+work_branch: feature/vdesign-m06-remove-legacy-home
+code_commit_1: 8e1ec2728f3a4035d5e1efb34bd33f27201d1598
+code_commit_2: e48abd7c7d5554a5b5e2482df173ba38ebe76d0a
+code_commit_3: d5d88e502ea960419756625523553d596f29de2d
+draft_pr: 39
+draft_pr_merged: false
+first_code_ci_run: 43533466727
+first_code_ci_check_job: 132256619151
+first_code_ci_result: completed_failure_compile_two_legacy_symbols
+second_code_ci_run: 43533837289
+second_code_ci_check_job: 132257870564
+second_code_ci_result: completed_failure_legacy_youtube_test_ref
+third_code_ci_run: 43534292196
+third_code_ci_result_at_documentation: in_progress
+mullvad_native_job: skipped_branch_filter
+reference_path: docs/v-design/REFERENCE.png
+reference_git_blob: d1b14c00a6478cb3b49fcbbd637e0aa71db5df18
+reference_sha256: 95af66ad04f462867b5d52825c7e1946ac68b5e40bed52c07f4e74c085218f25
+reference_dimensions: "1536x864"
+reference_format: jpeg_jfif_misnamed_png
+local_android_sdk_build: not_run_no_checkout_or_sdk
+shield_pro_2019: not_run_hardware_pending
+emulator: not_run
+next_milestone: M07
+blockers:
+  - latest M06 CI job result must be observed and compilation/test failures fixed
+  - Shield HOME, D-Pad, Direct Boot, provider availability, All Apps, VPN and wallpaper need physical testing
+  - hidden clock/topbar compatibility host can be consolidated after behavioral validation; it is not a Home alternative
+```
+
+## M06 tatsächliche Änderungen und Grenzen
+
+- **Produktiver Start:** `MainActivity` erzeugt nur `VDesignHomeView` als Home; `activity_main.xml` enthält weder `classicHome` noch `overviewHome` und keine alternativen App-/Watch-Row-Bäume mehr. Die alte Auswahl `home_layout_mode` wird nirgendwo gelesen.
+- **Entfernt:** `HomeLayoutMode`, `HomeSidebarView`, `OverviewHomeView`, `HomeFocusNavigator`, `OverviewRowsNavigator`, `HomePageState` samt reinem Alt-Projektor, `OverviewRenderSignature`, Demo-Medienquelle und zugehörige Tests. V-spezifische Navigations- und Datenklassen bleiben.
+- **Erhalten:** installierte Apps, All Apps, TV-Eingänge, TV-/Nuvio-Channel-Queries, Wallpaper, Foto-/Screensaverfunktionen, Systemaktionen/Launcher-Setup, relevante Settings, Original-Mullvad. Alte Preferences werden **nicht** global gelöscht; alte Importfelder werden ignoriert.
+- **Direktstart:** Bei gesperrtem Benutzer wird ein Daten-freies `VDesignHomeView` mit Overview-Sidebar gezeigt. Keine Credential-Preferences oder TV-Listings vor Entsperren.
+- **Kompatibilität:** Versteckte Clock-/Topbar-Views sind als interne System- und Styling-Helfer weiterhin im `content`-Container, aber `visibility=gone`; das ist **kein auswählbarer zweiter Home-Renderer**. Das ist gezielt belassene technische Schuld und zu testen.
+- **Nicht angefasst:** Nuvio-`CONTINUE`-Mischkanal, SmartTube als V-Content-Kachel, Mullvad-Rust/JNI/Submodule, Android-Manifest-Berechtigungen. Normbild wurde angesehen und als identischer Git-Blob beibehalten.
+- **Abnahme:** statische Sichtbarkeits-/Referenzsuche durchgeführt, erster CI-Compilerlauf fehlgeschlagen; zweiter Lauf kompilierte produktiven Code, scheiterte aber an entfernten Overview-Referenzen im YouTube-Unit-Test; Test auf businesslogische RSS-Deduplizierung migriert, dritter Run noch nicht als bestanden behauptet. Keine realen Shield-Bilder, Performance-/HOME-/VPN-Runtime-Erfolge.
+
+---
+
 # V-Design — kanonischer State (M05)
 
 > **Aktueller Stand** (14.11.2026, Europe/Berlin). Frühere M00–M04-Statusangaben im nachfolgenden Text sind historische Momentaufnahmen, insbesondere der bereits gemergte M04-PR #37.
