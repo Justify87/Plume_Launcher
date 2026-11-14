@@ -120,7 +120,7 @@ def validate_keystore(environ: dict[str, str], expected: str) -> None:
             raise SigningPreflightError(
                 "Unable to inspect the keystore type. Check the configured keystore."
             ) from exc
-        if re.search(r"(?m)^Keystore type:\\s*PKCS12\\s*$", listing):
+        if re.search(r"(?m)^Keystore type:\s*PKCS12\s*$", listing):
             if environ["PLUME_KEY_PASSWORD"] != environ["PLUME_STORE_PASSWORD"]:
                 raise SigningPreflightError(
                     "PKCS12 uses the same entry and keystore password: "
