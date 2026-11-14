@@ -444,6 +444,14 @@ class ReleaseSigningPreflightTest(unittest.TestCase):
             signing.validate_keystore(environ, fingerprint)
             with self.assertRaises(signing.SigningPreflightError):
                 signing.validate_keystore(environ, "F" * 64)
+            # PKCS12 private-key passwords must equal the store password;
+            # keytool -certreq itself accepts a wrong keypass for PKCS12.
+            wrong_keypass = dict(environ)
+            wrong_keypass["PLUME_KEY_PASSWORD"] = "wrong-password"
+            with self.assertRaisesRegex(
+                signing.SigningPreflightError, "PKCS12"
+            ):
+                signing.validate_keystore(wrong_keypass, fingerprint)
 
 
 class ReleasePreparationTest(unittest.TestCase):
