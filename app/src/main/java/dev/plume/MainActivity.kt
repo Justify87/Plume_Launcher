@@ -558,6 +558,8 @@ class MainActivity : Activity() {
         if (appsDirty) refreshApps()
         refreshVDesignNavigation()
         vDesign.bindFeed(nuvioDashboardFeed)
+        // Returning from another app must also retry artwork that failed while offline.
+        vDesign.retryMissingArtwork()
         scheduleVDesignMidnight()
         ui.post {
             if (!isDestroyed && ::vDesign.isInitialized && vDesign.isShown &&
@@ -5552,15 +5554,30 @@ class MainActivity : Activity() {
 
     /** Cards whose poster never arrived (offline, server timeout) try again; loaded ones are left alone. */
     private fun retryPosters() {
-        if (::vDesign.isInitialized) vDesign.bindFeed(nuvioDashboardFeed)
+        // Rebinding identical item/URI pairs does not call the image loader again.
+        if (::vDesign.isInitialized) vDesign.retryMissingArtwork()
     }
 
     private fun decode(uri: String): Bitmap? {
-        val bytes = openStream(uri).use { it.readBytes() }
+        // Reject unexpectedly huge or broken artwork before allocating an unbounded byte array.
+        val bytes = openStream(uri).use { input ->
+            val output = java.io.ByteArrayOutputStream()
+            val buffer = ByteArray(16 * 1024)
+            var total = 0
+            while (true) {
+                val read = input.read(buffer)
+                if (read < 0) break
+                if (read == 0) continue
+                total += read
+                if (total > VDesignPosterDecodePolicy.MAX_BYTES) return null
+                output.write(buffer, 0, read)
+            }
+            output.toByteArray()
+        }
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
         BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
-        var sample = 1
-        while (bounds.outWidth / (sample * 2) >= dp(220)) sample *= 2
+        val sample = VDesignPosterDecodePolicy.sampleSize(
+            bounds.outWidth, bounds.outHeight, dp(220))
         val opts = BitmapFactory.Options().apply {
             inSampleSize = sample
             inPreferredConfig = Bitmap.Config.RGB_565

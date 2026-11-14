@@ -186,10 +186,12 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
         progressCards.forEachIndexed { index, card ->
             card.bind(VDesignCardSlots.media(feed, NuvioSection.IN_PROGRESS, index),
                 lastNow, lastZone, lastLocale)
+            card.showEmpty(if (index == 0 && feed.inProgress.isEmpty()) "Keine Einträge" else null)
         }
         availableCards.forEachIndexed { index, card ->
             card.bind(VDesignCardSlots.media(feed, NuvioSection.AVAILABLE, index),
                 lastNow, lastZone, lastLocale)
+            card.showEmpty(if (index == 0 && feed.available.isEmpty()) "Keine Einträge" else null)
         }
         // Retain the focused upcoming identity even if provider ordering changed.
         if (focusedId != null) {
@@ -212,6 +214,7 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
         upcomingCards.forEachIndexed { index, card ->
             card.bind(VDesignCardSlots.media(latestFeed, NuvioSection.UPCOMING,
                 index, upcomingOffset), lastNow, lastZone, lastLocale)
+            card.showEmpty(if (index == 0 && latestFeed.upcoming.isEmpty()) "Keine Einträge" else null)
         }
         upcomingCards.firstOrNull { it.isFocused }?.media?.let {
             lastMediaKey[NuvioSection.UPCOMING] = it.stableId
@@ -220,7 +223,16 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
     }
 
     fun artworkReady(uri: String, bitmap: Bitmap) {
-        (progressCards + availableCards + upcomingCards).forEach { it.artworkReady(uri, bitmap) }
+        // Avoid allocating a temporary concatenated card list for every decoded poster.
+        progressCards.forEach { it.artworkReady(uri, bitmap) }
+        availableCards.forEach { it.artworkReady(uri, bitmap) }
+        upcomingCards.forEach { it.artworkReady(uri, bitmap) }
+    }
+
+    fun retryMissingArtwork() {
+        progressCards.forEach { it.retryMissingArtwork() }
+        availableCards.forEach { it.retryMissingArtwork() }
+        upcomingCards.forEach { it.retryMissingArtwork() }
     }
 
     fun bindNavigation(items: List<Navigation>, onOpen: (String) -> Unit, onAllApps: () -> Unit,
