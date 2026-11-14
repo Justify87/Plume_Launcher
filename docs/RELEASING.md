@@ -43,12 +43,14 @@ unterschiedliche Signaturen besitzen.
 
 ## Neues Release manuell starten
 
-1. Die Einträge unter `## Unreleased` in `CHANGELOG.md` **inhaltlich prüfen**.
-   Der derzeitige Bestand enthält auch alte Classic-/Overview-Beschreibungen; vor dem
-   ersten Release korrigieren. Der Workflow übernimmt diese Einträge 1:1 als
-   Notes und leert danach die Unreleased-Sektion.
+1. **Erstes Advanced-Release:** Die Version `0.1.0` ist bereits im Sourcecode
+   und im überarbeiteten `CHANGELOG.md` vorbereitet. Die Release-Notizen im
+   Abschnitt `## 0.1.0` vor der Freigabe prüfen. Frühere Plume-Notizen sind
+   unter `docs/archive/legacy-features/pre-advanced-changelog.md` archiviert.
+   **Spätere Releases:** Änderungen unter `## Unreleased` dokumentieren;
+   der Release-Assistent verschiebt sie in den neuen Versionsabschnitt.
 2. GitHub → **Actions → Release Plume Launcher Advanced → Run workflow**.
-   Branch: **main**. Version etwa `1.8.0` (ohne `v`).
+   Branch: **main**. Für das erste Release Version `0.1.0` (ohne `v`).
 3. Häkchen bei `reviewed_changelog` setzen. `publish=false` belässt das
    fertige GitHub Release zunächst als **Draft**; `publish=true` macht es
    bei erfolgreichem Build öffentlich.
@@ -56,16 +58,26 @@ unterschiedliche Signaturen besitzen.
    `Plume-Launcher-Advanced.apk`, `SHA256SUMS` und den
    `SIGNER_SHA256.txt`-Zertifikatsfingerabdruck.
 
-Die Android-APK-Version in `app/build.gradle.kts` beginnt derzeit bei
-`versionName=1.7.1`, `versionCode=10`. Für `1.8.0` wird daraus
-`versionName=1.8.0`, `versionCode=11`. Danach erhöht jede weitere
-Vorbereitung den `versionCode` um eins. Auch `-beta1` und `-rc1`
+**Eigenständiger Versionsbeginn:** `versionName=0.1.0` und
+`versionCode=11`. Die sichtbare SemVer-Version wurde bewusst zurückgesetzt.
+Der technische Android-`versionCode` bleibt monoton über dem alten Wert 10,
+um ein Downgrade bei gleicher App-ID zu vermeiden. Der erste Release-Workflow
+`version=0.1.0` nutzt diesen bereits vorbereiteten Stand und erhöht die
+Version **nicht nochmals**. Der nächste `0.1.1`-Release erhält `versionCode=12`
+(bei vorbereitetem Unreleased-Changelog). `-beta1` und `-rc1`
 sind erlaubt und werden als GitHub Pre-release eingeordnet. GitHubs
-`releases/latest` bleibt auf stabile Veröffentlichungen beschränkt.
+`releases/latest` zeigt nur stabile Veröffentlichungen.
+
+**Update-Hinweis für bestehende Installationen:** Der im Fork übernommene
+Updater vergleicht sichtbare Versionen. Eine vorhandene `1.7.1` wird daher
+`0.1.0` nicht als neu erkennen. Außerdem muss eine Update-APK mit demselben
+Zertifikat signiert sein. Vor einem Umstieg Einstellungen sichern und bei
+abweichenden Signaturen eine Neuinstallation einplanen. Nach `0.1.0` sind
+normale aufsteigende Updates (`0.1.1`, `0.2.0`, ...) vorgesehen.
 
 ## Versionsnummern, Tags und Sicherheit
 
-- **Tag:** `v<version>`, z. B. `v1.8.0`. Der Release-Assistent erzeugt
+- **Tag:** `v<version>`, beginnend mit `v0.1.0`. Der Release-Assistent erzeugt
   den Tag über GitHub erst **nach** erfolgreichen Unit-Tests, Container-Build,
   Manifest-/APK- und Signaturprüfungen. Bereits vorhandene Tags oder Releases
   werden abgewiesen. GitHub erzeugt hierbei einen Tag am Release-Commit,
@@ -77,7 +89,7 @@ sind erlaubt und werden als GitHub Pre-release eingeordnet. GitHubs
   einen inzwischen geänderten `main`-HEAD.
 - **Geschützter main-Branch:** Wenn eine Branch-Protection direkte Bot-Pushes
   blockiert, Version vorher in einem normalen PR vorbereiten:
-  `python3 tools/release/prepare.py --version 1.8.0` auf einem
+  `python3 tools/release/prepare.py --version 0.1.1` auf einem
   Feature-Branch ausführen, die Änderungen an `CHANGELOG.md` und
   `app/build.gradle.kts` prüfen, dann über PR + CI mergen.
   Danach den Release-Workflow mit **derselben** Version starten. Er erkennt
