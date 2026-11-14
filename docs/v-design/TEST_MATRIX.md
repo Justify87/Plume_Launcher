@@ -276,3 +276,6 @@ Damit sind Unit- und Code-/Docs-CI-Gates nachgewiesen, aber **nicht** physische 
 | Statische Erreichbarkeit und Alt-Design | `MainActivity` keine `HomeLayoutMode` / `HomeSidebarView` / `OverviewHomeView` / `R.id.appRow` / `R.id.watchRow`, XML keine zwei alten Home-Hosts | **passed_static_review** |
 | Android-Funktionstests | Shield-Pro-2019-D-Pad/HOME/Back/All Apps/PIN/HDMI/VPN/Nuvio/Wallpaper/Direct Boot/JSON-Import | **not_run_hardware_pending** |
 | Dokumentations-Folge-Commit | neuer Git-SHA nach diesem Code-CI; eigenen Workflow-Run ermitteln | **pending_new_ci** |
+
+| M06 Code+Docs-HEAD | [ba52e586](https://github.com/Justify87/Plume_Launcher/commit/ba52e586ea9929783d359b9bc29aab7016b09416), [Run 43584273457](https://github.com/Justify87/Plume_Launcher/actions/runs/43584273457), `check` | **completed_success** |
+| M06 native Mullvad Job auf Docs-HEAD | [Run 43584273457](https://github.com/Justify87/Plume_Launcher/actions/runs/43584273457), `mullvad-apk` | **skipped_branch_filter** |

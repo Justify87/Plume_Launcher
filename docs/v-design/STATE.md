@@ -47,7 +47,11 @@ m06_code_ci_native_mullvad_job: skipped_branch_filter
 m06_release_apk_baseline_bytes: 550334
 m06_release_apk_current_bytes: 509570
 m06_release_apk_delta_bytes: -40764
-m06_docs_head_ci: pending_after_documentation_commit
+m06_docs_head_ci: completed_success
+m06_docs_ci_sha: ba52e586ea9929783d359b9bc29aab7016b09416
+m06_docs_ci_run: 43584273457
+m06_docs_ci_check_result: completed_success
+m06_docs_ci_native_mullvad_job: skipped_branch_filter
 mullvad_native_job: skipped_branch_filter
 reference_path: docs/v-design/REFERENCE.png
 reference_git_blob: d1b14c00a6478cb3b49fcbbd637e0aa71db5df18
@@ -59,7 +63,7 @@ shield_pro_2019: not_run_hardware_pending
 emulator: not_run
 next_milestone: M07
 blockers:
-  - documentation-only follow-up HEAD CI separately check; code SHA is confirmed successful
+  - latest evidence-only commit starts its own CI; code+docs SHA ba52e586 confirmed successful
   - Shield HOME, D-Pad, Direct Boot, provider availability, All Apps, VPN and wallpaper need physical testing
   - hidden clock/topbar compatibility host can be consolidated after behavioral validation; it is not a Home alternative
 ```
@@ -305,3 +309,8 @@ Nach berechtigtem PR-Code-Fix für `refreshWatchNext()` (Lint-SuspiciousIndentat
 **Nachweis:** [Run 43583732764](https://github.com/Justify87/Plume_Launcher/actions/runs/43583732764) / [Check-Job 132413775845](https://github.com/Justify87/Plume_Launcher/actions/runs/43583732764/job/132413775845) auf Code-HEAD `3e8a1351285a72c99fa4f2c6526873845693eadc` **completed/success**. `./gradlew testDebugUnitTest lintDebug` und `./gradlew assembleDebug assembleRelease` wirklich erfolgreich. APK `550334 → 509570 B` (`−40764 B`). Repo/ADB-/Spotify-/Mullvad-Offline-Suites: passed; nativer Mullvad-APK-Job skipped. Es gab **keinen** Shield-Pro-2019-Test, kein echtes VPN-Tunnel-Profil und keinen echten Android-JSON-Importtest.
 
 Die Text-Dokumentationsänderung erzeugt einen eigenen Git-HEAD und Actions-Run, dessen Status nicht mit dem Code-CI verwechselt werden darf. PR #39 ist weiterhin Draft/unmerged, kein implizites Merge.
+
+
+## M06 dokumentierter HEAD erfolgreich geprüft (14.11.2026)
+
+[Code-und-Dokumentations-HEAD `ba52e586`](https://github.com/Justify87/Plume_Launcher/commit/ba52e586ea9929783d359b9bc29aab7016b09416) wurde in [Run 43584273457](https://github.com/Justify87/Plume_Launcher/actions/runs/43584273457) **completed/success** geprüft; `check` erfolgreich, `mullvad-apk` durch Branch-Filter `skipped`. Das ist eine reale GitHub-Actions-Beobachtung, keine Hardware-Abnahme. Draft-PR #39 bleibt ungemergt. Diese reine Evidenz-Nachführung hat einen neuen Git-SHA, dessen CI getrennt zu prüfen ist.

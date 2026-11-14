@@ -84,3 +84,5 @@ M05 PR #38 ist real gemergt: `de9bb87eef0ee13cbdcc9a884363839b17c2e602`. M06 cod
 
 
 **M06 verifizierter Code-Stand (14.11.2026):** [Run 43583732764](https://github.com/Justify87/Plume_Launcher/actions/runs/43583732764), [Check 132413775845](https://github.com/Justify87/Plume_Launcher/actions/runs/43583732764/job/132413775845), `3e8a135` = **success**, Unit/Lint/Debug+Release-APK; APK um `40764 B` kleiner. Zuvor gescheiterte Compiler-, veraltete Overview-Test-, Android-JSON-JVM-Test- und Lint-Referenzen wurden korrigiert und nicht kaschiert. Abhängigkeit M07: erst aktuelles M06-Draft-PR-Freigabe-/Merge-Verfahren, dann echte Shield-/VPN-/Nuvio-/Back-/Direct-Boot-/Settings-Import-Abnahme. Der Dokumentations-Folge-HEAD hat einen eigenen CI-Lauf.
+
+**M06 Dokumentations-HEAD:** [`ba52e586`](https://github.com/Justify87/Plume_Launcher/commit/ba52e586ea9929783d359b9bc29aab7016b09416) im [Run 43584273457](https://github.com/Justify87/Plume_Launcher/actions/runs/43584273457) **completed/success** (check); Mullvad-native `skipped`, Shield `not_run`. PR #39 Draft/unmerged, M07 nächster Meilenstein.
