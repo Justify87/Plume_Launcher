@@ -47,14 +47,8 @@ jobs:
           submodules: recursive
           persist-credentials: true
 
-      - name: Verify release input, source, tag and signing configuration
+      - name: Verify release intent, source and tag availability
         shell: bash
-        env:
-          HAS_KEYSTORE: ${{ secrets.PLUME_RELEASE_KEYSTORE_BASE64 }}
-          HAS_STORE_PASSWORD: ${{ secrets.PLUME_RELEASE_KEYSTORE_PASSWORD }}
-          HAS_KEY_ALIAS: ${{ secrets.PLUME_RELEASE_KEY_ALIAS }}
-          HAS_KEY_PASSWORD: ${{ secrets.PLUME_RELEASE_KEY_PASSWORD }}
-          EXPECTED_CERT: ${{ vars.PLUME_RELEASE_CERT_SHA256 }}
         run: |
           set -euo pipefail
           test "$GITHUB_REF" = 'refs/heads/main' || { echo "::error::Run releases only from main"; exit 1; }
@@ -65,9 +59,6 @@ jobs:
             { echo "::error::Checkout must be clean"; exit 1; }
           test "$(git -C third_party/mullvadvpn-app rev-parse HEAD)" = aa47f606b1a159214c7279344128119fa91be5fd
           test "$(cat third_party/mullvadvpn-app/building/android-container-image.txt)" = 'ghcr.io/mullvad/mullvadvpn-app-build-android@sha256:ca22c11fb8a15321f897fa169c9c9d1f7d0d9edfeea16fa04af4de71ebcf4286'
-          test -n "$HAS_KEYSTORE" && test -n "$HAS_STORE_PASSWORD" && test -n "$HAS_KEY_ALIAS" &&
-            test -n "$HAS_KEY_PASSWORD" && test -n "$EXPECTED_CERT" ||
-            { echo "::error::Configure release keystore secrets and PLUME_RELEASE_CERT_SHA256 variable first; see docs/RELEASING.md"; exit 1; }
           git fetch --tags origin
           if git show-ref --verify --quiet "refs/tags/v$VERSION" ||
              git ls-remote --exit-code --tags origin "refs/tags/v$VERSION" >/dev/null 2>&1; then
@@ -79,6 +70,23 @@ jobs:
             exit 1
           fi
 
+      # Resolve a stable JDK for keytool before any Gradle/Docker work.
+      - name: Set up Java 17 for release signing preflight
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Validate persistent release key, passwords and certificate
+        shell: bash
+        env:
+          KEYSTORE_B64: ${{ secrets.PLUME_RELEASE_KEYSTORE_BASE64 }}
+          PLUME_STORE_PASSWORD: ${{ secrets.PLUME_RELEASE_KEYSTORE_PASSWORD }}
+          PLUME_KEY_ALIAS: ${{ secrets.PLUME_RELEASE_KEY_ALIAS }}
+          PLUME_KEY_PASSWORD: ${{ secrets.PLUME_RELEASE_KEY_PASSWORD }}
+          EXPECTED_CERT: ${{ vars.PLUME_RELEASE_CERT_SHA256 }}
+        run: python3 tools/release/signing_preflight.py
+
       - name: Prepare monotonic versionCode and release notes
         shell: bash
         run: |
@@ -86,6 +94,10 @@ jobs:
           python3 tools/release/prepare.py --version "$VERSION" --notes-output "$RUNNER_TEMP/RELEASE_NOTES.md"
           code=$(sed -n 's/^[[:space:]]*versionCode = \([0-9][0-9]*\).*$/\1/p' app/build.gradle.kts)
           [[ "$code" =~ ^[0-9]+$ ]] || exit 1
+          grep -Eq "^[[:space:]]*versionName = \"$VERSION\"$" app/build.gradle.kts || {
+            echo "::error::Release versionName mismatches the requested tag."
+            exit 1
+          }
           echo "VERSION_CODE=$code" >> "$GITHUB_ENV"
 
       - name: Run Plume and integration regression tests
@@ -95,12 +107,6 @@ jobs:
           python3 -m unittest discover -s tools -p test_spotify_podcast_probe.py -v
           python3 -m unittest discover -s tools -p test_mullvad_prepare.py -v
           python3 -m unittest discover -s tools -p test_mullvad_apk.py -v
-
-      - name: Set up Java 17 and Gradle
-        uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: 17
 
       - uses: gradle/actions/setup-gradle@v5
 
