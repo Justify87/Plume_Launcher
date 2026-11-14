@@ -14,4 +14,4 @@ concurrency:
 
 jobs:
   mullvad-apk:
-    uses: ./.github/workflows/debug-apk.yml
+    uses: ./.github/workflows/ci-integrated.yml
