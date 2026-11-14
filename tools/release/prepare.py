@@ -42,12 +42,27 @@ def prepare(root: Path, version: str, notes_output: Path | None = None) -> int:
     changelog_path = root / "CHANGELOG.md"
     build = build_path.read_text(encoding="utf-8")
     current_name, current_code = read_version(build)
-    if requested <= version_key(current_name):
-        raise ValueError(f"New version {version} must be greater than {current_name}")
+    if requested < version_key(current_name):
+        raise ValueError(f"New version {version} must not be lower than {current_name}")
     if current_code < 1 or current_code >= 2_100_000_000:
         raise ValueError("Invalid/out-of-range Android versionCode")
 
     changelog = changelog_path.read_text(encoding="utf-8")
+    if requested == version_key(current_name):
+        # Supported for main branches protected by required PR checks: prepare
+        # version/changelog in a reviewed PR, then publish this exact commit.
+        # Also permits recovering an interrupted publish after the main push.
+        heading = re.search(rf"(?m)^## {re.escape(version)}[ \\t]*$", changelog)
+        if heading is None:
+            raise ValueError(f"Source is already v{version}, but changelog heading is missing")
+        next_heading = HEADING.search(changelog, heading.end())
+        notes = changelog[heading.end():next_heading.start() if next_heading else None].strip()
+        if not any(line.startswith("- ") and line[2:].strip() for line in notes.splitlines()):
+            raise ValueError(f"Release section ## {version} needs at least one bullet")
+        if notes_output is not None:
+            notes_output.parent.mkdir(parents=True, exist_ok=True)
+            notes_output.write_text(f"# Plume Launcher Advanced v{version}\\n\\n{notes}\\n", encoding="utf-8")
+        return current_code
     markers = list(UNRELEASED.finditer(changelog))
     if len(markers) != 1:
         raise ValueError("CHANGELOG.md must contain exactly one ## Unreleased section")
