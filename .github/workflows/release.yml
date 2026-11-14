@@ -99,6 +99,16 @@ jobs:
             exit 1
           }
           echo "VERSION_CODE=$code" >> "$GITHUB_ENV"
+          # If this is a NEW version, the workflow later creates a release
+          # commit. Do not spend build minutes if branch protection will reject
+          # that direct bot push; have it prepared/reviewed via PR first.
+          if ! git diff --quiet -- app/build.gradle.kts CHANGELOG.md; then
+            branch_protected=$(gh api "repos/$REPO/branches/main" --jq '.protected')
+            if [[ "$branch_protected" == 'true' ]]; then
+              echo "::error::main is protected. Prepare $VERSION with tools/release/prepare.py in a PR, merge that PR, and rerun this Release workflow."
+              exit 1
+            fi
+          fi
 
       - name: Run Plume and integration regression tests
         run: |
