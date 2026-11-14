@@ -395,10 +395,18 @@ class ReleasePreparationTest(unittest.TestCase):
 
     def test_existing_or_lower_version_rejected_without_editing(self):
         original = (self.root / "app/build.gradle.kts").read_text()
-        for name in ("1.7.1", "1.6.0", "1.7.1-beta2", "v1.8.0", "1.8", "1.8.0;touch /tmp/x"):
+        for name in ("1.6.0", "1.7.1-beta2", "v1.8.0", "1.8", "1.8.0;touch /tmp/x"):
             with self.subTest(name=name), self.assertRaises(ValueError):
                 release.prepare(self.root, name)
         self.assertEqual(original, (self.root / "app/build.gradle.kts").read_text())
+
+    def test_already_prepared_version_is_accepted_without_extra_commit(self):
+        original = (self.root / "app/build.gradle.kts").read_text()
+        notes = self.root / "release-notes.md"
+        self.assertEqual(10, release.prepare(self.root, "1.7.1", notes))
+        self.assertEqual(original, (self.root / "app/build.gradle.kts").read_text())
+        self.assertIn("Older fix", notes.read_text())
+        self.assertIn("## Unreleased", (self.root / "CHANGELOG.md").read_text())
 
     def test_missing_release_notes_rejected(self):
         (self.root / "CHANGELOG.md").write_text(
