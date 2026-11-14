@@ -13,12 +13,12 @@ android {
         applicationId = "dev.plume.advanced"
         minSdk = 26
         targetSdk = 36
-        versionCode = 10
-        versionName = "1.7.1"
+        versionCode = 11
+        versionName = "0.1.0"
         testInstrumentationRunner = "dev.plume.ActivityTest"
         // What's new: only this version's section of CHANGELOG.md ships, one entry per line, ** marks kept for bold.
-        // A ### heading ships as a line that starts with #. A fix release (1.7.1) ships its x.y section after its own,
-        // so people who update from 1.6 still see what 1.7 brought.
+        // A ### heading ships as a line starting with #. Older x.y note sections remain supported;
+        // Plume Launcher Advanced starts at 0.1.0 with dedicated x.y.z notes.
         val changelog = rootProject.file("CHANGELOG.md").readText().replace("\r", "")
         val section = { v: String -> changelog.substringAfter("\n## $v\n", "").substringBefore("\n## ") }
         val minor = versionName!!.split('.').take(2).joinToString(".")
