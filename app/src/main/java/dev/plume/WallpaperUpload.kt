@@ -26,7 +26,7 @@ internal class UploadServer(val code: String, private val temp: File, private va
     private val socket = try {
         ServerSocket(8080)
     } catch (e: IOException) {
-        ServerSocket(0) // 8080 taken: any free port (it's in the QR code either way)
+        ServerSocket(0) 
     }
     val port get() = socket.localPort
     @Volatile private var client: Socket? = null
@@ -42,7 +42,7 @@ internal class UploadServer(val code: String, private val temp: File, private va
             val s = try {
                 socket.accept()
             } catch (e: IOException) {
-                return // closed
+                return 
             }
             client = s
             try {
@@ -71,7 +71,7 @@ internal class UploadServer(val code: String, private val temp: File, private va
             method == "GET" -> reply(out, 200, "text/html; charset=utf-8", page(imagesOnly))
             method == "POST" -> {
                 val length = headers["content-length"]?.toLongOrNull() ?: -1
-                val video = headers["content-type"].orEmpty().startsWith("video/") // the browser sends the file's own type
+                val video = headers["content-type"].orEmpty().startsWith("video/") 
                 if (imagesOnly && video) return reply(out, 415, "text/plain", "Choose a picture, not a video.")
                 val max = if (imagesOnly) 5L * 1024 * 1024 else if (video) VIDEO_LIMIT else MAX_BYTES
                 if (length !in 1..max) return reply(out, 413, "text/plain", "That file is too big (${max / 1024 / 1024} MB at most).")
@@ -154,11 +154,6 @@ internal class UploadServer(val code: String, private val temp: File, private va
     }
 }
 
-/**
- * Turns a photo into a wallpaper: upright (phones often store photos sideways with an orientation tag),
- * cropped to 16:9 around the centre, 1920×1080, mutable. [open] is called once per pass over the image.
- * Returns null if it isn't an image Android can decode.
- */
 internal fun fitWallpaper(open: () -> InputStream): Bitmap? {
     val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
     open().use { BitmapFactory.decodeStream(it, null, bounds) }
@@ -174,7 +169,6 @@ internal fun fitWallpaper(open: () -> InputStream): Bitmap? {
         0
     }
     val (w, h) = if (rotation % 180 == 0) bounds.outWidth to bounds.outHeight else bounds.outHeight to bounds.outWidth
-    // Decode at the smallest size whose 16:9 crop still covers the screen: a 12 MP photo in full is ~48 MB.
     val cropW = minOf(w, h * 16 / 9)
     var sample = 1
     while (cropW / (sample * 2) >= WALL_W) sample *= 2
@@ -192,7 +186,6 @@ internal fun fitWallpaper(open: () -> InputStream): Bitmap? {
     return out
 }
 
-/** Saves a phone photo as a wallpaper file (~300-500 KB JPEG). Returns the file, or null if it isn't an image. */
 internal fun importWallpaper(src: File, dir: File): File? {
     val out = fitWallpaper { src.inputStream() } ?: return null
     dir.mkdirs()

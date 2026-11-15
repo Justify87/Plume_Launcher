@@ -8,7 +8,6 @@ import java.io.ByteArrayOutputStream
 import java.net.HttpURLConnection
 import java.net.URL
 
-/** Called only on MainActivity's serial io executor; no background service or polling. */
 internal class YouTubeRssSource(private val prefs: SharedPreferences) {
     private fun cached(ids: List<String>, now: Long): Pair<List<YouTubeSubscriptions.Video>, Long>? {
         if (prefs.getString("yt_cache_ids", null) != ids.joinToString(",")) return null
