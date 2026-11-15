@@ -62,6 +62,60 @@ ALIASES = (
 )
 
 
+
+# This disposable host needs the original Kotlin plugin/tooling coroutines 1.6.4
+# jars in detached Gradle configurations. Mullvad's upstream lockfile already
+# verifies their .module metadata but does not include the .jar hashes.
+# Artifact SHA256s independently agree between Briar witness.gradle and
+# bazelbuild/rules_kotlin's Maven lockfile. Never waive Gradle verification.
+WITNESSED_COMPILER_JARS = (
+    ("kotlinx-coroutines-android",
+     "68516559e6f84a621b9783cd892a64630ccd7875843588ddb3f0501425e33f15",
+     "3fdc0eed5bc4b83ee9622774520a2db25470370eacd1581cac1e37704f095b00"),
+    ("kotlinx-coroutines-core-jvm",
+     "0d94c8a41483e7c2707ebd693e1b1357a84152998ce85550ebbc54ca4321a3a7",
+     "c24c8bb27bb320c4a93871501a7e5e0c61607638907b197aef675513d4c820be"),
+)
+
+
+def stage_witnessed_compiler_checksums(path: Path) -> None:
+    """Add exactly two independently verified hashes to the disposable copy.
+
+    Do not modify the upstream submodule or Gradle's verification configuration.
+    Fail closed if the pinned lockfile metadata changes or the jars are already
+    present with a different hash.
+    """
+    xml = path.read_text(encoding="utf-8")
+    for name, module_sha, jar_sha in WITNESSED_COMPILER_JARS:
+        opening = (
+            f'      <component group="org.jetbrains.kotlinx" name="{name}" version="1.6.4">\\n'
+        ).replace("\\\\n", "\\n")
+        # Match a complete component, never a global artifact name elsewhere.
+        if xml.count(opening) != 1:
+            raise RuntimeError(f"Unexpected pinned Gradle metadata for {name} 1.6.4")
+        begin = xml.index(opening)
+        end = xml.find("      </component>", begin)
+        if end < 0:
+            raise RuntimeError(f"Incomplete Gradle verification component: {name}")
+        block = xml[begin:end]
+        module = (
+            f'         <artifact name="{name}-1.6.4.module">\\n'
+            f'            <sha256 value="{module_sha}"'
+        ).replace("\\\\n", "\\n")
+        if module not in block:
+            raise RuntimeError(f"Unrecognized upstream module SHA256 for {name}")
+        if f'<artifact name="{name}-1.6.4.jar">' in block:
+            raise RuntimeError(f"Compiler JAR is already pinned: {name}")
+        addition = (
+            f'         <artifact name="{name}-1.6.4.jar">\\n'
+            f'            <sha256 value="{jar_sha}" origin="Independently cross-checked witness"/>\\n'
+            f'         </artifact>\\n'
+        ).replace("\\\\n", "\\n")
+        block = block.replace(module, addition + module, 1)
+        xml = xml[:begin] + block + xml[end:]
+    path.write_text(xml, encoding="utf-8")
+
+
 def verify_upstream() -> None:
     if not UPSTREAM.is_dir():
         raise RuntimeError("M01 submodule absent: run git submodule update --init --recursive")
@@ -209,6 +263,7 @@ def prepare(output: Path) -> Path:
     output.joinpath(MARKER).write_text(PIN + "\n", encoding="utf-8")
 
     android = staged / "android"
+    stage_witnessed_compiler_checksums(android / "gradle/verification-metadata.xml")
     settings = android / "settings.gradle.kts"
     if 'include(":plume-ui")' in settings.read_text(encoding="utf-8"):
         raise RuntimeError("Unexpected upstream settings: plume-ui already exists")
