@@ -142,14 +142,16 @@ internal class VpnDiagnosticsUi(
         addView(label("Problem an Mullvad melden", 20f, true))
         addView(label("Der Versand erfolgt ausschließlich über Mullvads Original-Repository.", 14f))
         emailInput = EditText(activity).apply {
+            VpnTvStyle.field(this)
             hint = "E-Mail (optional)"
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
             setSingleLine(true)
             setTextColor(ink)
             setHintTextColor(secondary)
         }
-        addView(emailInput, LinearLayout.LayoutParams(-1, dp(55)))
+        addView(emailInput, LinearLayout.LayoutParams(-1, dp(49)))
         descriptionInput = EditText(activity).apply {
+            VpnTvStyle.field(this)
             hint = "Problembeschreibung (erforderlich)"
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE or
                 InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
@@ -159,7 +161,7 @@ internal class VpnDiagnosticsUi(
             setHintTextColor(secondary)
             gravity = Gravity.TOP
         }
-        addView(descriptionInput, LinearLayout.LayoutParams(-1, dp(130)))
+        addView(descriptionInput, LinearLayout.LayoutParams(-1, dp(112)))
         includeAccount = CheckBox(activity).apply {
             text = "Mullvad-Konto-ID im Bericht einschließen (optional)"
             isChecked = false
