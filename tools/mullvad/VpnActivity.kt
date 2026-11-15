@@ -617,8 +617,10 @@ class VpnActivity : ComponentActivity() {
         page = next
         panels.forEachIndexed { i, view ->
             view.animate().cancel()
+            view.alpha = 1f
+            view.translationX = 0f
             view.visibility = if (i == next) View.VISIBLE else View.GONE
-            if (changed && i == next) {
+            if (changed && i == next && android.animation.ValueAnimator.areAnimatorsEnabled()) {
                 view.alpha = 0f
                 view.translationX = dp(12).toFloat()
                 view.animate().alpha(1f).translationX(0f).setDuration(165L).start()
