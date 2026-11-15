@@ -331,6 +331,10 @@ class MainActivity : ComponentActivity() {
     // Posters get their own threads: one slow image server must not hold up the rest (or the row data).
     private val posterIo = Executors.newFixedThreadPool(3)
     private val loading = java.util.Collections.synchronizedSet(HashSet<String>())
+    // Main-thread registry: separate cards can request the same artwork while one
+    // decoder task is running. Weak refs avoid holding detached previews in memory.
+    private val posterWaiters = HashMap<String, MutableList<WeakReference<ImageView>>>()
+
     private val ui = Handler(Looper.getMainLooper())
     private val posters = object : LruCache<String, Bitmap>(6 * 1024 * 1024) {
         override fun sizeOf(key: String, value: Bitmap) = value.byteCount
@@ -3858,7 +3862,8 @@ class MainActivity : ComponentActivity() {
     }
 
     /** Keep brand artwork intact; colour/mono is applied only by the sidebar. */
-    private fun vDesignAppIcon(app: App): Drawable = app.icon
+    private fun vDesignAppIcon(app: App): Drawable =
+        AppPictures.read(this, app.pkg, banner = false) ?: app.icon
 
     private fun selectedNuvio(installed: List<App>): App? {
         val chosen = NuvioLaunchSelection.select(installed.map { it.pkg },
@@ -5736,28 +5741,34 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    /**
+     * Shared artwork request coalescing for Home and app previews.
+     * A single decoder task fans its result out to all still-mounted ImageViews.
+     */
     private fun loadPoster(v: ImageView, uri: String?) {
-        if (uri == null) return
-        posters.get(uri)?.let { v.setImageBitmap(it); return }
+        if (uri.isNullOrBlank()) return
         v.tag = uri
-        if (!loading.add(uri)) return // already on its way
+        posters.get(uri)?.let { v.setImageBitmap(it); return }
+        posterWaiters.getOrPut(uri) { mutableListOf() }.add(WeakReference(v))
+        if (!loading.add(uri)) return
         posterIo.execute {
-            val bmp = try {
+            val bitmap = try {
                 decode(uri)
-            } catch (e: Exception) {
-                android.util.Log.w("TvHome", "poster failed: $uri ($e)") // retried by retryPosters()
+            } catch (error: Exception) {
+                android.util.Log.w("TvHome", "Poster unavailable: " + error.javaClass.simpleName)
                 null
             } finally {
                 loading.remove(uri)
-            } ?: return@execute
-            posters.put(uri, bmp)
+            }
+            if (bitmap != null) posters.put(uri, bitmap)
             ui.post {
-                if (!isDestroyed) {
-                    if (v.tag == uri) v.setImageBitmap(bmp)
-                    // Another mounted card may have requested the same URL while its download was in flight.
-                    // Fill only this URI: unrelated failed posters wait for the ordinary online retry.
-                    if (::vDesign.isInitialized) vDesign.artworkReady(uri, bmp)
+                val requests = posterWaiters.remove(uri).orEmpty()
+                if (isDestroyed || bitmap == null) return@post
+                for (ref in requests) {
+                    val target = ref.get()
+                    if (target?.tag == uri) target.setImageBitmap(bitmap)
                 }
+                if (::vDesign.isInitialized) vDesign.artworkReady(uri, bitmap)
             }
         }
     }
