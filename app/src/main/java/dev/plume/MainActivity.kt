@@ -3799,8 +3799,10 @@ class MainActivity : Activity() {
     }
 
     /** App glyphs are never reconstructed from anonymous tinted vector substitutes. */
-    private fun vDesignAppIcon(app: App): Drawable =
-        AppPictures.read(this, app.pkg, banner = false) ?: customIcon(app.pkg) ?: app.icon
+    private fun vDesignAppIcon(app: App,
+        originalColor: Boolean = prefs.getBoolean("sidebar_color_icons", true)): Drawable =
+        if (originalColor) app.icon else
+            AppPictures.read(this, app.pkg, banner = false) ?: customIcon(app.pkg) ?: app.icon
 
     private fun refreshVDesignNavigation() {
         if (!::vDesign.isInitialized) return
@@ -3893,7 +3895,8 @@ class MainActivity : Activity() {
         val gap = dp(11)
         for (app in visibleApps) {
             val tile = WorkspaceAppTileView(this, app.pkg, app.label,
-                vDesignAppIcon(app), originalColors = colourIcons(),
+                vDesignAppIcon(app, originalColor = colourIcons()),
+                originalColors = colourIcons(),
                 launch = { launch(app) },
                 longPress = { if (!holdFired) fireHold(it) })
             allAppsGrid.addView(tile, GridLayout.LayoutParams().apply {
@@ -4005,7 +4008,8 @@ class MainActivity : Activity() {
             add("Power" to { powerDialog(anchor) })
             add("Home-Einrichtung" to { startHomeSetup() })
         }
-        holdMenu(anchor, shortcuts, below = true)
+        // Settings is near the bottom of the rail: open the action menu above it.
+        holdMenu(anchor, shortcuts, below = false)
     }
 
     /** One local civil-day timer only while foreground; M04 can rebind dates without polling. */
@@ -4144,6 +4148,11 @@ class MainActivity : Activity() {
                 YouTubeSubscriptions.media(videos, null, age).map { item ->
                     item.copy(packageAliases = smartTube?.let { setOf(it) } ?: emptySet())
                 })
+            ui.post {
+                if (!isDestroyed && ::vDesign.isInitialized &&
+                    vDesign.selectedWorkspace() == VDesignHomeView.SMARTTUBE)
+                    showAppPreview("SmartTube", VDesignHomeView.SMARTTUBE)
+            }
         }
     }
 
@@ -4163,29 +4172,33 @@ class MainActivity : Activity() {
         onHold(v)
     }
 
-    /** What holding OK does depends on what's focused. */
+    /** Long-OK is tied to a real rail item or a visible All Apps tile, never overlay visibility. */
     private fun onHold(v: View) {
-        val tag = v.tag as? String
+        val key = v.tag as? String
         when {
-            tag == VDesignHomeView.OVERVIEW && allApps.visibility != View.VISIBLE &&
-                settingsScrim.visibility != View.VISIBLE -> openAllApps()
-            tag == VDesignHomeView.SETTINGS && allApps.visibility != View.VISIBLE &&
-                settingsScrim.visibility != View.VISIBLE -> showVDesignSystemActions(v)
-            allApps.visibility == View.VISIBLE && tag != null -> {
-                val app = sortedApps().firstOrNull { it.pkg == tag }
+            ::vDesign.isInitialized && vDesign.isRailFocused(v) &&
+                key == VDesignHomeView.OVERVIEW -> openAllApps()
+            ::vDesign.isInitialized && vDesign.isRailFocused(v) &&
+                key == VDesignHomeView.SETTINGS -> showVDesignSystemActions(v)
+            ::vDesign.isInitialized && vDesign.isContentFocused(v) &&
+                vDesign.selectedWorkspace() == VDesignHomeView.ALL_APPS && key != null -> {
+                val app = sortedApps().firstOrNull { it.pkg == key }
                 if (app != null) {
-                    // The historical PIN contract allowed launching while locked, never editing or uninstalling.
-                    val actions = if (locked()) listOf(getString(R.string.open) to { launch(app) })
+                    val actions = if (locked())
+                        listOf(getString(R.string.open) to { launch(app) })
                     else listOfNotNull(
                         getString(R.string.open) to { launch(app) },
-                        if (app.pkg.startsWith(HDMI)) null else getString(R.string.change_app_picture) to {
+                        if (app.pkg.startsWith(HDMI)) null
+                        else getString(R.string.change_app_picture) to {
                             appPictures(app.pkg, app.label)
                         },
-                        if (app.pkg.startsWith(HDMI)) null else getString(R.string.app_info) to {
+                        if (app.pkg.startsWith(HDMI)) null
+                        else getString(R.string.app_info) to {
                             openSettings(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
                                 Uri.fromParts("package", app.pkg, null))
                         },
-                        if (canUninstall(app.pkg)) getString(R.string.uninstall) to { uninstall(app.pkg) } else null,
+                        if (canUninstall(app.pkg))
+                            getString(R.string.uninstall) to { uninstall(app.pkg) } else null,
                     )
                     holdMenu(v, actions)
                 }
@@ -5332,11 +5345,16 @@ class MainActivity : Activity() {
                 if (!isDestroyed) {
                     if (::vDesign.isInitialized) {
                         vDesign.bindFeed(nuvioDashboardFeed)
-                        // The feed's real package owner may now disambiguate several
-                        // installed Nuvio variants. Rebind only after data arrives.
+                        // The publishing Nuvio package can resolve an ambiguous install.
                         refreshVDesignNavigation()
-                        if (vDesign.selectedWorkspace() == VDesignHomeView.NUVIO)
-                            showAppPreview("Nuvio TV", VDesignHomeView.NUVIO)
+                        when (vDesign.selectedWorkspace()) {
+                            VDesignHomeView.NUVIO ->
+                                showAppPreview("Nuvio TV", VDesignHomeView.NUVIO)
+                            VDesignHomeView.SMARTTUBE ->
+                                showAppPreview("SmartTube", VDesignHomeView.SMARTTUBE)
+                            VDesignHomeView.SPOTIFY ->
+                                showAppPreview("Spotify", VDesignHomeView.SPOTIFY)
+                        }
                     }
                 }
             }
