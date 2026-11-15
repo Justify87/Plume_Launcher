@@ -3761,7 +3761,10 @@ class MainActivity : Activity() {
         return super.dispatchKeyEvent(e)
     }
 
-    /** Mount the sole V-Design Home view above the wallpaper and below All Apps/settings overlays. */
+    /**
+     * The root is now one shell: the rail never goes away. Every local page is reparented
+     * into the right-hand content pane; system apps remain external intents as intended.
+     */
     private fun setupVDesign() {
         val root = findViewById<FrameLayout>(R.id.root)
         vDesign = VDesignHomeView(this)
@@ -3775,30 +3778,144 @@ class MainActivity : Activity() {
         findViewById<View>(R.id.content).visibility = View.INVISIBLE
         refreshVDesignNavigation()
         vDesign.bindFeed(nuvioDashboardFeed)
-        vDesign.post {
-            if (ready && settingsScrim.visibility != View.VISIBLE && allApps.visibility != View.VISIBLE)
-                vDesign.restoreFocus()
+        vDesign.post { if (ready) vDesign.restoreFocus() }
+    }
+
+    /** Keep brand artwork intact; colour/mono is applied only by the sidebar. */
+    private fun vDesignAppIcon(app: App): Drawable = app.icon
+
+    private fun selectedNuvio(installed: List<App>): App? {
+        val chosen = NuvioLaunchSelection.select(installed.map { it.pkg },
+            prefs.getString("sidebar_nuvio_package", null))
+        return installed.firstOrNull { it.pkg == chosen }
+    }
+
+    private fun setSidebarColour(enabled: Boolean) {
+        prefs.edit().putBoolean("sidebar_coloured_icons", enabled).apply()
+        vDesign.setColouredAppIcons(enabled)
+        toast(if (enabled) "App-Symbole: Originalfarben" else "App-Symbole: einfarbig")
+    }
+
+    private fun previewVDesign(key: String) {
+        if (!::vDesign.isInitialized) return
+        if (vDesign.selectedSection() == key && key != VDesignHomeView.SETTINGS) return
+        if (key == VDesignHomeView.SETTINGS) {
+            if (allApps.visibility == View.VISIBLE) allApps.visibility = View.GONE
+            if (settingsScrim.visibility != View.VISIBLE) {
+                showPanel()
+                renderSettings(0)
+            } else vDesign.showSection(key, settingsScrim)
+            return
+        }
+        if (settingsScrim.visibility == View.VISIBLE) {
+            wallPreview = null
+            pageExit?.invoke()
+            pageExit = null
+            pageBack = null
+            pages.clear()
+            settingsScrim.visibility = View.GONE
+        }
+        if (key != VDesignHomeView.ALL_APPS) allApps.visibility = View.GONE
+        when (key) {
+            VDesignHomeView.OVERVIEW -> vDesign.showSection(key)
+            VDesignHomeView.ALL_APPS -> openAllApps()
+            VDesignHomeView.VPN -> vDesign.showSection(key, vpnShellPreview())
+            else -> {
+                val apps = sortedApps()
+                val app = when (key) {
+                    VDesignHomeView.NUVIO -> selectedNuvio(apps)
+                    VDesignHomeView.SMARTTUBE -> apps.firstOrNull { YouTubeSubscriptions.isSmartTube(it.pkg) }
+                    VDesignHomeView.SPOTIFY -> apps.firstOrNull {
+                        it.pkg == "com.spotify.tv.android" || it.pkg == "com.spotify.music"
+                    }
+                    else -> null
+                }
+                if (app == null) return vDesign.showSection(VDesignHomeView.OVERVIEW)
+                val nuvio = if (key == VDesignHomeView.NUVIO)
+                    (nuvioDashboardFeed.inProgress + nuvioDashboardFeed.available +
+                        nuvioDashboardFeed.upcoming).filter { it.sourcePackage == app.pkg }
+                else emptyList()
+                val media = if (key != VDesignHomeView.NUVIO)
+                    mediaFeed.snapshot(packageName = app.pkg)
+                else emptyList()
+                vDesign.showSection(key, VDesignAppSurface(this, app.label, vDesignAppIcon(app),
+                    media, nuvio, { image, uri -> loadPoster(image, uri) },
+                    { launch(app) }, { item ->
+                        if (YouTubeSubscriptions.isSmartTube(app.pkg)) openYouTubeVideo(item)
+                        else launch(app)
+                    }, { item -> openVDesignMedia(item) }))
+            }
         }
     }
 
-    /** Every entry must resolve to an installed app or a real local Activity. */
-    /** Existing user-installed app icons remain visible after removing the Classic app row. */
-    private fun vDesignAppIcon(app: App): Drawable =
-        AppPictures.read(this, app.pkg, banner = false) ?: customIcon(app.pkg) ?: app.icon
+    /** Until the full native Mullvad page is embedded, never mislabel a transport as Mullvad. */
+    private fun vpnShellPreview(): View {
+        val surface = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(32), dp(25), dp(32), dp(12))
+            setBackgroundColor(0xFF121317.toInt())
+        }
+        surface.addView(label("MULLVAD VPN", 27f).apply {
+            setTextColor(0xFFF7F7F8.toInt())
+            typeface = Typeface.DEFAULT_BOLD
+        })
+        surface.addView(label("VPN-Status und Einstellungen", 18f).apply {
+            setTextColor(0xFFB9BBC2.toInt())
+        })
+        val cm = getSystemService(ConnectivityManager::class.java)
+        val active = cm.getNetworkCapabilities(cm.activeNetwork)
+            ?.hasTransport(NetworkCapabilities.TRANSPORT_VPN) == true
+        surface.addView(label(if (active) "Android meldet einen aktiven VPN-Transport."
+                else "Android meldet keinen aktiven VPN-Transport.", 17f).apply {
+            setTextColor(0xFFE7FF80.toInt())
+            setPadding(0, dp(24), 0, dp(16))
+        })
+        val open = TextView(this).apply {
+            text = "Mullvad verwalten  ›"
+            textSize = 19f
+            setTextColor(0xFFF7F7F8.toInt())
+            isFocusable = true
+            setPadding(dp(20), dp(13), dp(20), dp(13))
+            background = GradientDrawable().apply {
+                cornerRadius = dp(12).toFloat()
+                setColor(0xFF292C31.toInt())
+            }
+            setOnClickListener { launchIntegratedVpn() }
+            setOnFocusChangeListener { v, focused ->
+                v.background = GradientDrawable().apply {
+                    cornerRadius = dp(12).toFloat()
+                    setColor(if (focused) 0xFFE7FF80.toInt() else 0xFF292C31.toInt())
+                }
+                setTextColor(if (focused) 0xFF121317.toInt() else 0xFFF7F7F8.toInt())
+            }
+        }
+        surface.addView(open, LinearLayout.LayoutParams(-2, -2))
+        return surface
+    }
+
+    private fun launchIntegratedVpn() {
+        val vpn = ComponentName(packageName, "net.mullvad.mullvadvpn.app.VpnActivity")
+        returnFocusFromVpn = true
+        try { startActivity(Intent().setComponent(vpn)) }
+        catch (_: ActivityNotFoundException) {
+            returnFocusFromVpn = false
+            toast("VPN nicht verfügbar")
+        }
+    }
 
     private fun refreshVDesignNavigation() {
         if (!::vDesign.isInitialized) return
         val installed = sortedApps()
-        val nuvio = installed.firstOrNull { AndroidTvMediaSource.isNuvioPackage(it.pkg) }
+        val nuvio = selectedNuvio(installed)
         val smartTube = installed.firstOrNull { YouTubeSubscriptions.isSmartTube(it.pkg) }
         val spotify = installed.firstOrNull { it.pkg == "com.spotify.tv.android" || it.pkg == "com.spotify.music" }
-        val vpn = ComponentName(packageName, "net.mullvad.mullvadvpn.app.VpnActivity")
         val vpnAvailable = try {
-            packageManager.getActivityInfo(vpn, 0)
+            packageManager.getActivityInfo(
+                ComponentName(packageName, "net.mullvad.mullvadvpn.app.VpnActivity"), 0)
             true
         } catch (_: PackageManager.NameNotFoundException) { false }
         val items = buildList {
-            add(VDesignHomeView.Navigation(VDesignHomeView.OVERVIEW, "Übersicht", getDrawable(R.drawable.ic_home)))
+            add(VDesignHomeView.Navigation(VDesignHomeView.OVERVIEW, "Startseite", getDrawable(R.drawable.ic_home)))
             nuvio?.let { add(VDesignHomeView.Navigation(VDesignHomeView.NUVIO, "Nuvio TV", vDesignAppIcon(it))) }
             smartTube?.let { add(VDesignHomeView.Navigation(VDesignHomeView.SMARTTUBE, "SmartTube", vDesignAppIcon(it))) }
             spotify?.let { add(VDesignHomeView.Navigation(VDesignHomeView.SPOTIFY, "Spotify", vDesignAppIcon(it))) }
@@ -3806,28 +3923,34 @@ class MainActivity : Activity() {
             if (vpnAvailable) add(VDesignHomeView.Navigation(VDesignHomeView.VPN, "Mullvad VPN", getDrawable(R.drawable.ic_vpn)))
             add(VDesignHomeView.Navigation(VDesignHomeView.SETTINGS, "Einstellungen", getDrawable(R.drawable.ic_settings)))
         }
+        vDesign.setColouredAppIcons(prefs.getBoolean("sidebar_coloured_icons", true))
         vDesign.bindNavigation(items, onOpen = { key ->
             when (key) {
-                VDesignHomeView.OVERVIEW -> vDesign.focusOverview()
+                VDesignHomeView.OVERVIEW -> vDesign.showSection(key)
                 VDesignHomeView.NUVIO -> nuvio?.let { launch(it) }
                 VDesignHomeView.SMARTTUBE -> smartTube?.let { launch(it) }
                 VDesignHomeView.SPOTIFY -> spotify?.let { launch(it) }
-                VDesignHomeView.ALL_APPS -> openAllApps()
-                VDesignHomeView.SETTINGS -> openLauncherSettings()
-                VDesignHomeView.VPN -> {
-                    returnFocusFromVpn = true
-                    try { startActivity(Intent().setComponent(vpn)) }
-                    catch (_: ActivityNotFoundException) {
-                        returnFocusFromVpn = false
-                        toast("VPN nicht verfügbar")
-                    }
-                }
+                VDesignHomeView.ALL_APPS, VDesignHomeView.SETTINGS ->
+                    vDesign.focusFirstSectionAction()
+                VDesignHomeView.VPN -> launchIntegratedVpn()
             }
-        }, onAllApps = {
-            if (!holdFired) { holdFired = true; openAllApps() }
-        }, onSystemActions = { anchor ->
-            if (!holdFired) { holdFired = true; showVDesignSystemActions(anchor) }
-        })
+        }, onAllApps = { vDesign.focusActiveRail() },
+           onSystemActions = { anchor -> showVDesignSystemActions(anchor) },
+           onPreview = { key -> previewVDesign(key) },
+           onAppLongPress = { key, anchor ->
+               if (key == VDesignHomeView.NUVIO) {
+                   val variants = installed.filter { AndroidTvMediaSource.isNuvioPackage(it.pkg) }
+                   if (variants.size > 1) holdMenu(anchor,
+                       variants.map { app ->
+                           (app.label + " (" + app.pkg + ")") to {
+                               prefs.edit().putString("sidebar_nuvio_package", app.pkg).apply()
+                               refreshVDesignNavigation()
+                               previewVDesign(VDesignHomeView.NUVIO)
+                           }
+                       }, below = true)
+                   else setSidebarColour(!prefs.getBoolean("sidebar_coloured_icons", true))
+               } else setSidebarColour(!prefs.getBoolean("sidebar_coloured_icons", true))
+           })
     }
 
     /** Long OK on Settings retains the old invisible top bar's system entry points. */
