@@ -12,10 +12,15 @@ internal object VDesignCanvas {
     data class Box(val x: Int, val y: Int, val width: Int, val height: Int)
     data class Placement(val x: Int, val y: Int, val width: Int, val height: Int)
 
+    /** Single source of truth for card sizes and typography in an inset TV viewport. */
+    fun scale(viewWidth: Int, viewHeight: Int): Float =
+        if (viewWidth <= 0 || viewHeight <= 0) 0f
+        else min(viewWidth.toFloat() / WIDTH, viewHeight.toFloat() / HEIGHT)
+
     /** Fit without stretching: Android has already applied decor/window insets to this host. */
     fun place(viewWidth: Int, viewHeight: Int, box: Box): Placement {
         if (viewWidth <= 0 || viewHeight <= 0) return Placement(0, 0, 0, 0)
-        val scale = min(viewWidth.toFloat() / WIDTH, viewHeight.toFloat() / HEIGHT)
+        val scale = scale(viewWidth, viewHeight)
         val xOffset = (viewWidth - WIDTH * scale) / 2f
         val yOffset = (viewHeight - HEIGHT * scale) / 2f
         return Placement(
