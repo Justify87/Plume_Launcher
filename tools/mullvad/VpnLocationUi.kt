@@ -506,7 +506,7 @@ internal class VpnLocationUi(
             Constraint.Only(Ownership.MullvadOwned) -> 1
             else -> 2
         }
-        AlertDialog.Builder(activity).setTitle("Eigentümerfilter (" + (if (isEntry()) "Eingang" else "Ausgang") + ")")
+        VpnTvStyle.dialog(activity).setTitle("Eigentümerfilter (" + (if (isEntry()) "Eingang" else "Ausgang") + ")")
             .setSingleChoiceItems(choices, current) { dialog, index ->
                 val value: Constraint<Ownership> = when (index) {
                     1 -> Constraint.Only(Ownership.MullvadOwned)
@@ -533,7 +533,7 @@ internal class VpnLocationUi(
         val chosen = BooleanArray(names.size) {
             selectedSet == null || availableProviders[it] in selectedSet
         }
-        AlertDialog.Builder(activity).setTitle("Anbieterfilter (" + (if (isEntry()) "Eingang" else "Ausgang") + ")")
+        VpnTvStyle.dialog(activity).setTitle("Anbieterfilter (" + (if (isEntry()) "Eingang" else "Ausgang") + ")")
             .setMultiChoiceItems(names, chosen) { _, index, checked ->
                 chosen[index] = checked
             }
@@ -569,7 +569,7 @@ internal class VpnLocationUi(
             setSelectAllOnFocus(true)
             VpnTvStyle.field(this)
         }
-        AlertDialog.Builder(activity)
+        VpnTvStyle.dialog(activity)
             .setTitle(if (old == null) "Mullvad-Liste erstellen" else "Liste umbenennen")
             .setView(edit)
             .setNegativeButton("Abbrechen", null)
@@ -593,7 +593,7 @@ internal class VpnLocationUi(
     }
 
     private fun confirmDelete(item: CustomList) {
-        AlertDialog.Builder(activity).setTitle("Liste löschen?")
+        VpnTvStyle.dialog(activity).setTitle("Liste löschen?")
             .setMessage(item.name.value + " wird aus dem Mullvad-Konto entfernt.")
             .setNegativeButton("Abbrechen", null)
             .setPositiveButton("Löschen") { _, _ ->
@@ -615,7 +615,7 @@ internal class VpnLocationUi(
             notice("Zuerst über \"+ Liste\" eine Mullvad-Liste erstellen.")
             return
         }
-        AlertDialog.Builder(activity).setTitle(location.name + " – Liste auswählen")
+        VpnTvStyle.dialog(activity).setTitle(location.name + " – Liste auswählen")
             .setItems(options.map { it.name.value }.toTypedArray()) { _, index ->
                 val list = options[index]
                 val exists = location.id in list.locations
