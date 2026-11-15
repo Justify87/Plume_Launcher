@@ -82,6 +82,7 @@ internal class VDesignCardView(
     }
     private val progressFill = View(context).apply {
         background = bg(Colors.LIME, 6)
+        addOnLayoutChangeListener { view, _, _, _, _, _, _, _, _ -> view.pivotX = 0f }
     }
     private val playback = LinearLayout(context).apply {
         orientation = LinearLayout.HORIZONTAL
@@ -246,6 +247,16 @@ internal class VDesignCardView(
             elevation = if (focused) px(5).toFloat() else 0f
         }
         setOnClickListener { media?.let { onSelect?.invoke(it) } }
+    }
+
+    /** Reference alternates lime, lavender and peach date chips across six visible tiles. */
+    fun setUpcomingAccent(slot: Int) {
+        if (kind != Kind.COMPACT) return
+        dateBadge.background = bg(when (slot % 3) {
+            1 -> Colors.LAVENDER
+            2 -> Colors.PEACH
+            else -> Colors.LIME
+        }, 22)
     }
 
     fun bind(item: NuvioMediaItem?, now: Instant, zone: ZoneId, locale: Locale) {
