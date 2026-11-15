@@ -152,8 +152,7 @@ internal class VpnLocationUi(
             textSize = 16f
             setTextColor(ink)
             setHintTextColor(secondary)
-            setBackgroundColor(if (dark) 0xFF314257.toInt() else Color.WHITE)
-            setPadding(dp(13), dp(6), dp(13), dp(6))
+            VpnTvStyle.field(this)
             addTextChangedListener(object : TextWatcher {
                 override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
                 override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
@@ -568,6 +567,7 @@ internal class VpnLocationUi(
             setText(old?.name?.value.orEmpty())
             hint = "Listenname"
             setSelectAllOnFocus(true)
+            VpnTvStyle.field(this)
         }
         AlertDialog.Builder(activity)
             .setTitle(if (old == null) "Mullvad-Liste erstellen" else "Liste umbenennen")
