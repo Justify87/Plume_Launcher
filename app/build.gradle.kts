@@ -79,5 +79,7 @@ android {
 }
 
 dependencies {
+    // ComponentActivity is required to embed Mullvad’s existing lifecycle-aware TV pages.
+    implementation("androidx.activity:activity-ktx:1.10.1")
     testImplementation("junit:junit:4.13.2")
 }
