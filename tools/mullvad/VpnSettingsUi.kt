@@ -34,10 +34,6 @@ import net.mullvad.mullvadvpn.lib.usecase.DeleteCustomDnsUseCase
 import net.mullvad.mullvadvpn.lib.usecase.SystemVpnSettingsAvailableUseCase
 import org.apache.commons.validator.routines.InetAddressValidator
 
-/**
- * Native, D-pad-friendly views over Mullvad's existing persisted daemon settings.
- * No local copy of VPN preferences: every label is rendered from upstream StateFlows.
- */
 internal class VpnSettingsUi(
     private val activity: ComponentActivity,
     private val settings: SettingsRepository,
@@ -220,7 +216,7 @@ internal class VpnSettingsUi(
             it.isEnabled = enabled
         }
         ipVersionButton.isEnabled = enabled && latestWireguard != null
-        bootButton.isEnabled = true  // Android component state, not a daemon RPC
+        bootButton.isEnabled = true  
         addDnsButton.isEnabled = enabled
 
         val options = s?.tunnelOptions?.dnsOptions

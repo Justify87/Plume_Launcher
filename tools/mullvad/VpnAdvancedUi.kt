@@ -28,10 +28,6 @@ import net.mullvad.mullvadvpn.lib.repository.UserPreferencesRepository
 import net.mullvad.mullvadvpn.lib.repository.WireguardConstraintsRepository
 import net.mullvad.mullvadvpn.lib.usecase.HopSelectionUseCase
 
-/**
- * Advanced tunnel options are an Android-TV View over Mullvad's original daemon repositories.
- * No custom relay pairing, persisted UI shadow state, or WireGuard implementation.
- */
 internal class VpnAdvancedUi(
     private val activity: ComponentActivity,
     private val settings: SettingsRepository,
@@ -148,7 +144,6 @@ internal class VpnAdvancedUi(
 
     private fun render() {
         if (!::serviceLine.isInitialized) return
-        // A cached value is not proof of an active daemon after connectivity is lost.
         val mode = if (daemonReady) constraints?.multihop else null
         val s = if (daemonReady) latest else null
         val enabled = daemonReady && mode != null && s != null

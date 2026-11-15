@@ -202,7 +202,6 @@ class VpnActivity : ComponentActivity() {
     private var awaitingSystemPermission = false
     private var notificationPermissionRequest = false
 
-    // The integrated TV shell is intentionally always dark, independent of phone appearance.
     private val dark = true
     private val ink get() = VpnTvStyle.INK
     private val secondary get() = VpnTvStyle.MUTED
@@ -255,7 +254,6 @@ class VpnActivity : ComponentActivity() {
                 } else finish()
             }
         })
-        // StateFlow/gRPC are authoritative, including across activity recreation.
         lifecycleScope.launch {
             management.connectionState.collect { state ->
                 daemonReady = state == GrpcConnectivityState.Ready
@@ -315,7 +313,6 @@ class VpnActivity : ComponentActivity() {
                 .coerceIn(0, sections.lastIndex)
             showPage(restoredPage)
             // Dynamically built buttons have no stable view IDs, so Android cannot
-            // restore their focus automatically after Activity recreation.
             tabs[restoredPage].requestFocus()
         } else tabs[0].requestFocus()
     }
@@ -348,7 +345,6 @@ class VpnActivity : ComponentActivity() {
             consentButton.visibility = View.GONE
             accountUi.refresh()
             message("Originaldienst wird initialisiert. Tunnelstatus kommt direkt von Mullvad.")
-            // Original notifications / Quick Settings can request the VPN profile.
             // Route their launch to the TV permission flow, not Mullvad's phone UI.
             if (notificationPermissionRequest) {
                 notificationPermissionRequest = false
@@ -452,8 +448,6 @@ class VpnActivity : ComponentActivity() {
             clipToPadding = false
             clipChildren = false
         }
-        // Eight VPN pages exceed the available height on several 720p TV densities.
-        // Let Android scroll focused rail items into view when navigating via D-Pad.
         val railScroll = ScrollView(this).apply {
             isFillViewport = false
             isVerticalScrollBarEnabled = false
@@ -463,7 +457,6 @@ class VpnActivity : ComponentActivity() {
         columns.addView(railScroll, LinearLayout.LayoutParams(dp(185), -1))
         columns.addView(detail, LinearLayout.LayoutParams(0, -1, 1f))
         root.addView(columns, LinearLayout.LayoutParams(-1, 0, 1f))
-        // No permanent help footer: retain vertical space for relay, DNS and account lists.
 
         val status = panel()
         headline = text("Warte auf Originaldienst", 26f, true)
@@ -554,8 +547,6 @@ class VpnActivity : ComponentActivity() {
             tab.setOnFocusChangeListener { _, focused ->
                 paint(tab, focused, page == index)
                 if (focused) {
-                    // Switching away from the temporary entry/exit browser restores
-                    // normal single-hop mode, including D-Pad focus-only tab changes.
                     if (index != 1 && returnFromAdvanced) {
                         returnFromAdvanced = false
                         locationUi.showFor(RelayListType.Single)
@@ -591,7 +582,6 @@ class VpnActivity : ComponentActivity() {
     }
 
     private fun addLocationPanel(parent: FrameLayout, content: View) {
-        // The location browser owns two independently scrolling D-Pad columns.
         // Do not nest it in a full-screen ScrollView.
         parent.addView(content, FrameLayout.LayoutParams(-1, -1))
         panels += content

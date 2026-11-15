@@ -46,10 +46,6 @@ import net.mullvad.mullvadvpn.lib.repository.SettingsRepository
 import net.mullvad.mullvadvpn.lib.repository.WireguardConstraintsRepository
 import org.apache.commons.validator.routines.InetAddressValidator
 
-/**
- * M10 TV-only surface. The pinned Mullvad repositories own every setting, validation
- * response, API test, selected method and relay override. No local VPN/proxy service.
- */
 internal class VpnNetworkUi(
     private val activity: ComponentActivity,
     private val settings: SettingsRepository,
@@ -185,7 +181,6 @@ internal class VpnNetworkUi(
             // Repositories can retain cached values: do not show them as effective while offline.
             stateLine.text = "Mullvad-Dienst offline · Änderungen gesperrt"
         } else if (!ciphersRequested) {
-            // The UI starts before Plume binds the original service. Only request the
             // supported cipher list once gRPC is ready, never during Activity creation.
             ciphersRequested = true
             withDaemon("API-Zugriff: Chiffren laden") {
