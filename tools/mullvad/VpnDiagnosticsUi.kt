@@ -320,7 +320,7 @@ internal class VpnDiagnosticsUi(
                 locales.map { it.getDisplayName(it) }.toTypedArray()
             var chosen = (locales.indexOf(languageRepository.getAppLocale()) + 1)
                 .coerceAtLeast(0)
-            AlertDialog.Builder(activity)
+            VpnTvStyle.dialog(activity)
                 .setTitle("App-Sprache – betrifft auch Plume")
                 .setSingleChoiceItems(labels, chosen) { _, which -> chosen = which }
                 .setNegativeButton("Abbrechen", null)
@@ -338,7 +338,7 @@ internal class VpnDiagnosticsUi(
             val changes = changelog.getLastVersionChanges()
             val text = if (changes.isEmpty()) "Keine Versionshinweise in diesem Build."
                 else changes.joinToString("\n\n") { "• " + it }
-            AlertDialog.Builder(activity)
+            VpnTvStyle.dialog(activity)
                 .setTitle("Mullvad – Versionsänderungen")
                 .setMessage(text)
                 .setPositiveButton("Schließen") { _, _ ->
@@ -377,7 +377,7 @@ internal class VpnDiagnosticsUi(
         val description = descriptionInput.text.toString().trim()
         if (description.isBlank()) return notice("Bitte eine Problembeschreibung eingeben.")
         val email = emailInput.text.toString().trim().takeIf { it.isNotEmpty() }
-        AlertDialog.Builder(activity)
+        VpnTvStyle.dialog(activity)
             .setTitle("Problembericht versenden?")
             .setMessage(
                 "Mullvad erhält den Text und die von Mullvad gesammelten Logs." +
