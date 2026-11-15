@@ -9,6 +9,13 @@ Keep the most important six changes first and use one `- ` bullet per change.
 
 ## Unreleased
 
+- **Expressive TV redesign.** Replace the old V-Design home grid with the user's new 1536×864 reference composition.
+- **One-line upcoming shelf.** Show six upcoming items with date badges and spatial D-Pad navigation.
+- **Compact settings.** Refresh launcher settings and all Mullvad TV pages with dark matte cards, lime focus and subtle transitions.
+- **Accessible shortcuts.** Add visible All Apps and installed Spotify shortcuts to the icon sidebar.
+- **Flexible UI tooling.** Retire outdated Plume design restrictions; maintained UI dependencies are permitted after review.
+- **Preserve Mullvad behavior.** Keep original account, relay, DNS, split-tunneling and service integrations.
+
 ## 0.1.0
 
 - **First Advanced release.** Start independent versioning for Plume Launcher Advanced.
