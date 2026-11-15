@@ -179,7 +179,6 @@
     <string name="all_apps">Tutte le app</string>
     <string name="settings">Impostazioni</string>
     <string name="continue_watching">Continua a guardare</string>
-    <!-- Mostrata nell\'elenco Accessibilità di Android. Le due indicazioni Attiva/Disattiva la citano, quindi devono coincidere. -->
     <string name="home_service_label">Plume Launcher Advanced: pulsante Home</string>
     <string name="theme_light">Chiaro</string>
     <string name="theme_dark">Scuro</string>
@@ -214,9 +213,7 @@
     <string name="help_run_setup">Ripeti la configurazione del pulsante Home.</string>
     <string name="help_smooth_volume">Tenendo premuto Volume, continua a cambiarlo. Home mostra poi Google TV per circa un secondo prima di aprire Plume Launcher Advanced. Spento se sono impostati i tasti del telecomando.</string>
     <string name="help_remote_keys">Cambia cosa fa un tasto del telecomando quando lo premi o lo tieni premuto.</string>
-    <!-- Stagione ed episodio su una scheda Continua a guardare, per esempio "S1 E3". -->
     <string name="season_episode">S%1$s E%2$s</string>
-    <!-- Finestre di configurazione del pulsante Home -->
     <string name="setup_home">Ripeti la configurazione</string>
     <string name="preview_home_setup">Anteprima popup configurazione Home</string>
     <string name="setup_step">Passo %1$d di %2$d</string>
@@ -270,7 +267,6 @@
     <string name="input_removed">Rimosso dalla riga.</string>
     <string name="sources_hint">Tieni premuto OK per fissare un ingresso nella riga.</string>
     <string name="bing_daily">Immagine del giorno di Bing</string>
-    <!-- Tasti del telecomando: cambia cosa fa un tasto -->
     <string name="section_clock_weather">Orologio e meteo</string>
     <string name="section_remote_home">Telecomando e pulsante Home</string>
     <string name="section_lock">Blocca layout</string>

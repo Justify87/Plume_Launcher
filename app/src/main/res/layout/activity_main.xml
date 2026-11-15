@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Sized in dp for a 960x540dp TV canvas (1080p and 4K both map to it). -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/root"
     android:layout_width="match_parent"
@@ -32,8 +31,6 @@
         android:paddingTop="27dp"
         android:paddingEnd="48dp"
         android:paddingBottom="32dp">
-        <!-- Bottom is a little more than the top: the last text line's box includes space under the letters,
-             so this makes the visible gap below Continue Watching match the gap above the clock. -->
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -57,7 +54,6 @@
                     android:includeFontPadding="false"
                     android:textSize="48sp" />
 
-                <!-- One line: the date, then a weather icon and the temperature. The weather part is off unless turned on in settings. -->
                 <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -87,7 +83,6 @@
                         android:visibility="gone" />
                 </LinearLayout>
 
-                <!-- "Featured: a show". Only with the Shows wallpaper: the show whose picture is on screen. -->
                 <TextView
                     android:id="@+id/featured"
                     android:layout_width="wrap_content"
@@ -152,7 +147,6 @@
                 android:padding="8dp"
                 android:src="@drawable/ic_tune" />
 
-            <!-- Hidden until it is added from the top bar's menu. -->
             <ImageView
                 android:id="@+id/powerButton"
                 android:layout_width="36dp"
@@ -167,8 +161,6 @@
 
     </LinearLayout>
 
-    <!-- These are real right-pane contents. setupVDesign reparents both into the
-         persistent workspace; neither is ever displayed as a full-screen overlay. -->
     <ScrollView
         android:id="@+id/allApps"
         android:layout_width="match_parent"

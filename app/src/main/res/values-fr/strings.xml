@@ -171,14 +171,11 @@
     <string name="all_apps">Toutes les applis</string>
     <string name="settings">Paramètres</string>
     <string name="continue_watching">Reprendre la lecture</string>
-    <!-- Affiché dans la liste Accessibilité d'Android. Les deux indications « Activez/Désactivez » le citent : garder le même texte. -->
     <string name="home_service_label">Plume Launcher Advanced : bouton Accueil</string>
     <string name="theme_light">Clair</string>
     <string name="theme_dark">Sombre</string>
     <string name="theme_auto">Auto</string>
-    <!-- Saison et épisode sur une carte Reprendre la lecture, par exemple « S1 E3 ». -->
     <string name="season_episode">S%1$s E%2$s</string>
-    <!-- Fenêtres de configuration du bouton Accueil -->
     <string name="setup_home">Configurer le bouton Accueil</string>
     <string name="preview_home_setup">Aperçu des fenêtres de configuration Accueil</string>
     <string name="setup_step">Étape %1$d sur %2$d</string>
@@ -231,7 +228,6 @@
     <string name="input_removed">Retirée de la ligne.</string>
     <string name="sources_hint">Maintenez OK pour épingler une entrée à la ligne.</string>
     <string name="bing_daily">Image Bing du jour</string>
-    <!-- Remote keys: change what a button on the remote does -->
     <string name="section_keys">Touches de la télécommande</string>
     <string name="key_add">Ajouter une touche</string>
     <string name="key_press_prompt">Appuyez sur la touche à changer sur votre télécommande. Retour, OK et les flèches ne peuvent pas être changés. Une touche réglée ici ne fait plus son travail habituel.</string>

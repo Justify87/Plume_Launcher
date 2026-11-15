@@ -195,7 +195,6 @@
     <string name="all_apps">Todos os apps</string>
     <string name="settings">Configurações</string>
     <string name="continue_watching">Continuar assistindo</string>
-    <!-- Aparece na lista de Acessibilidade do Android. As duas dicas "Ligue/Desligue" citam isto, mantenha igual. -->
     <string name="home_service_label">Plume Launcher Advanced: botão Início</string>
     <string name="theme_light">Claro</string>
     <string name="theme_dark">Escuro</string>
@@ -231,9 +230,7 @@
     <string name="help_run_setup">Refaça a configuração do botão Início.</string>
     <string name="help_smooth_volume">Segure Volume para continuar mudando. Aí o Início leva cerca de um segundo a mais para abrir o Plume Launcher Advanced. Desligado quando há teclas do controle definidas.</string>
     <string name="help_remote_keys">Mude o que um botão do controle faz ao pressionar ou segurar.</string>
-    <!-- Temporada e episódio em um cartão de Continuar assistindo, por exemplo "T1 E3". -->
     <string name="season_episode">T%1$s E%2$s</string>
-    <!-- Popups de configuração do Início -->
     <string name="setup_home">Refazer configuração</string>
     <string name="preview_home_setup">Prévia dos popups de configuração do Início</string>
     <string name="setup_step">Passo %1$d de %2$d</string>
@@ -287,7 +284,6 @@
     <string name="input_removed">Removido da fileira.</string>
     <string name="sources_hint">Segure OK para fixar uma entrada na fileira.</string>
     <string name="bing_daily">Foto do dia</string>
-    <!-- Teclas do controle: muda o que um botão do controle faz -->
     <string name="section_clock_weather">Relógio e clima</string>
     <string name="section_remote_home">Início e controle</string>
     <string name="section_lock">Bloqueio por PIN</string>
