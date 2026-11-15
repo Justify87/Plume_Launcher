@@ -3601,9 +3601,13 @@ class MainActivity : Activity() {
                 setPadding(dp(6), dp(7), dp(6), 0)
             }
         }
-        // Same card as light mode; in dark the marks rest slightly dimmed and brighten with focus.
-        val restLogo = if (dark) 0.8f else 1f
-        val restText = if (dark) 0.65f else 1f
+        // All Apps is always a dark surface, independent of wallpaper/theme settings.
+        if (label != null) {
+            text?.setTextColor(0xFFF7F7F8.toInt())
+            if (mono) img.setColorFilter(tint ?: 0xFFF7F7F8.toInt())
+        }
+        val restLogo = if (label != null) .86f else if (dark) .8f else 1f
+        val restText = if (label != null) .88f else if (dark) .65f else 1f
         img.alpha = restLogo
         text?.alpha = restText
         style(col, dp(12), card = true, lift = 1.015f, frost = false, expressive = label != null) { focused ->
@@ -3612,7 +3616,7 @@ class MainActivity : Activity() {
                 text?.setTextColor(if (focused) 0xFF121317.toInt() else 0xFFF7F7F8.toInt())
                 if (mono) img.setColorFilter(if (focused) 0xFF121317.toInt() else tint ?: 0xFFF7F7F8.toInt())
             }
-            if (!dark) return@style
+            if (!dark && label == null) return@style
             img.animate().alpha(if (focused) 1f else restLogo).setDuration(160).start()
             text?.animate()?.alpha(if (focused) 1f else restText)?.setDuration(160)?.start()
         }
