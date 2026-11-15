@@ -3798,6 +3798,7 @@ class MainActivity : Activity() {
         val installed = sortedApps()
         val nuvio = installed.firstOrNull { AndroidTvMediaSource.isNuvioPackage(it.pkg) }
         val smartTube = installed.firstOrNull { YouTubeSubscriptions.isSmartTube(it.pkg) }
+        val spotify = installed.firstOrNull { it.pkg == "com.spotify.tv.android" || it.pkg == "com.spotify.music" }
         val vpn = ComponentName(packageName, "net.mullvad.mullvadvpn.app.VpnActivity")
         val vpnAvailable = try {
             packageManager.getActivityInfo(vpn, 0)
@@ -3807,14 +3808,18 @@ class MainActivity : Activity() {
             add(VDesignHomeView.Navigation(VDesignHomeView.OVERVIEW, "Übersicht", getDrawable(R.drawable.ic_home)))
             nuvio?.let { add(VDesignHomeView.Navigation(VDesignHomeView.NUVIO, "Nuvio TV", vDesignAppIcon(it))) }
             smartTube?.let { add(VDesignHomeView.Navigation(VDesignHomeView.SMARTTUBE, "SmartTube", vDesignAppIcon(it))) }
+            spotify?.let { add(VDesignHomeView.Navigation(VDesignHomeView.SPOTIFY, "Spotify", vDesignAppIcon(it))) }
+            add(VDesignHomeView.Navigation(VDesignHomeView.ALL_APPS, "Alle Apps", getDrawable(R.drawable.ic_apps)))
+            if (vpnAvailable) add(VDesignHomeView.Navigation(VDesignHomeView.VPN, "Mullvad VPN", getDrawable(R.drawable.ic_vpn)))
             add(VDesignHomeView.Navigation(VDesignHomeView.SETTINGS, "Einstellungen", getDrawable(R.drawable.ic_settings)))
-            if (vpnAvailable) add(VDesignHomeView.Navigation(VDesignHomeView.VPN, "VPN", getDrawable(R.drawable.ic_vpn)))
         }
         vDesign.bindNavigation(items, onOpen = { key ->
             when (key) {
                 VDesignHomeView.OVERVIEW -> vDesign.focusOverview()
                 VDesignHomeView.NUVIO -> nuvio?.let { launch(it) }
                 VDesignHomeView.SMARTTUBE -> smartTube?.let { launch(it) }
+                VDesignHomeView.SPOTIFY -> spotify?.let { launch(it) }
+                VDesignHomeView.ALL_APPS -> openAllApps()
                 VDesignHomeView.SETTINGS -> openLauncherSettings()
                 VDesignHomeView.VPN -> {
                     returnFocusFromVpn = true
