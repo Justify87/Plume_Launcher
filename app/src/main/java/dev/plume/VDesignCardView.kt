@@ -249,6 +249,26 @@ internal class VDesignCardView(
         setOnClickListener { media?.let { onSelect?.invoke(it) } }
     }
 
+    /** Reflow type to the *actual* canvas viewport, not the physical display metrics. */
+    fun updateViewportScale(viewportScale: Float) {
+        if (viewportScale <= 0f) return
+        val fontScale = resources.configuration.fontScale.coerceIn(.85f, 1.25f)
+        fun adjust(view: TextView, sourcePx: Int) =
+            view.setTextSize(TypedValue.COMPLEX_UNIT_PX, sourcePx * viewportScale * fontScale)
+        adjust(title, when (kind) {
+            Kind.HERO -> 51; Kind.STANDARD -> 25; Kind.AVAILABLE -> 25; Kind.COMPACT -> 22
+        })
+        adjust(episode, when (kind) {
+            Kind.HERO -> 23; Kind.STANDARD -> 19; Kind.AVAILABLE -> 19; Kind.COMPACT -> 17
+        })
+        adjust(percentText, 18)
+        adjust(heroButton, 25)
+        adjust(dateBadge, 17)
+        adjust(newBadge, 16)
+        adjust(countdown, 15)
+        emptyLabel?.let { adjust(it, 18) }
+    }
+
     /** Reference alternates lime, lavender and peach date chips across six visible tiles. */
     fun setUpcomingAccent(slot: Int) {
         if (kind != Kind.COMPACT) return
