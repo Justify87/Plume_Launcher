@@ -276,6 +276,7 @@ def prepare(output: Path) -> Path:
     shutil.copy2(Path(__file__).with_name("VpnNetworkUi.kt"), vpn_activity.with_name("VpnNetworkUi.kt"))
     shutil.copy2(Path(__file__).with_name("VpnDiagnosticsUi.kt"), vpn_activity.with_name("VpnDiagnosticsUi.kt"))
     shutil.copy2(Path(__file__).with_name("VpnTvStyle.kt"), vpn_activity.with_name("VpnTvStyle.kt"))
+    shutil.copy2(Path(__file__).with_name("MullvadEmbeddedPanel.kt"), vpn_activity.with_name("MullvadEmbeddedPanel.kt"))
     # The original QS tile + account/tunnel notifications use this one constant
     # for their launch PendingIntent. Route them to the native TV Activity in the
     # *disposable staging tree only*, never edit the pinned original submodule.
