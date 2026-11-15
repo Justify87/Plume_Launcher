@@ -558,6 +558,7 @@ class MainActivity : Activity() {
         if (appsDirty) refreshApps()
         refreshVDesignNavigation()
         vDesign.bindFeed(nuvioDashboardFeed)
+        vDesign.refreshStatus()
         // Returning from another app must also retry artwork that failed while offline.
         vDesign.retryMissingArtwork()
         scheduleVDesignMidnight()
