@@ -3921,21 +3921,63 @@ class MainActivity : Activity() {
         }
     }
 
-    /** Provider-backed previews are supplied by the current feed, not mock sample cards. */
+    /** Source-backed previews from Nuvio's typed channels and the shared TV media feed. */
     private fun showAppPreview(name: String, key: String) {
-        // A dedicated media pane is installed once in the same right viewport.
-        val current = workspaceAppPreviews.getOrPut(key) {
-            WorkspaceMediaPane(this, name,
+        if (key == VDesignHomeView.NUVIO) {
+            val current = workspaceAppPreviews.getOrPut(key) {
+                WorkspaceMediaPane(this, name,
+                    loadArtwork = { view, uri -> loadPoster(view, uri) },
+                    onSelect = { item -> openVDesignMedia(item) }).also {
+                    vDesign.installWorkspacePane(key, it)
+                }
+            }
+            current.bind(nuvioDashboardFeed)
+            return
+        }
+        val app = sortedApps().firstOrNull {
+            when (key) {
+                VDesignHomeView.SMARTTUBE -> YouTubeSubscriptions.isSmartTube(it.pkg)
+                VDesignHomeView.SPOTIFY ->
+                    it.pkg == "com.spotify.tv.android" || it.pkg == "com.spotify.music"
+                else -> false
+            }
+        }
+        val pane = workspaceOtherPreviews.getOrPut(key) {
+            WorkspaceGenericMediaPane(this, name,
                 loadArtwork = { view, uri -> loadPoster(view, uri) },
-                onSelect = { item -> openVDesignMedia(item) }).also {
+                open = { item -> openWorkspaceMediaItem(item) }).also {
                 vDesign.installWorkspacePane(key, it)
             }
         }
-        if (key == VDesignHomeView.NUVIO) current.bind(nuvioDashboardFeed)
-        else current.bind(NuvioDashboardFeed.EMPTY)
+        pane.bind(app?.let { mediaFeed.snapshot(packageName = it.pkg) } ?: emptyList())
     }
 
     private val workspaceAppPreviews = mutableMapOf<String, WorkspaceMediaPane>()
+    private val workspaceOtherPreviews = mutableMapOf<String, WorkspaceGenericMediaPane>()
+
+    /**
+     * Only open a provider media link inside its own installed application.
+     * No arbitrary Intent selectors, URI grants or cross-app components.
+     */
+    private fun openWorkspaceMediaItem(item: MediaItem) {
+        val owner = item.sourcePackage ?: return
+        if (sortedApps().none { it.pkg == owner }) return toast("App nicht installiert")
+        val raw = try {
+            item.intentUri?.let { Intent.parseUri(it, Intent.URI_INTENT_SCHEME) }
+        } catch (_: Exception) { null } ?: return toast("Medienlink nicht verfügbar")
+        if (!WorkspaceMediaLaunchPolicy.valid(owner, raw.component?.packageName,
+                raw.`package`, raw.selector != null, raw.data?.scheme))
+            return toast("Medienlink nicht verfügbar")
+        raw.setPackage(owner)
+        raw.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        raw.clipData = null
+        try {
+            startApp(raw, currentFocus)
+        } catch (error: Exception) {
+            android.util.Log.w("Plume", "App media link failed: $owner", error)
+            toast("Medienlink nicht verfügbar")
+        }
+    }
 
     private fun showVpnPreview() {
         if (workspaceVpnPane != null) return
@@ -5658,6 +5700,7 @@ class MainActivity : Activity() {
                     // Fill only this URI: unrelated failed posters wait for the ordinary online retry.
                     if (::vDesign.isInitialized) vDesign.artworkReady(uri, bmp)
                     workspaceAppPreviews.values.forEach { it.artworkReady(uri, bmp) }
+                    workspaceOtherPreviews.values.forEach { it.artworkReady(uri, bmp) }
                 }
             }
         }
