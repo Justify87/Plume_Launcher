@@ -2,9 +2,12 @@
 
 **Supersedes:** the old single-screen V-Design implementation, overlay-based launcher
 settings, separate in-launcher VPN page, old rail icon rules, and all M00–M08
-layout contracts. The user's November 2026 reference image remains the visual
+layout contracts. The user's latest November 2026 reference image remains the visual
 authority for the **Home content**, not for navigation behavior contradicted by
-the user's newer explicit instructions.
+the user's newer explicit instructions. The exact original screenshot binary is
+not currently versioned in Git; see `VISUAL_REVIEW_2026-11.md`. Never use the
+superseded M00–M08 `REFERENCE.png` as a substitute or claim pixel-accurate
+acceptance until the actual user reference can be archived.
 
 ## One persistent shell
 

@@ -7,8 +7,9 @@ YubiKey-Signer, F-Droid-Pipeline und seine `android/20xx.xx`-Tags sind **nicht**
 
 ## Einmalige Signierung einrichten
 
-Der vorhandene `.github/workflows/debug-apk.yml` liefert Debug-APKs und unsignierte
-R8-Releases. Eine Debug-APK aus GitHub Actions ist **keine** dauerhaft updatefähige
+Der manuelle `.github/workflows/debug-apk.yml` baut **ausschließlich** die
+kombinierte Debug-APK. Der getrennte PR-/Release-Build prüft zusätzlich einen
+unsignierten R8-Release. Eine Debug-APK aus GitHub Actions ist **keine** dauerhaft updatefähige
 Release-APK. Die neue `.github/workflows/release.yml` bricht ab, wenn kein dauerhafter
 Release-Schlüssel eingerichtet wurde. Dies war die exakte Ursache des fehlgeschlagenen
 ersten `v0.1.0`-Release-Laufs [#43644701229](https://github.com/Justify87/Plume_Launcher/actions/runs/43644701229):
@@ -78,7 +79,7 @@ unterschiedliche Signaturen besitzen.
 1. **Erstes Advanced-Release:** Die Version `0.1.0` ist bereits im Sourcecode
    und im überarbeiteten `CHANGELOG.md` vorbereitet. Die Release-Notizen im
    Abschnitt `## 0.1.0` vor der Freigabe prüfen. Frühere Plume-Notizen sind
-   unter `docs/archive/legacy-features/pre-advanced-changelog.md` archiviert.
+   über die Git-Historie vor dem Repository-Cleanup nachvollziehbar.
    **Spätere Releases:** Änderungen unter `## Unreleased` dokumentieren;
    der Release-Assistent verschiebt sie in den neuen Versionsabschnitt.
 2. GitHub → **Actions → Release Plume Launcher Advanced → Run workflow**.

@@ -1,220 +1,79 @@
 <p align="center">
-  <img src="app/src/main/res/drawable-nodpi/ic_launcher_advanced.webp" alt="Plume Launcher Advanced – feather and A app icon" width="128" height="128">
+  <img src="app/src/main/res/drawable-nodpi/ic_launcher_advanced.webp" alt="Plume Launcher Advanced icon" width="128" height="128">
 </p>
 
 <h1 align="center">Plume Launcher Advanced</h1>
 
-<p align="center">
-  <strong>A personal media hub for Android TV.</strong><br>
-  Pick up where you left off. Discover what's new. Open the right app with your remote.
-</p>
+<p align="center">A personal, content-first Android TV launcher with an embedded Mullvad VPN interface.</p>
 
 <p align="center">
   <a href="https://github.com/Justify87/Plume_Launcher/actions/workflows/pr.yml"><img alt="Pull request checks" src="https://github.com/Justify87/Plume_Launcher/actions/workflows/pr.yml/badge.svg"></a>
-  <a href="https://github.com/Justify87/Plume_Launcher/actions/workflows/debug-apk.yml"><img alt="Manual debug APK build" src="https://img.shields.io/badge/Debug%20APK-GitHub%20Actions-7854D8"></a>
-  <img alt="Android TV 8.0+" src="https://img.shields.io/badge/Android%20TV-8.0%2B-3DDC84">
   <a href="LICENSE"><img alt="GPL-3.0 license" src="https://img.shields.io/badge/License-GPL--3.0-blue"></a>
 </p>
 
-> [!IMPORTANT]
-> **This is an independent, actively developed fork of [Plume Launcher by aradhyas8](https://github.com/aradhyas8/Plume_Launcher), maintained by [Justify87](https://github.com/Justify87).** It is not the original Plume release, an official successor, or affiliated with the original maintainer. Original authorship and the GPL-3.0 license are acknowledged [below](#origin-credits-and-license).
+> **Independent fork.** This project is maintained by [Justify87](https://github.com/Justify87), based on [Plume Launcher by aradhyas8](https://github.com/aradhyas8/Plume_Launcher). It is not an official successor or Mullvad distribution. Original author, third-party licenses, and project origins are acknowledged [below](#credits-and-license).
 
-## Why this fork exists
+## Current product
 
-Plume Launcher Advanced is an experiment in making the TV home screen **useful without making it busy**.
+The merged [persistent-workspace implementation (#48)](https://github.com/Justify87/Plume_Launcher/pull/48) replaced separate in-launcher fullscreen destinations with one shell. A compact sidebar remains visible while the right-hand panel changes. The sidebar has Home, supported app previews, All Apps, launcher settings, and Mullvad. Focusing a destination shows its content; OK on an installed app shortcut launches that app's actual package.
 
-A conventional launcher mostly answers *“Which app do you want to open?”* This fork is built toward a second question: *“What were you watching or listening to, and what is worth coming back for?”*
+- **Home:** in-progress, available and upcoming Nuvio episodes, using real Android TV Preview channels; an editorial Continue Watching hero and a single upcoming row.
+- **App previews:** Nuvio, SmartTube and Spotify surfaces display only published/accessible media; missing source data stays visibly unavailable rather than being invented.
+- **App launcher:** installed-app icons and a compact grid, with explicit source-package and focus rules.
+- **Mullvad:** original service, account, tunnel, locations, DNS, diagnostics and split-tunneling infrastructure, presented through an embedded Android TV panel.
 
-The long-term direction is a **single, remote-friendly overview** of recent and newly available content, followed by dedicated entry points for individual apps. Think episodes, movies, YouTube videos and podcast listening progress—**where the respective app or system actually makes that data accessible**. The goal is to reduce the steps between turning on the TV and getting back into something good.
+The current product contract is [docs/v-design/DESIGN_CONTRACT.md](docs/v-design/DESIGN_CONTRACT.md). The integration invariants and their actual implementation paths are in [docs/architecture/ACTIVE_INTEGRATIONS.md](docs/architecture/ACTIVE_INTEGRATIONS.md). For provenance of the workspace integration see [PR #48](https://github.com/Justify87/Plume_Launcher/pull/48).
 
-This is a **personal hobby fork**, not a promise of commercial-grade integrations or support for every streaming service. It retains Plume's lightweight design philosophy while exploring a more content-centered home experience.
+**Validation boundary:** A merged PR and successful CI are not evidence of complete physical Shield TV or real-tunnel verification. The latest user-supplied Expressive visual reference is described in [VISUAL_REVIEW_2026-11.md](docs/v-design/VISUAL_REVIEW_2026-11.md), but its original image bytes are not currently versioned in this repository.
 
-### Design principles
+## Build an on-demand debug APK
 
-- **One TV home, not competing layouts.** The V-Design is the only launcher Home surface; Classic and the older Overview mode were removed in M06.
-- **Content from real publishers.** The three V-Design sections use the Nuvio TV Preview channels `:in-progress`, `:available`, `:upcoming` — never manufactured titles or sample shows.
-- **D-pad first.** The launcher, source apps, All Apps, system actions and Settings must remain reachable from the remote.
-- **No provider assumptions.** Permission denied, missing channel and offline conditions show honest empty states instead of fake items.
-- **Respect existing Android and VPN capabilities.** Keep TV inputs, Home-role setup, wallpaper and the original embedded Mullvad backend.
+For the combined Plume + Mullvad ARM64 application:
 
-## Where things stand
+1. Open [Build Plume Launcher Advanced Debug APK](https://github.com/Justify87/Plume_Launcher/actions/workflows/debug-apk.yml).
+2. Choose **Run workflow** on `main`, with the required `source_ref` (normally `main`; a feature branch can also be built).
+3. Download the workflow artifact from the successful run and use the **combined ARM64 debug APK** from the ZIP. This does not create a release, tag or production signing key.
 
-The previous expressive redesign is on `main` following merged
-[PR #46](https://github.com/Justify87/Plume_Launcher/pull/46).
-The follow-up **persistent-workspace redesign** is under construction in
-[draft PR #48](https://github.com/Justify87/Plume_Launcher/pull/48).
+See [Debug build instructions](docs/DEBUG_BUILDS.md) for the current artifact filename, SHA-256, installation and signing caveats. An APK from different debug runners may have a different certificate: back up settings before replacing a locally installed debug version.
 
-The user's latest navigation specification supersedes the former standalone
-Home/All Apps/Settings/ VPN-screen model. It requires a permanently visible,
-small icon rail. Focusing an icon immediately changes the right-hand content,
-while OK on an app icon launches the specific installed application.
-
-- **Home:** Nuvio editorial composition with a smaller lime mask so more
-  of the real episode artwork is visible. No invented availability/VPN claims.
-- **App icons:** actual installed-app artwork, with a new independent
-  color/monochrome sidebar setting.
-- **All Apps:** a new, compact in-workspace app grid, never a full-screen drawer.
-- **Launcher Settings:** a full-width in-workspace list, not a dimming overlay.
-  Existing settings, system actions and PIN workflows are preserved pending
-  regression verification.
-- **App previews:** source-backed Nuvio cards and SmartTube/Spotify entries
-  where the respective media source really exposes them. No fabricated cards.
-- **Mullvad:** the original backend, account/repositories and VpnService
-  remain authoritative. All eight original TV management sections are now
-  hosted directly in the workspace's right pane through the native
-  `MullvadEmbeddedPanel` consolidated from retired PR #47. The old separate
-  VPN Activity remains only for system/notification compatibility intents.
-  This integration has **not** passed its complete combined Debug/Release-R8
-  and physical Shield validation yet; do not merge the draft prematurely.
-
-The active technical and visual requirements are the
-[Workspace Design Contract](docs/v-design/DESIGN_CONTRACT.md).
-Old V-Design reference grids, no-library policies and overlay navigation
-requirements are historical, not binding.
-
-### Navigation goal
-
-At any point on the Home launcher, the same small left rail selects Home,
-available app previews, All Apps, Settings and Mullvad. Left/Back from pane
-content returns to the rail; Home selects Home. OK on a source-app icon
-launches it. Long-OK on Home and Settings retains All Apps and system/HDMI/
-power shortcuts. The rail remains visible while browsing in-launcher content.
-
-**The draft PR is not complete or approved for merging** until combined CI,
-the embedded Mullvad controls, Android-TV D-Pad checks and real Shield
-screenshot comparison have been performed. A code diff is not proof of
-pixel-perfect fidelity.
-
-**UI technology is intentionally open.** The existing Kotlin/Android
-Views/XML implementation is currently convenient, but well-maintained
-AndroidX/Material libraries, animation libraries or a selective Compose
-migration are acceptable when they measurably improve appearance and
-TV navigation at reasonable cost.
-
-## Install a debug APK
-
-**Requirements:** Android TV or Google TV on **Android 8.0 (API 26) or later**. Compatibility and Home-button behavior vary by TV. The **NVIDIA Shield TV Pro (2019)** is a primary target for this fork, but this README does not imply that every change has been verified on physical hardware.
-
-There is a manual GitHub Actions build for installing and testing the latest code:
-
-1. Open **[Build Plume Launcher Advanced Debug APK](https://github.com/Justify87/Plume_Launcher/actions/workflows/debug-apk.yml)**.
-2. Select **Run workflow**, choose `main` and start the build.
-3. Open the successful run. Under **Artifacts**, download the `Plume-Launcher-Advanced-Debug-APK-…` ZIP.
-4. Extract `Plume-Launcher-Advanced-debug.apk` and install it on the TV using a file manager, USB transfer or ADB.
-
-For ADB installation:
+The standalone Plume Android module remains useful for quick checks:
 
 ```bash
-adb install Plume-Launcher-Advanced-debug.apk
-```
-
-The workflow runs unit tests and lint, assembles the APK and verifies that its Android package is `dev.plume.advanced` and its label is **Plume Launcher Advanced**. It also provides a SHA-256 checksum. **A workflow artifact is a test build, not a published release.**
-
-> [!NOTE]
-> GitHub-hosted debug builds may be signed with different debug keys between runs. If Android rejects a later debug APK because its signature differs, you may need to uninstall the earlier **Advanced** build and reinstall. **Back up your Advanced settings first**; uninstalling removes that app's local data. Do not uninstall original Plume by mistake.
-
-### Run both launchers side by side
-
-| | Original Plume | Plume Launcher Advanced |
-| --- | --- | --- |
-| Android application ID | `dev.plume` | `dev.plume.advanced` |
-| Installed app and icon | Original branding | Separate name and feather-and-A icon |
-| Settings and app data | Original app's storage | Independent Advanced storage |
-| Updates | Original project's releases | This fork's releases only |
-
-Both apps can be installed at the same time. **Only one should control the Home button at a time.** If the original's accessibility Home service is enabled, disable it before enabling the Advanced service. Otherwise the services may compete.
-
-When you first open Advanced, follow its Home setup. On supported Android TV devices, choose Advanced as your Home app. On Google TV, the optional **Plume Launcher Advanced: Home button** accessibility service is used where the stock launcher retains Home control. **Do not disable the stock Google TV launcher**: doing so can break the device.
-
-If the TV blocks restricted settings for sideloaded apps, consult Android's app settings first. An advanced ADB setup may require:
-
-```bash
-adb shell pm grant dev.plume.advanced android.permission.WRITE_SECURE_SETTINGS
-```
-
-This is a privileged system-setting grant, **not** part of normal APK installation. Grant it only if you understand the effect and need the associated Home / screensaver functions. An interactive setup helper is provided at [tools/plume-install.sh](tools/plume-install.sh); run it without `--disable-stock-launcher` unless you deliberately accept the device-specific risks.
-
-## Settings and data
-
-Advanced stores its preferences separately from the original app. **An installation does not migrate Plume's settings automatically.**
-
-Advanced supports a selective backup in **Settings → Backup → Save backup / Restore backup**. On many devices, the resulting file is located at:
-
-```text
-/sdcard/Android/media/dev.plume.advanced/backup/plume-advanced-settings.json
-```
-
-The export covers supported display and layout preferences, **not** everything. It does not copy the PIN, all media files, custom app picture files, system Home selection, remote mappings or permissions. Treat exported files as personal data if they include your configured location or application list.
-
-## Build from source
-
-The current code uses **Kotlin, Android Views/XML and Android TV framework APIs**. This is not a ban on modern UI technology: a justified AndroidX/Material dependency, custom view system, or selective Compose migration is acceptable if it preserves TV performance and the integrated Mullvad build.
-
-Requirements: **JDK 17**, an installed Android SDK for the project's configured compile SDK, and a working Gradle wrapper.
-
-```bash
-git clone https://github.com/Justify87/Plume_Launcher.git
+git clone --recurse-submodules https://github.com/Justify87/Plume_Launcher.git
 cd Plume_Launcher
 ./gradlew testDebugUnitTest lintDebug assembleDebug
 ```
 
-Local output: `app/build/outputs/apk/debug/app-debug.apk`. The manual GitHub Actions workflow renames the uploaded APK to `Plume-Launcher-Advanced-debug.apk`.
+The full combined ARM64 build requires the pinned Mullvad Android toolchain/container and original submodule; `tools/mullvad/build-integrated.sh` is the entry point. The combined package retains `dev.plume.advanced`, the original `dev.plume` Kotlin namespace, and Android TV/Mullvad components. See [release instructions](docs/RELEASING.md). The standalone module targets API 26+, while the integrated Mullvad build requires API 28+ and ARM64; do not infer integrated-device compatibility from standalone Gradle settings.
 
-Useful starting points in the code:
+## Install and maintain
 
-| File | Purpose |
+Original Plume and Plume Launcher Advanced can be installed side-by-side because their application IDs are different (`dev.plume` versus `dev.plume.advanced`). Only one should take over Home at a time. Some devices require Home-role or Accessibility setup; do not blindly disable the stock Google TV launcher. `tools/plume-install.sh` provides the original setup/diagnostics helper.
+
+Settings backups are selective and do not include every image, PIN, VPN credential, remap or OS-level Home permission. An Android settings grant such as `WRITE_SECURE_SETTINGS` must be done knowingly and is not needed for a normal APK installation.
+
+Manual **debug** builds are for testing; [releases](https://github.com/Justify87/Plume_Launcher/releases) are the separate, signed distribution path. A release update requires the same signing certificate as the installed app, and `0.1.0` is an independent semantic version lineage.
+
+## Code orientation
+
+| Component | Purpose |
 | --- | --- |
-| [MainActivity.kt](app/src/main/java/dev/plume/MainActivity.kt) | Launcher activity and established navigation/settings behavior |
-| [VDesignHomeView.kt](app/src/main/java/dev/plume/VDesignHomeView.kt) | The only Home renderer and sidebar/navigation shell |
-| [VDesignFocusNavigator.kt](app/src/main/java/dev/plume/VDesignFocusNavigator.kt) | Spatial D-pad navigation |
-| [VDesignCardView.kt](app/src/main/java/dev/plume/VDesignCardView.kt) | Real Nuvio media-card presentation |
-| [AndroidTvMediaSource.kt](app/src/main/java/dev/plume/AndroidTvMediaSource.kt) | TV Preview channel and Nuvio source interpretation |
-| [SettingsTransfer.kt](app/src/main/java/dev/plume/SettingsTransfer.kt) | Selective settings backup/restore |
-| [HomeOverride.kt](app/src/main/java/dev/plume/HomeOverride.kt) | Optional Home-button accessibility integration |
+| [`MainActivity.kt`](app/src/main/java/dev/plume/MainActivity.kt) | Launcher UI host, settings, Android TV integration |
+| [`VDesignHomeView.kt`](app/src/main/java/dev/plume/VDesignHomeView.kt) | Current persistent sidebar and home panel (legacy class name remains) |
+| [`LauncherWorkspaceNavigation.kt`](app/src/main/java/dev/plume/LauncherWorkspaceNavigation.kt) | Sidebar state, installed Nuvio package selection, launch safety |
+| [`AndroidTvMediaSource.kt`](app/src/main/java/dev/plume/AndroidTvMediaSource.kt) | TV source ownership / channel-provider identities |
+| [`NuvioDashboardFeed.kt`](app/src/main/java/dev/plume/NuvioDashboardFeed.kt) | Categorized real episode projection |
+| [`tools/mullvad/prepare.py`](tools/mullvad/prepare.py) | Disposable integrated build overlay, original submodule intact |
+| [`tools/mullvad/MullvadEmbeddedPanel.kt`](tools/mullvad/MullvadEmbeddedPanel.kt) | Embedded TV control panel |
 
-The **Kotlin namespace remains `dev.plume`** to avoid an unnecessary source-wide refactor. Android identifies the separately installable app by its **application ID `dev.plume.advanced`**.
-
-CI runs pull request checks, unit tests, lint, APK assembly and installation-helper regression tests. Hardware and remote-control behavior still deserve hands-on validation.
+Contributions follow [CONTRIBUTING.md](CONTRIBUTING.md). Maintenance decisions and removed paths are recorded in [docs/maintenance/REPOSITORY_CLEANUP.md](docs/maintenance/REPOSITORY_CLEANUP.md); historical material is recoverable from Git history instead of living in a second active documentation tree.
 
 ## Privacy and network access
 
-The goal is to keep the home experience **ad-free, account-free and free of analytics**. The fork does not need a central tracking account to show its existing UI, and its Home reads only supported Nuvio TV Preview channels. Other optional source integrations and network features remain separate.
+The launcher does not require a central tracking account and should remain free of advertisements and analytics. Media entries are read only from supported Android TV/provider interfaces and optional feeds, never by pretending to access another app's private account history. Optional images, wallpaper, update checks, weather and public YouTube feeds involve network requests; VPN/account logic resides in the original Mullvad-backed implementation. Android TV listings, image-picker and Accessibility permissions are constrained by device and user configuration. Spotify-account data integration is not claimed to exist.
 
-The underlying launcher can still make network requests for **selected** wallpapers and videos, weather/location-related data, poster images and GitHub update checks. Network services that supply such content can receive normal connection information such as the device's IP address. Permissions may be needed to read Android TV listings or user-selected images. The optional accessibility service is for Home and configured remote-key behavior, **not** a general-purpose media-history scraper.
+## Credits and license
 
-Future integrations should be evaluated individually for availability, consent, reliability and privacy. **Android TV and optional public YouTube feeds are real sources; Spotify account integration is not shipped.**
+Plume Launcher Advanced derives from [Plume Launcher](https://github.com/aradhyas8/Plume_Launcher) by **aradhyas8** and other upstream contributors. Their authorship and existing copyrights remain applicable; modifications and branding do not imply upstream endorsement. The embedded [Mullvad VPN](https://github.com/mullvad/mullvadvpn-app) Android source and its third-party licenses remain upstream-owned and are not an official Mullvad build. Media and icon assets have their own applicable authorship and licensing (including Material Symbols and Simple Icons).
 
-## Updates and project status
-
-- **Current testing distribution:** build a debug APK using the manual GitHub Actions workflow.
-- **In-app update checks:** look at **[releases in this fork](https://github.com/Justify87/Plume_Launcher/releases)**, not upstream. A future release must use the expected `Plume-Launcher-Advanced.apk` asset name for the current updater.
-- **Breaking changes and progress:** see [CHANGELOG.md](CHANGELOG.md) and merged PRs.
-- **Support:** use [this fork's issues](https://github.com/Justify87/Plume_Launcher/issues). Issues with the unmodified original should go to the original project.
-
-The project is experimental and evolves in small milestones. There is no guaranteed release cadence, app-service compatibility list or production support commitment.
-
-## Origin, credits and license
-
-**Plume Launcher Advanced is based on [Plume Launcher](https://github.com/aradhyas8/Plume_Launcher), originally created by [aradhyas8](https://github.com/aradhyas8).** The original project provided the foundation: its launcher, existing features, UI concepts, Android TV integration and a large part of the codebase. **Thank you to the original author and contributors.**
-
-This fork is maintained by **[Justify87](https://github.com/Justify87)**. Its separate identity, Advanced UI prototype, further changes and new branding do **not** transfer ownership of upstream contributions or imply endorsement by the original maintainer. The Git history preserves the project's origins; upstream copyright notices remain applicable.
-
-Other resources or inspirations used in the inherited codebase include:
-
-- [AerialViews](https://github.com/theothernt/AerialViews) for aerial video source data; Apple, Amazon and NASA remain the respective sources of their media.
-- [Google Material Symbols](https://fonts.google.com/icons) for applicable UI symbols (Apache 2.0).
-- [Simple Icons](https://simpleicons.org/) for applicable app/service marks (CC0 where provided; trademarks remain with their owners).
-- Public-domain artwork sourced through Wikimedia Commons for the inherited Gallery screensaver.
-
-The **Advanced feather-and-A launcher artwork** was created for this fork. The existence of third-party app names, marks and media references does not imply partnership or affiliation.
-
-### License
-
-This repository is distributed under the **[GNU General Public License, version 3](LICENSE)**, consistent with its upstream source. Modifications must preserve the relevant licensing, source-availability and attribution obligations when redistributed. See the repository's [LICENSE](LICENSE) and file-level notices for details.
-
-**Original project:** https://github.com/aradhyas8/Plume_Launcher  
-**This fork:** https://github.com/Justify87/Plume_Launcher
-
----
-
-<p align="center"><sub>Plume Launcher Advanced · Built on Plume, evolving toward a simpler way to resume and discover media on TV.</sub></p>
+This repository is distributed under [GPL-3.0](LICENSE), subject to the licenses and notices of included third-party works.
