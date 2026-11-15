@@ -403,7 +403,7 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
         onAllApps: () -> Unit,
         onSystemActions: (View) -> Unit,
         onPreview: (String) -> Unit = {},
-        onAppLongPress: (String) -> Unit = {},
+        onAppLongPress: (String, View) -> Unit = {},
     ) {
         open = onOpen
         allApps = onAllApps
@@ -461,7 +461,7 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
                 when (item.key) {
                     SETTINGS -> onSystemActions(bubble)
                     OVERVIEW -> onAllApps()
-                    else -> if (appShortcut) onAppLongPress(item.key) else return@setOnLongClickListener false
+                    else -> if (appShortcut || item.key == ALL_APPS) onAppLongPress(item.key, bubble) else return@setOnLongClickListener false
                 }
                 true
             }
