@@ -262,7 +262,7 @@ def prepare(output: Path) -> Path:
     (library / "consumer-rules.pro").write_text(
         "-keep class net.mullvad.mullvadvpn.app.MullvadEmbeddedPanel { " +
         "public static android.view.View create(androidx.activity.ComponentActivity); " +
-        "public boolean handleBack(); }\\n",
+        "public boolean handleBack(); }\n",
         encoding="utf-8",
     )
 
