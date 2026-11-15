@@ -28,6 +28,7 @@ android {
     defaultConfig {
         minSdk = 28
         testInstrumentationRunner = "dev.plume.ActivityTest"
+        consumerProguardFiles("consumer-rules.pro")
 
         // Preserve the original Plume generated resource without modifying its Kotlin.
         val changelog = file("CHANGELOG.md").readText().replace("\r", "")
@@ -48,6 +49,10 @@ android {
 }
 
 dependencies {
+    implementation("androidx.activity:activity:1.10.1")
+    // Pinned Mullvad verification-metadata already trusts the 1.16.0 AAR.
+    // Activity pulls 1.13.0, whose AAR is not in the upstream lockfile.
+    implementation("androidx.core:core-ktx:1.16.0")
     testImplementation(libs.junit)
 }
 '''
@@ -255,6 +260,14 @@ def prepare(output: Path) -> Path:
     )
     shutil.copy2(ROOT / "CHANGELOG.md", library / "CHANGELOG.md")
     (library / "build.gradle.kts").write_text(plume_library_build(), encoding="utf-8")
+    # The standalone Launcher uses reflection only to avoid loading Mullvad in the
+    # standalone APK. Preserve the bridge's stable JVM entry points in R8 releases.
+    (library / "consumer-rules.pro").write_text(
+        "-keep class net.mullvad.mullvadvpn.app.MullvadEmbeddedPanel { " +
+        "public static android.view.View create(androidx.activity.ComponentActivity); " +
+        "public boolean handleBack(); }\n",
+        encoding="utf-8",
+    )
 
     overlay = android / "app/src/ossProd/AndroidManifest.xml"
     overlay.parent.mkdir(parents=True, exist_ok=True)
@@ -275,6 +288,7 @@ def prepare(output: Path) -> Path:
     shutil.copy2(Path(__file__).with_name("VpnNetworkUi.kt"), vpn_activity.with_name("VpnNetworkUi.kt"))
     shutil.copy2(Path(__file__).with_name("VpnDiagnosticsUi.kt"), vpn_activity.with_name("VpnDiagnosticsUi.kt"))
     shutil.copy2(Path(__file__).with_name("VpnTvStyle.kt"), vpn_activity.with_name("VpnTvStyle.kt"))
+    shutil.copy2(Path(__file__).with_name("MullvadEmbeddedPanel.kt"), vpn_activity.with_name("MullvadEmbeddedPanel.kt"))
     # The original QS tile + account/tunnel notifications use this one constant
     # for their launch PendingIntent. Route them to the native TV Activity in the
     # *disposable staging tree only*, never edit the pinned original submodule.
