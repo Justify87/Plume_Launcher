@@ -81,7 +81,9 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
         setBackgroundColor(0xFF121317.toInt())
         // The small icon rail has no permanent labels or decorative divider.
         titleProgress = heading("WEITERSCHAUEN", 131, 94, 23)
-        titleAvailable = heading("VERFÜGBARE FOLGEN", 1132, 94, 23, 285)
+        titleAvailable = heading("VERFÜGBARE FOLGEN", 1132, 94, 20, 285).apply {
+            letterSpacing = .09f
+        }
         titleUpcoming = heading("DEMNÄCHST", 133, 547, 23)
         mount(View(context).apply { setBackgroundColor(0xFF45464B.toInt()) },
             VDesignCanvas.Box(1104, 94, 1, 413))
@@ -236,7 +238,7 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
             fun setType(view: TextView, referencePx: Int) =
                 view.setTextSize(TypedValue.COMPLEX_UNIT_PX, viewport * fontScale * referencePx)
             setType(titleProgress, 23)
-            setType(titleAvailable, 23)
+            setType(titleAvailable, 20)
             setType(titleUpcoming, 23)
             setType(availableBadge, 17)
             setType(dateHeader, 18)
