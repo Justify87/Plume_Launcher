@@ -6,10 +6,12 @@ Android TV launcher with integrated Mullvad VPN.
 
 ## Active product and design rules
 
-1. **The current user-supplied 1536 × 864 screenshot is the source of truth for
-   the Home layout**, not the old M00–M07 V-Design mockup, upstream Plume styles,
-   screenshots in the historical README, or old archival milestones. See
-   [the active design contract](docs/v-design/DESIGN_CONTRACT.md).
+1. **The latest user-supplied 1536 × 864 Expressive screenshot is the Home visual
+   reference**, not the removed M00–M08 raster, upstream Plume screenshots, or
+   historical milestone notes. Its binary is not yet stored in Git; do not
+   substitute an obsolete image or claim pixel-perfect verification. See the
+   [active design contract](docs/v-design/DESIGN_CONTRACT.md) and
+   [visual-review limitation](docs/v-design/VISUAL_REVIEW_2026-11.md).
 2. **Prefer visual fidelity and remote usability over legacy implementation
    choices.** Refactor or replace existing Views/XML/layout architecture when
    necessary. No previous grid, focus policy, animation, theme, panel width,
@@ -89,7 +91,7 @@ For setup and diagnostics, see `tools/plume-install.sh` and
 version, launcher version and reproduction steps.
 
 **Precedence for new UI development:** this file and
-`docs/v-design/DESIGN_CONTRACT.md` supersede contradictory legacy notes in
-`docs/v-design/{ROADMAP,STATE,HANDOFF,REVIEWS,DECISIONS,INVENTORY,TEST_MATRIX,DATA_CONTRACT}.md`
-and archived upstream contribution text. Historical evidence stays available
-for traceability but is not an active design restriction.
+`docs/v-design/DESIGN_CONTRACT.md` are the current UI contract. For functional
+invariants of the media and Mullvad integrations see
+`docs/architecture/ACTIVE_INTEGRATIONS.md`. Previous V-Design milestones and
+upstream contribution notes survive only in Git history, not as active rules.

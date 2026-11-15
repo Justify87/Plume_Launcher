@@ -78,7 +78,7 @@ unterschiedliche Signaturen besitzen.
 1. **Erstes Advanced-Release:** Die Version `0.1.0` ist bereits im Sourcecode
    und im überarbeiteten `CHANGELOG.md` vorbereitet. Die Release-Notizen im
    Abschnitt `## 0.1.0` vor der Freigabe prüfen. Frühere Plume-Notizen sind
-   unter `docs/archive/legacy-features/pre-advanced-changelog.md` archiviert.
+   über die Git-Historie vor dem Repository-Cleanup nachvollziehbar.
    **Spätere Releases:** Änderungen unter `## Unreleased` dokumentieren;
    der Release-Assistent verschiebt sie in den neuen Versionsabschnitt.
 2. GitHub → **Actions → Release Plume Launcher Advanced → Run workflow**.

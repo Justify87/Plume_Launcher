@@ -36,9 +36,11 @@ This document records what was actually verified during repository maintenance. 
 
 **M01 review:** Proceed with documentation consolidation first. Static source/manifest/tests/reference searches can establish strong candidates, but an actual CI build is required to accept Kotlin/resource deletions. Do not remove the website, screensaver paintings, tooling, existing V-Design-named runtime classes, or the Mullvad submodule in this PR.
 
-## M02 — active contracts and documentation
+## M02 — active contracts and documentation (review)
 
-**Status:** pending.
+**Result:** Added `docs/architecture/ACTIVE_INTEGRATIONS.md` with source-backed Nuvio channel IDs, source-package and intent safeguards, media honesty, pinned Mullvad single-APK architecture, safety/CI invariants and hardware-test boundaries. Replaced README wholesale to reflect merged PR #48 and the actual combined ARM64 debug workflow (rather than a closed PR as a draft). Updated CONTRIBUTING precedence, CHANGELOG/RELEASING archive references and the active design contract's missing-image caveat.
+
+**Review:** Reconciled Nuvio provider keys/package variants with `AndroidTvMediaSource.kt` and `LauncherWorkspaceNavigation.kt`; kept device tests unclaimed and Mullvad source pin unchanged. Current visual reference *cannot* be reconstructed from the old binary or substituted. Obsolete milestone-specific status assertions were deliberately excluded from new active docs. **Pass for documentation consolidation; screenshot artifact remains an explicit follow-up.**
 
 ## M03 — retired docs and screenshots
 

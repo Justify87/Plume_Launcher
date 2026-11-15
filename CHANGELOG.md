@@ -1,8 +1,8 @@
 # Plume Launcher Advanced changelog
 
 This is the release history of **Plume Launcher Advanced**, maintained separately
-from the original Plume Launcher. The older Plume and Classic/Overview notes are
-preserved in `docs/archive/legacy-features/pre-advanced-changelog.md`.
+from the original Plume Launcher. Older Plume and Classic/Overview notes remain available in the Git history
+before the repository cleanup; they are not current release notes.
 
 The launcher displays release notes from the section matching its `versionName`.
 Keep the most important six changes first and use one `- ` bullet per change.
