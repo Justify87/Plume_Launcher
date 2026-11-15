@@ -285,6 +285,8 @@ internal fun dropSessions(c: Context) {
 internal fun <T> preferTvApps(tv: List<T>, other: List<T>, pkg: (T) -> String) = (tv + other).distinctBy(pkg)
 
 class MainActivity : ComponentActivity() {
+    private val sidebarColourSetting = -90301
+    private val sidebarNuvioSetting = -90302
 
     /**
      * An app's icon is loaded once, but not held: the mono mark and the accent colour are made from it and kept, and a
@@ -2569,6 +2571,23 @@ class MainActivity : ComponentActivity() {
             R.string.icon_style to Triple(getString(R.string.icon_style), getString(ICON_STYLES.getValue(iconStyle()))) {
                 steps[R.string.icon_style]!!(1)
             },
+            sidebarColourSetting to Triple("App-Icons in der Sidebar",
+                if (prefs.getBoolean("sidebar_coloured_icons", true)) "Originalfarben" else "Einfarbig") {
+                setSidebarColour(!prefs.getBoolean("sidebar_coloured_icons", true))
+                renderSettings(sidebarColourSetting)
+            },
+            sidebarNuvioSetting to Triple("Nuvio-App wählen",
+                selectedNuvio(sortedApps())?.pkg ?: "Nicht installiert") {
+                val variants = sortedApps().filter { AndroidTvMediaSource.isNuvioPackage(it.pkg) }
+                showPage("Nuvio-Installation", variants.map { app ->
+                    page(app.label + "  ·  " + app.pkg,
+                        if (prefs.getString("sidebar_nuvio_package", null) == app.pkg) "Ausgewählt" else "") {
+                        prefs.edit().putString("sidebar_nuvio_package", app.pkg).apply()
+                        refreshVDesignNavigation()
+                        renderSettings(sidebarNuvioSetting)
+                    }
+                }, back = { renderSettings(sidebarNuvioSetting) })
+            },
             R.string.cw_apps to Triple(getString(R.string.cw_apps), if (cwOff == 0) getString(R.string.all_on) else getString(R.string.n_off, cwOff)) { pickWatchSources() },
             R.string.cw_channels to Triple(getString(R.string.cw_channels), getString(R.string.n_on, channelsOn)) { pickChannels() },
             R.string.youtube_subscriptions to Triple(getString(R.string.youtube_subscriptions),
@@ -2617,7 +2636,8 @@ class MainActivity : ComponentActivity() {
                 renderSettings(R.string.lock_layout)
             },
         )
-        for (k in listOf(R.string.sort_apps, R.string.weather_units)) steps[k] = { rows[k]!!.third() }
+        for (k in listOf(R.string.sort_apps, R.string.weather_units, sidebarColourSetting))
+            steps[k] = { rows[k]!!.third() }
         // Like the layout: behind the PIN. unlock() closes the panel after the PIN, so open it again.
         rows[R.string.section_keys] = page(getString(R.string.section_keys), "${keysSummary()}  ›") {
             unlock(back = { renderSettings(R.string.section_keys) }) {
@@ -2633,7 +2653,10 @@ class MainActivity : ComponentActivity() {
             Triple(R.string.section_style, "${rows[R.string.theme]!!.second} · ${getString(glassName())}",
                 listOf(R.string.theme, R.string.glass, R.string.app_animations)),
             Triple(R.string.section_applications, rows[R.string.sort_apps]!!.second,
-                listOf(R.string.sort_apps, R.string.icon_style)),
+                listOf(R.string.sort_apps, R.string.icon_style, sidebarColourSetting) +
+                    listOfNotNull(sidebarNuvioSetting.takeIf {
+                        sortedApps().any { a -> AndroidTvMediaSource.isNuvioPackage(a.pkg) }
+                    })),
             Triple(R.string.section_tv_media, rows[R.string.cw_channels]!!.second,
                 listOf(R.string.cw_apps, R.string.cw_channels)),
             Triple(R.string.section_clock_weather,
