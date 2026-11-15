@@ -1,108 +1,99 @@
-# Plume Launcher Advanced — Expressive TV Designvertrag
+# Plume Launcher Advanced — Persistent Workspace (active design contract)
 
-**Neuer verbindlicher Stand: 15.11.2026.** Das vom Nutzer in der Unterhaltung bereitgestellte
-Bild (1536 × 864) ersetzt alle bisherigen V-Design-Mockups als **einzige visuelle Referenz**.
-Die ältere Datei `docs/v-design/REFERENCE.png` bleibt ausschließlich als historischer
-M00–M07-Nachweis erhalten; sie **darf nicht** als Vorlage für neue UI-Arbeit verwendet werden.
-Die neue Nutzerbilddatei wurde nicht als Git-Binärdatei eingecheckt. Deshalb besteht **noch
-kein Pixelvergleichsnachweis** für einen echten TV-Screenshot. Änderungen dürfen nicht als
-„100 % pixelgenau“ deklariert werden, solange kein Referenzvergleich auf der Shield durchgeführt wurde.
+**Supersedes:** the old single-screen V-Design implementation, overlay-based launcher
+settings, separate in-launcher VPN page, old rail icon rules, and all M00–M08
+layout contracts. The user's November 2026 reference image remains the visual
+authority for the **Home content**, not for navigation behavior contradicted by
+the user's newer explicit instructions.
 
-## Home: exaktes Raster im Designraum
+## One persistent shell
 
-Koordinaten sind Referenzpixel für `VDesignCanvas` (1536 × 864), keine gerätespezifischen dp:
+The left rail is always visible on all in-launcher destinations. Its compact
+icon buttons must be recognizable at TV viewing distance, show a clear focus
+state, and never force a full-screen transition. The entire remaining width
+is a single content viewport.
 
-| Element | x | y | w | h |
-|---|---:|---:|---:|---:|
-| Sidebar (nur Icons) | 0 | 0 | 98 | 864 |
-| Datumszeile | 1020 | 16 | 152 | 35 |
-| VPN-Statuspill | 1209 | 17 | 198 | 37 |
-| Uhr | 1429 | 11 | 87 | 46 |
-| „Weiterschauen“ Titel | 131 | 94 | 365 | 37 |
-| Hero | 108 | 145 | 655 | 365 |
-| Fortschritt 2 | 781 | 142 | 303 | 170 |
-| Fortschritt 3 | 781 | 330 | 303 | 177 |
-| Trenner zu „Neue Folgen“ | 1104 | 94 | 1 | 413 |
-| Neue-Folgen-Titel | 1132 | 94 | 365 | 37 |
-| Neue-Folgen-Pill | 1424 | 94 | 87 | 37 |
-| Neue Folge 1/2/3 | 1132 | 147/266/386 | 380 | 103 |
-| „Demnächst“ Titel | 133 | 547 | 365 | 37 |
-| Demnächst 1–6 | 133/379/611/842/1074/1306 | 605 | 228/214/212/213/211/205 | 218 |
+- **Rail focus immediately previews/selects** the right-hand destination.
+  Neither All Apps, Settings nor Mullvad requires an initial OK to display.
+- **Right** enters focusable content. **Left/Back** returns to the rail; Back
+  from a non-Home rail selection returns to Home. Home stays reachable.
+- **OK on an app rail icon** launches exactly that installed application
+  variant; OK on a content destination enters its focusable controls.
+- Home, Nuvio, SmartTube, Spotify, All Apps, Settings and Mullvad are content
+  destinations, not different full-screen launcher activities.
+- Nuvio/SmartTube/Spotify may show available, source-backed channel previews
+  in the right pane. Missing channels show a useful empty state, not fake data.
+- Keep selection, scroll position and focus key across preview switching and
+  app return. Rebuild lists only when their data actually changes.
 
-## Verbindliche Bildsprache
+## Sidebar and icons
 
-- **Hintergrund** tiefes Anthrazit `#121317`, keine dekorativen Gradienten oder
-  Frosting. Die **im Referenzbild sichtbare** sanfte Hero-Flächentönung ist eine
-  bewusste Ausnahme. Keine zusätzliche Launcher-Produktleiste.
-- **Akzent** sanftes Limettengelb `#E7FF80`, für aktiven D-Pad-Fokus und echten Fortschritt.
-  **Sekundär** Lavendel `#DCB7F7`; warme Pfirsichtöne für wechselnde Datums-Badges.
-- Großes **Hero-Bild** rechts unter geometrisch geschwungener, hellgrüner Fläche links,
-  schwarzer Titel und schwarze „Fortsetzen“-Pill. Die geschwungene Fläche wird als View
-  gezeichnet; sie ist nicht Teil des Serienartworks.
-- Nebenhelden: 2 kleine Full-Bleed-Bildkacheln übereinander mit dunkler Lesbarkeitsblende.
-  Neue Folgen: 3 horizontale Zeilen mit Bild links, Text + „Neu“ rechts. Unten genau
-  **eine Reihe aus 6** Bildkacheln mit Datums-Pill, Titel und Countdown darunter.
-- Die tatsächlichen Nuvio-Feeds melden `AVAILABLE`, aber derzeit kein belastbares
-  `isReleaseAlert`-Flag. Deshalb verwendet die Implementierung die sachliche
-  Rubrik **„Verfügbare Folgen“**, eine numerische Zähler-Pill und zeigt
-  „Neu“ erst bei einem vom Provider belegten Flag. Das weicht aus Gründen
-  der Datentreue bewusst vom beispielhaften Text der Referenz ab.
-- **Kein Demo-Inhalt**: nur reale Nuvio-TV-Kanäle. Titel, Artwork, Folgennummern, Prozentwerte,
-  Daten und Countdowns sind aus dem Provider abzuleiten. Fehlende Werte nicht erfinden.
-- Datum/Uhr müssen lokal und fortlaufend aktualisiert werden. VPN-Transport darf nur als
-  „VPN aktiv“ bezeichnet werden, wenn Android tatsächlich einen VPN-Netztransport bestätigt;
-  der Netztransport allein beweist **nicht** eindeutig den Mullvad-Status.
+Use actual installed package icons for app entries, with an explicit setting
+for **original full-color** versus **monochrome**. Never forcibly tint color
+app icons. Home/All Apps/Settings/VPN use coherent vector symbols; they must
+not be confused with each other. Scale icon art within a consistent hit target
+rather than expanding the rail.
 
-## Interaktion und Unterseiten
+The correct Nuvio installation is the one owning the TV preview channel.
+Never silently choose a different variant just because its package sorts first.
+When multiple Nuvio variants exist and no provider is identifiable, require
+explicit selection or show a disambiguation choice; do not open an unrelated
+logged-out variant.
 
-Die Sidebar ist ausschließlich Icon-basiert. Reihenfolge: Home, Nuvio (wenn installiert),
-SmartTube (wenn installiert), Spotify (wenn installiert), Alle Apps, Mullvad (wenn vorhanden),
-Einstellungen. Long-OK auf Home bietet weiterhin Alle Apps und Long-OK auf Einstellungen
-die System-/HDMI-/Power-Aktionen. Unsichtbare Ziele sind nicht fokussierbar.
+## Home composition
 
-D-Pad-Ziele basieren auf den tatsächlichen Bildschirmkoordinaten. „Demnächst“ paginiert nur
-am linken bzw. rechten Ende des 6er-Streifens, ohne künstliche Einträge. Position und Medienfokus
-bleiben beim Datenrefresh und beim Zurückkehren erhalten.
+Keep the user's reference Home composition: dominant Continue Watching hero,
+two supporting cards, three available episodes, and a single row of six
+upcoming entries. The lime-colored hero panel must leave substantially more
+of the episode poster visible than the previous implementation. Artwork is
+dynamic; titles and progress are source-derived. No invented 'new' labels,
+VPN identity, episode dates, or sample poster content.
 
-Launcher-Einstellungen und Mullvad-TV-Untermenüs teilen den matten Dunkelmodus:
-`#1B1C21` Fenster, `#202126` Zeilen, `#F7F7F8` Text, `#B8BAC1`
-Sekundärtext und `#E7FF80` Fokus. Kompakte Zeilen (ca. 44–46 dp),
-schmale Zwischenräume, Scroll nur bei Bedarf, klar lesbare Seitentitel. Kurze
-Animationsübergänge (ca. 145–165 ms) **ohne** Fokusversatz. Maintained UI-/Animationsbibliotheken sind zulässig, wenn sie tatsächlich helfen.
+## All Apps, Settings and Mullvad
 
-Mullvads originaler Dienst, gRPC, Relaylisten, Konten, WireGuard, Rust/JNI, Split-Tunneling
-und VPN-Rechte sind weiterhin alleinige Autorität. Design-Umbau darf keine zweite
-„VPN-Implementierung“ installieren und niemals einen unbestätigten Status behaupten.
+All Apps is a native right-pane grid with an in-pane header, responsive columns,
+clear focused app tiles and direct OK-to-launch. The left rail never disappears.
 
-## Technologie- und Änderungsfreiheit
+Launcher Settings is a right-pane two-level layout with compact categories,
+focused settings and concise descriptions. Existing PIN, wallpaper, setup,
+system actions and other settings remain reachable. Remove the old dimmed
+full-screen scrim and floating panel *after* the replacement is functional.
 
-Frühere Vorgaben „Framework Views only“, „keine AndroidX-Bibliotheken“, „keine
-Compose-UI“, „kleine PRs“, „keine zusätzlichen Designkomponenten“ und
-„ursprüngliches Plume-Layout erhalten“ sind für Plume Launcher Advanced
-**aufgehoben**. Der Nutzer kann die bestehende UI auch vollständig ersetzen
-lassen. Ziel ist die bestmögliche Referenztreue, nicht die Beibehaltung alter
-Technik.
+Mullvad uses the same right pane and retains all original account, location,
+DNS, advanced, diagnostics and split-tunneling behavior. Its original
+service/repository layer remains authoritative. Do not launch a separate
+`VpnActivity` for routine in-launcher navigation after its panel integration
+is working; retain a compatibility entry only if necessary for external launch
+intents. VPN consent and Android system dialogs may still appear outside the
+shell, because Android owns them.
 
-Geeignete Material-Komponenten, AndroidX, ein Bildlader, Animationsbibliotheken,
-Custom Views oder selektive Compose-Module sind erlaubt. Vor Einführung prüfen:
-Maintainerstatus/Lizenz, sinnvolle Laufzeit-/RAM-/APK-Kosten, Android-TV-D-Pad,
-Barrierefreiheit, Android 8+, integrierten Mullvad-Gradle/Rust-Build und Wartbarkeit.
-**Keine Bibliothek nur der Mode wegen erzwingen.** Der vorhandene native View-Ansatz
-ist für diesen Entwurf weiterhin ein pragmatischer Ausgangspunkt.
+## Motion and performance
 
-Die komplette Startseite, Launcher-Settings und Mullvad-TV-Oberflächen dürfen
-in einem zusammenhängenden PR geändert werden. Keine alte visuelle Konvention
-stellt eine Architektur- oder Dateigrenze dar. Datenechtheit, VPN-Sicherheit,
-Privatsphäre und technische Regressionstests bleiben verbindlich.
+Use one small motion vocabulary: 120–180 ms focus transitions, 160–220 ms
+content changes, no distracting continuous animation. Animate opacity and
+translation of the content viewport, not full-screen relayouts. Avoid
+unnecessary rebinds, heavyweight blur and offscreen rendering. Honor the
+Android animator duration scale and disabled animations. Focus, click and
+selection must remain distinguishable. Avoid adding libraries unless there is
+a demonstrated benefit and acceptable Android TV cost.
 
-## Abnahme
+## Implementation contract
 
-1. `testDebugUnitTest`, `lintDebug`, kombinierter gepinnter Mullvad-Docker/ARM64-Build
-   einschließlich der vorhandenen Release/R8-Regressionsprüfungen.
-2. Shield-TV 2019 Pro: Fokus, Fernbedienung, 1080p und Overscan; Wallpaper-/Apps-/Settings-
-   Overlay, Back/Home, Unterseiten sowie reales Mullvad Verbinden/Trennen.
-3. Vergleich von **echtem** Launcher-Screenshot mit der **neuen** Nutzerbildvorlage
-   inklusive Typografie, Bildmasken, Abstände, Kartenanordnung und Animationen.
+**Replace obsolete UI modules completely instead of accumulating local
+patches.** New components should be cohesive, small, independently testable,
+and have one owner for navigation state. Do not rewrite working security,
+account, networking, channel projection or media playback code just to
+change presentation. Retire old overlays and duplicate navigation paths only
+after new routes pass regression tests.
 
-Punkte 2 und 3 benötigen reale Gerätetests und dürfen nicht als bestanden bezeichnet werden,
-wenn lediglich JVM-Tests bzw. CI erfolgreich sind.
+Milestones:
+1. Navigation and package-owner policy with unit tests.
+2. Complete persistent rail and content host, icon styles and focus behavior.
+3. New All Apps, Settings and embedded Mullvad content; remove legacy overlays.
+4. Home hero composition and source-backed app previews.
+5. Motion/performance pass, combined Plume+Mullvad CI, emulator screenshots,
+   real Shield D-Pad/VPN acceptance, final visual comparison.
+
+After each milestone review behavior, regressions, source ownership and test
+evidence. Do not merge until the integrated app compiles and core routes work.
+Never claim 100% pixel fidelity without actual screenshots from the device.
