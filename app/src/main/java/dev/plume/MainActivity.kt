@@ -589,7 +589,7 @@ class MainActivity : Activity() {
             prefs.edit().remove("return_settings").remove("return_dream").remove("reopen_settings").apply()
             if (movingTop != null) endTopMove(false)
             if (settingsScrim.visibility == View.VISIBLE) closeLauncherSettings()
-            if (allApps.visibility != View.VISIBLE) openAllApps()
+            openAllApps() // external All Apps intent always enters the persistent grid
         }
     }
 
@@ -5287,8 +5287,15 @@ class MainActivity : Activity() {
             }
             ui.post {
                 if (!isDestroyed) {
-                    if (::vDesign.isInitialized) vDesign.bindFeed(nuvioDashboardFeed)
+                    if (::vDesign.isInitialized) {
+                        vDesign.bindFeed(nuvioDashboardFeed)
+                        // The feed's real package owner may now disambiguate several
+                        // installed Nuvio variants. Rebind only after data arrives.
+                        refreshVDesignNavigation()
+                        if (vDesign.selectedWorkspace() == VDesignHomeView.NUVIO)
+                            showAppPreview("Nuvio TV", VDesignHomeView.NUVIO)
                     }
+                }
             }
         }
     }
