@@ -34,7 +34,7 @@ internal class VDesignAppSurface(
     openNuvio: (NuvioMediaItem) -> Unit,
 ) : ScrollView(context) {
     private companion object {
-        const val SURFACE = 0xFF22242A
+        const val SURFACE = 0xFF22242A.toInt()
         const val INK = 0xFFF7F7F8.toInt()
         const val SOFT = 0xFFB9BBC2.toInt()
         const val FOCUS = 0xFFE7FF80.toInt()
@@ -90,7 +90,7 @@ internal class VDesignAppSurface(
             clipChildren = false
             setPadding(dp(18), dp(8), dp(18), dp(22))
         }
-        addView(column, LayoutParams(-1, -2))
+        addView(column)
         val heading = LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
@@ -168,7 +168,7 @@ internal class VDesignAppSurface(
                     label(it, 13f).apply {
                         setTextColor(SOFT)
                         setPadding(dp(3), dp(3), dp(3), 0)
-                    }.also(tile::addView)
+                    }.also { tile.addView(it) }
                 }
                 interactive(tile, headline, detail)
                 tile.setOnClickListener { entry.onOpen() }
