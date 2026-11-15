@@ -365,6 +365,7 @@ class PreparationTests(unittest.TestCase):
                 self.assertTrue((generated / "app/src/ossProd/kotlin/net/mullvad/mullvadvpn/app/VpnAdvancedUi.kt").exists())
                 self.assertTrue((generated / "app/src/ossProd/kotlin/net/mullvad/mullvadvpn/app/VpnNetworkUi.kt").exists())
                 self.assertTrue((generated / "app/src/ossProd/kotlin/net/mullvad/mullvadvpn/app/VpnDiagnosticsUi.kt").exists())
+                self.assertTrue((generated / "app/src/ossProd/kotlin/net/mullvad/mullvadvpn/app/VpnTvStyle.kt").exists())
                 self.assertIn('.app.VpnActivity"',
                               (generated / "lib/common/src/main/kotlin/net/mullvad/mullvadvpn/"
                                "lib/common/constant/ClassNames.kt").read_text())
