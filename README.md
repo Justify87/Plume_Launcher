@@ -37,51 +37,53 @@ This is a **personal hobby fork**, not a promise of commercial-grade integration
 - **No provider assumptions.** Permission denied, missing channel and offline conditions show honest empty states instead of fake items.
 - **Respect existing Android and VPN capabilities.** Keep TV inputs, Home-role setup, wallpaper and the original embedded Mullvad backend.
 
-## Where things stand
+## Current direction — unified sidebar shell (draft PR #47)
 
-The active design work is tracked in [draft PR #46](https://github.com/Justify87/Plume_Launcher/pull/46).
-The single V-Design Home has existed on `main` since PR #39, but **its old
-appearance is no longer normative**. The screenshot supplied on 15 November
-2026 is the exclusive visual reference for the redesign.
+[PR #47](https://github.com/Justify87/Plume_Launcher/pull/47) replaces the separate
+Home, All Apps, Settings and Mullvad navigation with one persistent **98-pixel
+reference-width icon rail**. Its right side changes as soon as a rail icon
+receives D-Pad focus. This redesign is still under automated and Shield TV review.
 
-- **Home:** slim icon-only rail; 1 featured Nuvio Continue card + 2 secondary
-  cards; three available-episode entries at right; six upcoming episodes in
-  a single horizontal strip; real date, time, and a conservatively verified
-  Android VPN-transport indicator.
-- **Apps and settings:** installed Nuvio, SmartTube and Spotify shortcuts,
-  All Apps, integrated Mullvad and compact native Launcher Settings.
-- **Mullvad:** original tunnel/account/server repositories, VpnService,
-  Rust/JNI and routing remain unchanged; the TV shell and subpages share
-  the new dark expressive styling.
+| Rail icon | Focus: right-hand preview | OK on rail |
+| --- | --- | --- |
+| Home | Nuvio Continue, Available, Upcoming | Show Home |
+| Nuvio / SmartTube / Spotify (when installed) | Real publisher media if available, otherwise a truthful empty state | Open selected installed app |
+| All Apps | Launchable apps in a compact, scrollable grid | Focus the grid |
+| Mullvad | Real embedded eight-page Mullvad TV interface, in combined APK | Focus VPN controls |
+| Settings | Real launcher settings and subpages within the same shell | Focus the settings list |
 
-**Do not treat the older V-Design screenshots, 14-slot grid, five-tab
-sidebar, M00–M08 milestones or original Plume contribution restrictions
-as active product/design requirements.** The current contract is
-[Design Contract](docs/v-design/DESIGN_CONTRACT.md) and
-[Contributing](CONTRIBUTING.md).
+**Nuvio account/installation:** Android stores login data separately for
+each full, debug, and Play Store package. The launcher no longer starts the
+first arbitrarily sorted Nuvio package. The default is a recognized release
+variant; choose another installed variant via long OK on the Nuvio icon
+or under Settings → Applications → Nuvio-App wählen.
 
-The new visual design still needs green integrated CI and physical Shield
-TV visual/interaction checks. Screenshots, pixel-match and device validation
-are not implied by source edits.
+**App-icon colors:** The sidebar shows original full-color app icons by
+default; toggle monochrome icons under Settings → Applications →
+App-Icons in der Sidebar or by long OK on an app icon.
 
-## Design and navigation
+The new visual reference is the user's 1536×864 image. The Hero's pale
+curved reading area now covers at most half its poster rather than obscuring
+most of the episode image. Artwork and metadata always come from actual
+Android TV/Nuvio/SmartTube publishers.
 
-The target is the image-based **1536×864 editorial layout**: matte charcoal,
-lime active focus/progress, lavender/peach pills, asymmetrical cards and
-compact settings menus. Image assets displayed inside media cards are dynamic
-Nuvio media, not hardcoded illustrations or titles.
+Mullvad's original VpnService, daemon, accounts, relay management, DNS and
+split-tunneling remain unchanged. In combined builds the launcher embeds
+their existing native TV pages directly into its right pane; the separate
+VPN Activity remains only for compatible external notification entry and
+fallback. A standalone launcher without the combined Mullvad backend does
+not invent VPN controls or credentials.
 
-Use the D-Pad to select a rail icon, then Right to enter content. The
-sidebar includes a visible All Apps entry, plus long-OK on Home (All Apps)
-and on Settings (System/HDMI/Power actions). Back/Home and focus restore
-remain supported. If the data source is empty, no demonstration content
-is inserted.
+This fork is a hobby project. The shell and motions use simple Android
+Views and property animations, with AndroidX Activity only where needed
+to host Mullvad's lifecycle and permission result contracts. The active
+requirements are [the design contract](docs/v-design/DESIGN_CONTRACT.md)
+and [contribution guidelines](CONTRIBUTING.md).
 
-**UI technology is intentionally open.** The existing Kotlin/Android
-Views/XML implementation is currently convenient, but well-maintained
-AndroidX/Material libraries, animation libraries or a selective Compose
-migration are acceptable when they measurably improve appearance and
-TV navigation at reasonable cost.
+**Validation:** A green PR build proves source integration, not exact visual
+identity or correct on-device VPN operation. Actual Shield TV screenshots,
+D-Pad traversal, application variant logins, and live Mullvad connect/
+disconnect remain explicit acceptance steps before release.
 
 ## Install a debug APK
 
