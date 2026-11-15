@@ -34,7 +34,7 @@ android {
         disable += setOf("MissingTranslation", "ExtraTranslation")
     }
 
-    // Release key lives outside the repo; keystore.properties (git-ignored) points at it. Without that file
+    // Without keystore.properties, releases fall back to debug signing, not production signing.
     val keys = rootProject.file("keystore.properties").takeIf { it.exists() }
         ?.let { f -> Properties().apply { f.inputStream().use { load(it) } } }
     signingConfigs {

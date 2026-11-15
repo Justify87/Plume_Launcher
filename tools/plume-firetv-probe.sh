@@ -127,7 +127,7 @@ sleep 1
 devgrep "Bound services|Enabled services|^ *services:\{" dumpsys accessibility
 ACC=$R
 case $ENABLED in *dev.plume.advanced/*) PLUME_SET=yes ;; *) PLUME_SET=no ;; esac
-# ("Enabled services:{"...), or after 20 lines, so that a word further down the dump is never taken for a service.
+# Bound-service parsing stops at the next list or after 20 lines to avoid false positives.
 BOUNDLIST=$(printf '%s\n' "$ACC" | awk '/Bound services|^ *services:\{/ { on = 1; n = 0 } on && n > 0 && /^ *[A-Za-z][A-Za-z ]*:[{[]/ { on = 0 } on { print; n++; if (/\}\]?[ \t]*$/ || n >= 20) on = 0 }')
 if [ -n "$BOUNDLIST" ]; then
   if printf '%s\n' "$BOUNDLIST" | grep -qi "Plume Launcher Advanced"; then PLUME_BOUND=yes; else PLUME_BOUND=no; fi

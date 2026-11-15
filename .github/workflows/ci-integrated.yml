@@ -115,8 +115,7 @@ jobs:
             exit 1
           fi
           cp "$apk" artifacts/plume-mullvad/Plume-Launcher-Advanced-Mullvad-arm64-debug.apk
-          # The original Mullvad RELEASE build intentionally has signingConfig=null.
-          # Treat its output as an unsigned R8/release validation artifact, never as
+          # Mullvad's release APK is unsigned: validate R8 only, never offer it as an installable update.
           release_dir=.build/plume-mullvad/mullvadvpn-app/android/app/build/outputs/apk/ossProd/release
           release_apk=$(find "$release_dir" -maxdepth 1 -type f -name '*.apk' -print -quit)
           test -n "$release_apk" && test -s "$release_apk"

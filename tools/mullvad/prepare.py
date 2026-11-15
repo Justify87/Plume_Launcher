@@ -63,11 +63,8 @@ ALIASES = (
 
 
 
-# The pinned upstream verification file already authenticates these module
-# resolves their JAR counterparts. These exact JAR SHA-256 values are cross-
-#   - org.jetbrains.kotlinx ... 1.6.4: Briar witness.gradle and rules_kotlin lock
-# Never disable verification or write unreviewed downloaded hashes to a lock.
-# Only the temporary generated host changes; the pinned submodule stays intact.
+# JAR SHA-256 values are independently witnessed in Briar, rules_kotlin, tuist,
+# bento and expo lockfiles. Never weaken verification or edit the pinned submodule.
 WITNESSED_COMPILER_JARS = (
     ("kotlinx-coroutines-android",
      "68516559e6f84a621b9783cd892a64630ccd7875843588ddb3f0501425e33f15",
@@ -301,8 +298,8 @@ def prepare(output: Path) -> Path:
     old = 'applicationId = "net.mullvad.mullvadvpn"'
     if content.count(old) != 1:
         raise RuntimeError("Unexpected Mullvad applicationId declaration")
-    # Rust/JNI is built for ARM64 only. Without a packaging filter, native
-    # Change only the disposable host; never patch pinned Mullvad sources.
+    # ARM64-only JNI requires an ABI filter; otherwise native libraries imply unsupported ABIs.
+    # Change only the disposable host, never pinned Mullvad sources.
     content = content.replace(old, '''applicationId = "dev.plume.advanced"
         ndk {
             abiFilters += "arm64-v8a"
@@ -310,8 +307,7 @@ def prepare(output: Path) -> Path:
     content += '\n// Plume integration: TV views are a library, not a second APK.\ndependencies { implementation(project(":plume-ui")) }\n'
     host_build.write_text(content, encoding="utf-8")
 
-    # Mullvad's releasePreflight executes "git status --porcelain", but the
-    # this generator. Keep releasePreflight itself (including build header),
+    # Staging has no .git, so only its impossible releasePreflight cleanliness check is skipped.
     root_build = android / "build.gradle.kts"
     root_contents = root_build.read_text(encoding="utf-8")
     original_preflight = "this.skipDirtyCheck.set(preflightSkipDirtyCheck)"

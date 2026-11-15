@@ -23,7 +23,7 @@ class EmbeddedMullvadConsolidationTest(unittest.TestCase):
         combined = prepare.PLUME_LIBRARY_BUILD
         for script in (standalone, combined):
             self.assertIn('implementation("androidx.activity:activity:1.10.1")', script)
-            # The pinned Mullvad dependency-verification lockfile contains the
+            # Upstream verifies core-ktx 1.16.0, not 1.13.0.
             self.assertIn('implementation("androidx.core:core-ktx:1.16.0")', script)
             self.assertNotIn('implementation("androidx.core:core-ktx:1.13.0")', script)
 

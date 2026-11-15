@@ -1,5 +1,5 @@
 #!/bin/sh
-# The Plume+Mullvad fork intentionally has dependencies and VPN permissions; do not
+# Review dependency and VPN permission changes without rejecting legitimate additions.
 set -eu
 
 base=${1:?usage: pr-rules.sh BASE}

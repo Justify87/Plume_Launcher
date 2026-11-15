@@ -308,8 +308,7 @@ class PreparationTests(unittest.TestCase):
             upstream = root / "upstream"
             (upstream / "android/app").mkdir(parents=True)
             (upstream / "android/settings.gradle.kts").write_text('include(":app")\n')
-            # Mirror the pinned source's verification metadata in this isolated
-            # refuses staging when this security file is absent or unfamiliar.
+            # The isolated fixture must provide verified upstream metadata; otherwise staging fails.
             verification = upstream / "android/gradle/verification-metadata.xml"
             verification.parent.mkdir(parents=True)
             components = []
