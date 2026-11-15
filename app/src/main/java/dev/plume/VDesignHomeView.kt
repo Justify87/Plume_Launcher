@@ -170,8 +170,8 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
         vpnHeader.setTextColor(if (vpn) 0xFF121317.toInt() else Palette.SOFT)
     }
 
-    private fun scale(): Float = kotlin.math.min(
-        resources.displayMetrics.widthPixels / 1536f, resources.displayMetrics.heightPixels / 864f)
+    private fun scale(): Float = VDesignCanvas.scale(width, height).takeIf { it > 0f }
+        ?: VDesignCanvas.scale(resources.displayMetrics.widthPixels, resources.displayMetrics.heightPixels)
     private fun fontPixels(reference: Int): Float =
         reference * scale() * resources.configuration.fontScale.coerceIn(0.85f, 1.35f)
 
@@ -227,6 +227,26 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
         for ((view, box) in anchored) position(view, box)
+        val viewport = VDesignCanvas.scale(w, h)
+        if (viewport > 0f) {
+            val fontScale = resources.configuration.fontScale.coerceIn(.85f, 1.35f)
+            fun setType(view: TextView, referencePx: Int) =
+                view.setTextSize(TypedValue.COMPLEX_UNIT_PX, viewport * fontScale * referencePx)
+            setType(titleProgress, 23)
+            setType(titleAvailable, 23)
+            setType(titleUpcoming, 23)
+            setType(availableBadge, 17)
+            setType(dateHeader, 18)
+            setType(clockHeader, 28)
+            setType(vpnHeader, 17)
+            cards().forEach { it.updateViewportScale(viewport) }
+            for (bar in menu) {
+                val mark = (bar as? FrameLayout)?.getChildAt(0)
+                mark?.layoutParams = FrameLayout.LayoutParams(
+                    (34 * viewport).toInt().coerceAtLeast(1),
+                    (34 * viewport).toInt().coerceAtLeast(1), Gravity.CENTER)
+            }
+        }
     }
 
     /** Immutable M02 snapshot plus callbacks from the existing shared poster cache and TV launcher. */
