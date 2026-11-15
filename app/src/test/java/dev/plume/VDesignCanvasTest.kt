@@ -30,6 +30,13 @@ class VDesignCanvasTest {
             VDesignCanvas.place(1856, 1008, VDesignCanvas.Box(108, 145, 655, 365)))
     }
 
+    @Test fun typographyAndGeometryShareTheInsetViewportScale() {
+        assertEquals(0.625f, VDesignCanvas.scale(960, 540), .0001f)
+        assertEquals(1.25f, VDesignCanvas.scale(1920, 1080), .0001f)
+        assertEquals(1.1666666f, VDesignCanvas.scale(1856, 1008), .0001f)
+        assertEquals(0f, VDesignCanvas.scale(1920, 0), .0001f)
+    }
+
     @Test fun unusualInsetsKeepCanvasCentered() {
         assertEquals(VDesignCanvas.Placement(120, 0, 61, 540),
             VDesignCanvas.place(1200, 540, VDesignCanvas.Box(0, 0, 98, 864)))
