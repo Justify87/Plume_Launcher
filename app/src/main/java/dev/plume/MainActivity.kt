@@ -3795,6 +3795,10 @@ class MainActivity : ComponentActivity() {
      * framework's long-press timer. We treat the first auto-repeat of OK as "held"; the long-click
      * listener in style() is a fallback for remotes that send no repeats. [holdFired] stops both firing.
      */
+    // AndroidX marks ComponentActivity.dispatchKeyEvent library-group-only; the
+    // Android TV remote needs the inherited public callback for pre-View D-Pad
+    // focus and long-OK repeat handling. Scope the exception to this override.
+    @android.annotation.SuppressLint("RestrictedApi")
     override fun dispatchKeyEvent(e: KeyEvent): Boolean {
         if (!ready) return super.dispatchKeyEvent(e)
         if (wallPreview != null) {
