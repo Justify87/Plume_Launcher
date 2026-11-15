@@ -1,14 +1,11 @@
 #!/bin/sh
-# PR change review: dependencies and UI technology are allowed. Review impact, not existence.
 # The Plume+Mullvad fork intentionally has dependencies and VPN permissions; do not
-# reject legitimate integration work solely because a new declaration was added.
 set -eu
 
 base=${1:?usage: pr-rules.sh BASE}
 summary=${GITHUB_STEP_SUMMARY:-/dev/null}
 git rev-parse --verify "$base^{commit}" >/dev/null
 
-# Review both additions and removals in Gradle and manifest declarations.
 deps=$(git diff "$base"...HEAD -- '*.gradle.kts' | grep -E '^[+-][^+-].*(implementation|api|compileOnly|runtimeOnly|ksp|kapt|annotationProcessor)[[:space:]]*\(|^[+-][^+-].*id[[:space:]]*\(' || true)
 perms=$(git diff "$base"...HEAD -- '*AndroidManifest.xml' | grep -E '^[+-][^+-].*(uses-permission|<permission)' || true)
 changed=$(git diff --name-only "$base"...HEAD -- app/src/main tools/mullvad)

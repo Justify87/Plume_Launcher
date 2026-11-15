@@ -1,4 +1,4 @@
-"""Offline unit tests for the M10 read-only Spotify proof of concept."""
+"""Offline tests for the Spotify podcast probe."""
 import datetime as dt
 import unittest
 from unittest.mock import patch
