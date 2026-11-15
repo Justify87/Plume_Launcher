@@ -1,5 +1,6 @@
 package net.mullvad.mullvadvpn.app
 
+import android.app.AlertDialog
 import android.content.Context
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.StateListDrawable
@@ -46,6 +47,10 @@ internal object VpnTvStyle {
             button.scaleY = 1f
         }
     }
+
+    /** Use the Android dark alert theme; no custom Dialog subclass or dependency. */
+    fun dialog(context: Context): AlertDialog.Builder =
+        AlertDialog.Builder(context, android.R.style.Theme_Material_Dialog_Alert)
 
     /** Framework focus-state drawable; no extra listeners or keyboard side effects. */
     fun field(edit: EditText) {
