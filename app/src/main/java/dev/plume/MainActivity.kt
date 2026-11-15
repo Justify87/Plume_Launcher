@@ -4129,18 +4129,18 @@ class MainActivity : Activity() {
         onHold(v)
     }
 
-    /** What holding OK does depends on what's focused. */
+    /** Long-OK: app-variant/icon controls in the rail, context menus only for real app tiles. */
     private fun onHold(v: View) {
         val tag = v.tag as? String
         when {
-            tag == VDesignHomeView.OVERVIEW && allApps.visibility != View.VISIBLE &&
-                settingsScrim.visibility != View.VISIBLE -> openAllApps()
-            tag == VDesignHomeView.SETTINGS && allApps.visibility != View.VISIBLE &&
-                settingsScrim.visibility != View.VISIBLE -> showVDesignSystemActions(v)
+            tag in setOf(VDesignHomeView.NUVIO, VDesignHomeView.SMARTTUBE,
+                VDesignHomeView.SPOTIFY, VDesignHomeView.ALL_APPS) ->
+                v.performLongClick()
+            tag == VDesignHomeView.OVERVIEW -> v.performLongClick()
+            tag == VDesignHomeView.SETTINGS -> showVDesignSystemActions(v)
             allApps.visibility == View.VISIBLE && tag != null -> {
                 val app = sortedApps().firstOrNull { it.pkg == tag }
                 if (app != null) {
-                    // The historical PIN contract allowed launching while locked, never editing or uninstalling.
                     val actions = if (locked()) listOf(getString(R.string.open) to { launch(app) })
                     else listOfNotNull(
                         getString(R.string.open) to { launch(app) },
