@@ -2454,25 +2454,32 @@ class MainActivity : Activity() {
 
     private fun showPanel() {
         panelFrom = currentFocus
-        // Dark: true black, set apart from the home screen by a hairline on its left edge.
-        showPanelGlass()
-        findViewById<TextView>(R.id.settingsTitle).apply { setTextColor(focusInk()); panelShadow() }
-        for (id in listOf(R.id.settingsCrumb, R.id.settingsHelp)) findViewById<TextView>(id).apply { setTextColor(valueInk()); panelShadow() }
-        settingsScrim.background = ColorDrawable(0xDC090A0D.toInt())
-        pages.clear()
-        settingsScrim.visibility = View.VISIBLE
-        homeFocusable(false)
-    }
-
-    /** One stable dark surface: never let wallpaper glass obscure settings text or focus. */
-    private fun showPanelGlass() {
         val panel = findViewById<GlassBox>(R.id.settingsPanel)
         panel.setWillNotDraw(true)
         panel.background = GradientDrawable().apply {
             setColor(0xFF1B1C21.toInt())
-            setStroke(dp(1), 0xFF35363E.toInt())
+            cornerRadius = dp(17).toFloat()
         }
-        panel.invalidate()
+        panel.layoutParams = FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT)
+        panel.setPadding(dp(22), dp(16), dp(22), dp(12))
+        findViewById<TextView>(R.id.settingsTitle).apply { setTextColor(focusInk()); panelShadow() }
+        for (id in listOf(R.id.settingsCrumb, R.id.settingsHelp)) {
+            findViewById<TextView>(id).apply { setTextColor(valueInk()); panelShadow() }
+        }
+        settingsScrim.background = ColorDrawable(0xFF121317.toInt())
+        pages.clear()
+        settingsScrim.visibility = View.VISIBLE
+        if (::vDesign.isInitialized) vDesign.showSection(VDesignHomeView.SETTINGS, settingsScrim)
+    }
+
+    private fun showPanelGlass() {
+        // Settings are a real right-hand page now, never a glass popup above Home.
+        findViewById<GlassBox>(R.id.settingsPanel).apply {
+            background = GradientDrawable().apply {
+                setColor(0xFF1B1C21.toInt())
+                cornerRadius = dp(17).toFloat()
+            }
+        }
     }
 
     private fun closeLauncherSettings() {
@@ -2483,11 +2490,10 @@ class MainActivity : Activity() {
         pageExit = null
         pageBack = null
         settingsScrim.visibility = View.GONE
-        homeFocusable(allApps.visibility != View.VISIBLE) // the PIN can open over All apps
-        val previous = panelFrom?.takeIf { it.isAttachedToWindow && it.isShown }
-        if (previous?.requestFocus() != true) {
-            if (!::vDesign.isInitialized || !vDesign.restoreFocus())
-                findViewById<View>(R.id.launcherSettings).requestFocus()
+        pages.clear()
+        if (::vDesign.isInitialized) {
+            vDesign.showSection(VDesignHomeView.OVERVIEW)
+            vDesign.focusOverview()
         }
         panelFrom = null
     }
@@ -3728,12 +3734,12 @@ class MainActivity : Activity() {
      */
     override fun dispatchKeyEvent(e: KeyEvent): Boolean {
         if (!ready) return super.dispatchKeyEvent(e)
-        if (wallPreview != null) { // a picked wallpaper shown whole: any button brings the panel back
+        if (wallPreview != null) {
             if (e.action == KeyEvent.ACTION_UP) endWallPreview()
             return true
         }
-        val confirm = e.keyCode == KeyEvent.KEYCODE_DPAD_CENTER || e.keyCode == KeyEvent.KEYCODE_ENTER ||
-            e.keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER
+        val confirm = e.keyCode == KeyEvent.KEYCODE_DPAD_CENTER ||
+            e.keyCode == KeyEvent.KEYCODE_ENTER || e.keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER
         if (movingTop != null && topMoveKey(e, confirm)) return true
         if (confirm) {
             if (e.action == KeyEvent.ACTION_DOWN && e.repeatCount == 0) holdFired = false
@@ -3746,18 +3752,22 @@ class MainActivity : Activity() {
                 return true
             }
         }
-        // The settings panel is a vertical list: Left/Right step a row's value (its tag, see settingsRow) and
-        // never leak focus to the home screen behind it. The PIN boxes and the city search box use them themselves.
-        if (settingsScrim.visibility == View.VISIBLE && currentFocus !== pinBox && currentFocus !is EditText &&
+        // Only a genuinely adjustable settings row consumes left/right. The permanent
+        // rail must remain navigable while the inline Settings page is open.
+        if (settingsScrim.visibility == View.VISIBLE && currentFocus !== pinBox &&
+            currentFocus !is EditText &&
             (e.keyCode == KeyEvent.KEYCODE_DPAD_LEFT || e.keyCode == KeyEvent.KEYCODE_DPAD_RIGHT)
         ) {
             @Suppress("UNCHECKED_CAST")
-            if (e.action == KeyEvent.ACTION_DOWN) (currentFocus?.tag as? (Int) -> Unit)?.invoke(if (e.keyCode == KeyEvent.KEYCODE_DPAD_LEFT) -1 else 1)
-            return true
+            val step = currentFocus?.tag as? (Int) -> Unit
+            if (step != null) {
+                if (e.action == KeyEvent.ACTION_DOWN)
+                    step(if (e.keyCode == KeyEvent.KEYCODE_DPAD_LEFT) -1 else 1)
+                return true
+            }
         }
-        if (e.action == KeyEvent.ACTION_DOWN && settingsScrim.visibility != View.VISIBLE && allApps.visibility != View.VISIBLE) {
-            if (::vDesign.isInitialized && vDesign.handleDpad(currentFocus, e.keyCode)) return true
-        }
+        if (e.action == KeyEvent.ACTION_DOWN && ::vDesign.isInitialized &&
+            vDesign.handleDpad(currentFocus, e.keyCode)) return true
         return super.dispatchKeyEvent(e)
     }
 
@@ -4551,34 +4561,38 @@ class MainActivity : Activity() {
     private fun focusKey(v: View?): String? = v?.tag as? String
 
     /** The tile or card that [key] names, with the cards built up to it; null when it left the rows (uninstalled, hidden, off the list). */
+    /** Show All Apps in the shell's right pane, without hiding the left navigation rail. */
     private fun openAllApps() {
         allAppsGrid.removeAllViews()
-        val gap = dp(10)
-        val width = (resources.displayMetrics.widthPixels - dp(96) - gap * 5) / 6
+        val gap = dp(12)
+        val paneWidth = (resources.displayMetrics.widthPixels -
+            (resources.displayMetrics.widthPixels * 104 / 1536) - dp(82)).coerceAtLeast(dp(560))
+        val columns = if (paneWidth >= dp(960)) 6 else 4
+        allAppsGrid.columnCount = columns
+        val width = (paneWidth - gap * columns) / columns
         for (a in sortedApps()) {
-            val t = appTile(a) // holding OK here pins it to the row (see onHold)
-            allAppsGrid.addView(t, GridLayout.LayoutParams().apply {
+            val tile = appTile(a)
+            allAppsGrid.addView(tile, GridLayout.LayoutParams().apply {
                 this.width = width
-                height = dp(76)
+                height = dp(106)
                 setMargins(0, 0, gap, gap)
             })
         }
         allApps.visibility = View.VISIBLE
-        if (::vDesign.isInitialized) vDesign.visibility = View.INVISIBLE
-        // Glass shows the wallpaper here, so the home screen under the grid has to go; without glass the opaque
-        // background covers it anyway.
-        findViewById<View>(R.id.content).visibility = if (::vDesign.isInitialized || glassActive()) View.INVISIBLE else View.VISIBLE
-        homeFocusable(false)
-        allAppsGrid.getChildAt(0)?.requestFocus()
+        allApps.setBackgroundColor(0xFF121317.toInt())
+        allApps.setPadding(dp(18), dp(13), dp(18), dp(16))
+        findViewById<View>(R.id.content).visibility = View.INVISIBLE
+        if (::vDesign.isInitialized) {
+            vDesign.showSection(VDesignHomeView.ALL_APPS, allApps)
+        }
     }
 
     private fun closeAllApps() {
         allApps.visibility = View.GONE
-        findViewById<View>(R.id.content).visibility = if (::vDesign.isInitialized) View.INVISIBLE else View.VISIBLE
-        if (::vDesign.isInitialized) vDesign.visibility = View.VISIBLE
-        homeFocusable(true)
-        if (::vDesign.isInitialized) vDesign.restoreFocus()
-        else findViewById<View>(R.id.allAppsButton).requestFocus() // back where it was opened from
+        if (::vDesign.isInitialized) {
+            vDesign.showSection(VDesignHomeView.OVERVIEW)
+            vDesign.focusOverview()
+        }
     }
 
     // ---------- screensaver ----------
