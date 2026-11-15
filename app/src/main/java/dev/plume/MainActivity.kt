@@ -3606,8 +3606,12 @@ class MainActivity : Activity() {
         val restText = if (dark) 0.65f else 1f
         img.alpha = restLogo
         text?.alpha = restText
-        style(col, dp(8), card = true) { focused ->
-            text?.setActive(focused) // a name too wide for the tile scrolls while it is selected
+        style(col, dp(12), card = true, lift = 1.015f, frost = false, expressive = label != null) { focused ->
+            text?.setActive(focused) // a name too wide for the tile scrolls while selected
+            if (label != null) {
+                text?.setTextColor(if (focused) 0xFF121317.toInt() else 0xFFF7F7F8.toInt())
+                if (mono) img.setColorFilter(if (focused) 0xFF121317.toInt() else tint ?: 0xFFF7F7F8.toInt())
+            }
             if (!dark) return@style
             img.animate().alpha(if (focused) 1f else restLogo).setDuration(160).start()
             text?.animate()?.alpha(if (focused) 1f else restText)?.setDuration(160)?.start()
@@ -4094,12 +4098,13 @@ class MainActivity : Activity() {
 
     /** Hold OK on a Continue Watching card: hide the show, or open its app rather than the episode. */
     private fun popupMenu(anchor: View, below: Boolean = false, rows: (dismiss: () -> Unit) -> List<View>) {
-        val list: LinearLayout = if (glassActive()) glassSurface(dp(14).toFloat()) else LinearLayout(this).apply {
-            background = if (dark) rimCard(dp(12), false, solid = true) else GradientDrawable().apply {
+        val list = LinearLayout(this).apply {
+            background = GradientDrawable().apply {
                 cornerRadius = dp(12).toFloat()
-                setColor(0xFFF7F8FA.toInt())
+                setColor(0xFF202126.toInt())
+                setStroke(dp(1), 0xFF45464D.toInt())
             }
-            elevation = if (dark) 0f else dp(8).toFloat()
+            elevation = 0f
         }
         list.orientation = LinearLayout.VERTICAL
         list.setPadding(dp(6), dp(6), dp(6), dp(6))
@@ -4116,7 +4121,7 @@ class MainActivity : Activity() {
         menu.width = list.measuredWidth.coerceIn(anchor.width, maxOf(anchor.width, dp(360)))
         list.measure(View.MeasureSpec.makeMeasureSpec(menu.width, View.MeasureSpec.EXACTLY), View.MeasureSpec.UNSPECIFIED)
         val at = IntArray(2).also { anchor.getLocationInWindow(it) }
-        menu.elevation = if (dark) 0f else dp(8).toFloat()
+        menu.elevation = 0f
         // Over the anchor's left edge, but kept inside the row's 48 dp side margin near the right of the screen.
         val x = minOf(at[0], resources.displayMetrics.widthPixels - dp(48) - menu.width)
         val y = if (below) at[1] + anchor.height + dp(8) else maxOf(dp(8), at[1] - list.measuredHeight - dp(8))
@@ -5591,7 +5596,8 @@ class MainActivity : Activity() {
      * top sheen; dark mode brightens the glass gradient instead (a white sheen would haze it grey).
      * Only transform/alpha/colour change, so it stays on the GPU and costs no re-layout.
      */
-    private fun style(v: View, radius: Int, card: Boolean, lift: Float = 1.08f, frost: Boolean = true, onFocus: ((Boolean) -> Unit)? = null) {
+    private fun style(v: View, radius: Int, card: Boolean, lift: Float = 1.08f,
+        frost: Boolean = true, expressive: Boolean = false, onFocus: ((Boolean) -> Unit)? = null) {
         fun gradient(colors: IntArray) = GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, colors).apply {
             cornerRadius = radius.toFloat()
             setDither(true)
@@ -5600,10 +5606,14 @@ class MainActivity : Activity() {
         val sheen = Baked("sheen $radius", gradient(sheenColors)).apply { alpha = 0 }
         val rest = if (card) Baked("card $radius ${cardRest.contentToString()}", gradient(cardRest)) else null
         val lit = if (card) Baked("card $radius ${cardLit.contentToString()}", gradient(cardLit)) else null
-        val frosted = frost && card && glassActive()
+        val frosted = !expressive && frost && card && glassActive()
         if (frosted) glass.add(v, radius.toFloat())
-        v.background = if (dark && card) rimCard(radius, false, frosted = frosted) else rest ?: GradientDrawable().apply { cornerRadius = radius.toFloat() }
-        if (!dark) v.foreground = sheen
+        v.background = if (expressive) GradientDrawable().apply {
+            cornerRadius = radius.toFloat()
+            setColor(0xFF24252A.toInt())
+            setStroke(dp(1), 0xFF383940.toInt())
+        } else if (dark && card) rimCard(radius, false, frosted = frosted) else rest ?: GradientDrawable().apply { cornerRadius = radius.toFloat() }
+        if (!dark && !expressive) v.foreground = sheen
         v.clipToOutline = true
         v.elevation = if (card) dp(2).toFloat() else 0f
         v.isFocusable = true
@@ -5611,7 +5621,12 @@ class MainActivity : Activity() {
         v.setOnLongClickListener { if (!holdFired) fireHold(v); true }
         v.setOnFocusChangeListener { _, focused ->
             sheen.alpha = if (focused) 255 else 0
-            if (card && dark) v.background = rimCard(radius, focused, frosted = frosted)
+            if (expressive) v.background = GradientDrawable().apply {
+                cornerRadius = radius.toFloat()
+                setColor(if (focused) 0xFFE7FF80.toInt() else 0xFF24252A.toInt())
+                if (!focused) setStroke(dp(1), 0xFF383940.toInt())
+            }
+            else if (card && dark) v.background = rimCard(radius, focused, frosted = frosted)
             else if (card) v.background = if (focused) lit else rest
             if (frosted) glass.kick(260) // the lift moves the tile: its blur follows
             // The selected tile rises out of the row's line. Its growth stops short of the gap, so at the
@@ -5619,7 +5634,7 @@ class MainActivity : Activity() {
             val grow = if (focused && v.width > 0) minOf(lift, 1 + dp(GRID_GAP) * 1.2f / v.width) else 1f
             v.animate()
                 .scaleX(grow).scaleY(grow)
-                .translationY(if (focused) -maxOf(v.height * 0.06f, dp(4).toFloat()) else 0f)
+                .translationY(if (focused && !expressive) -maxOf(v.height * 0.06f, dp(4).toFloat()) else 0f)
                 .translationZ(if (focused) dp(14).toFloat() else 0f)
                 .setDuration(160).setInterpolator(DECELERATE).start()
             onFocus?.invoke(focused)
