@@ -48,9 +48,13 @@ This document records what was actually verified during repository maintenance. 
 
 **Review and dependency checks:** Up-to-date `README.md`, `CONTRIBUTING.md`, `CHANGELOG.md` and `docs/RELEASING.md` were updated first, and the valid source/package/CI contracts were consolidated into `docs/architecture/ACTIVE_INTEGRATIONS.md`. We intentionally did not remove the old site's `home-dark.jpg`/`home-light.jpg`, site code, ten downloadable wallpapers, gallery paintings, live VDesign-named UI classes, or `VISUAL_REVIEW_2026-11.md`. The latest user screenshot is still **not** in Git, and a device screenshot comparison is **not** asserted. **Source-level deletion review: pass; CI pending until PR.**
 
-## M04 — unused code and resources
+## M04 — unused code and resources (review)
 
-**Status:** pending.
+Removed `app/src/main/java/dev/plume/HomeFeedStatus.kt` plus these 16 unreferenced drawables: `ic_auto`, `ic_clock`, `ic_launcher`, `ic_lock`, `ic_moon`, `ic_profile`, `ic_remote`, `ic_screensaver`, `ic_shows`, `ic_sun`, `ic_update`, `ic_wallpaper`, `ms_video_file`, `ms_video_file_fill`, `vdesign_calendar`, `vdesign_sparkle`. **17 files, 11,472 bytes.**
+
+**Reference review:** Checked all 43 Plume production Kotlin sources and all 38 unit/instrumentation test sources in the original audit, plus the 10 Mullvad TV Kotlin files and relevant main layout, manifest and string/XML resources: no external references to `HomeFeedStatus`/`HomeFeedEmptyState` or the listed drawable resource names. `MainActivity.kt` dynamically resolves *used* Material Symbol `*_fill` counterparts via `resources.getIdentifier()`: these were **not** deleted. The unused `ms_video_file` icon and its fill twin were assessed together. `ic_launcher_advanced.webp` remains the manifest icon; `banner.xml` remains the TV banner.
+
+**Review:** Removed only a self-contained dead helper and resource-only candidates, with no modifications to active UI, startup, VPN service or migration logic. **Source-level pass; Android resource-link/compilation and R8 review pending final PR CI.**
 
 ## M05 — optional legacy decisions
 
