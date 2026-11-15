@@ -599,7 +599,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    override fun onRequestPermissionsResult(code: Int, perms: Array<out String>, results: IntArray) {
+    override fun onRequestPermissionsResult(code: Int, perms: Array<String>, results: IntArray) {
         if (code != MEDIA_REQUEST) return refreshWatchNext()
         if (results.firstOrNull() == PackageManager.PERMISSION_GRANTED) afterPhotoAccess?.invoke()
         else toast(getString(R.string.photos_permission), long = true)
