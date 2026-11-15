@@ -59,10 +59,13 @@ while OK on an app icon launches the specific installed application.
   regression verification.
 - **App previews:** source-backed Nuvio cards and SmartTube/Spotify entries
   where the respective media source really exposes them. No fabricated cards.
-- **Mullvad:** original backend, account/repository and VpnService remain
-  untouched. **Its rich TV management UI is not yet embedded in this PR**;
-  the in-workspace VPN entry is transitional and opens the existing Activity.
-  This is an outstanding requirement, not a finished integration.
+- **Mullvad:** the original backend, account/repositories and VpnService
+  remain authoritative. All eight original TV management sections are now
+  hosted directly in the workspace's right pane through the native
+  `MullvadEmbeddedPanel` consolidated from retired PR #47. The old separate
+  VPN Activity remains only for system/notification compatibility intents.
+  This integration has **not** passed its complete combined Debug/Release-R8
+  and physical Shield validation yet; do not merge the draft prematurely.
 
 The active technical and visual requirements are the
 [Workspace Design Contract](docs/v-design/DESIGN_CONTRACT.md).
