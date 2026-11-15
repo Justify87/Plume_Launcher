@@ -350,7 +350,10 @@ class MainActivity : Activity() {
     private lateinit var wifi: ImageView
     private lateinit var glass: GlassLayer // paints the blurred wallpaper under glass tiles
     private lateinit var videoWallpaper: VideoWallpaper
-    private lateinit var vDesign: VDesignHomeView // sole Home renderer
+    private lateinit var vDesign: VDesignHomeView // permanent icon rail + one content viewport
+    private var settingsPreviewRendering = false
+    private var settingsPanePrepared = false
+    private var appsPaneSignature: String? = null
     private val vDesignDayTick = object : Runnable {
         override fun run() {
             if (!ready || !resumed || isDestroyed) return
@@ -3761,7 +3764,7 @@ class MainActivity : Activity() {
         return super.dispatchKeyEvent(e)
     }
 
-    /** Mount the sole V-Design Home view above the wallpaper and below All Apps/settings overlays. */
+    /** Create one permanent launcher shell, then move the actual XML content into it. */
     private fun setupVDesign() {
         val root = findViewById<FrameLayout>(R.id.root)
         vDesign = VDesignHomeView(this)
@@ -3772,63 +3775,169 @@ class MainActivity : Activity() {
         )
         root.addView(vDesign, root.indexOfChild(allApps),
             FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT))
+        // The views are not overlay windows: they become children of the content viewport.
+        vDesign.installWorkspacePane(VDesignHomeView.ALL_APPS, allApps)
+        vDesign.installWorkspacePane(VDesignHomeView.SETTINGS, settingsScrim)
         findViewById<View>(R.id.content).visibility = View.INVISIBLE
         refreshVDesignNavigation()
         vDesign.bindFeed(nuvioDashboardFeed)
-        vDesign.post {
-            if (ready && settingsScrim.visibility != View.VISIBLE && allApps.visibility != View.VISIBLE)
-                vDesign.restoreFocus()
-        }
+        vDesign.post { if (ready) vDesign.restoreFocus() }
     }
 
-    /** Every entry must resolve to an installed app or a real local Activity. */
-    /** Existing user-installed app icons remain visible after removing the Classic app row. */
+    /** App glyphs are never reconstructed from anonymous tinted vector substitutes. */
     private fun vDesignAppIcon(app: App): Drawable =
         AppPictures.read(this, app.pkg, banner = false) ?: customIcon(app.pkg) ?: app.icon
 
     private fun refreshVDesignNavigation() {
         if (!::vDesign.isInitialized) return
         val installed = sortedApps()
-        val nuvio = installed.firstOrNull { AndroidTvMediaSource.isNuvioPackage(it.pkg) }
+        val nuvioVariants = installed.filter { AndroidTvMediaSource.isNuvioPackage(it.pkg) }
+        val owners = (nuvioProviderFeeds.inProgress + nuvioProviderFeeds.available +
+            nuvioProviderFeeds.upcoming).map { it.program.item.sourcePackage }.distinct()
+        val matchingOwner = owners.singleOrNull()
+        val selectedNuvio = NuvioInstallationPolicy.preferredPackage(
+            nuvioVariants.map { it.pkg }, matchingOwner)
+        val nuvio = nuvioVariants.firstOrNull { it.pkg == selectedNuvio }
+            ?: nuvioVariants.firstOrNull()
         val smartTube = installed.firstOrNull { YouTubeSubscriptions.isSmartTube(it.pkg) }
-        val spotify = installed.firstOrNull { it.pkg == "com.spotify.tv.android" || it.pkg == "com.spotify.music" }
+        val spotify = installed.firstOrNull {
+            it.pkg == "com.spotify.tv.android" || it.pkg == "com.spotify.music"
+        }
         val vpn = ComponentName(packageName, "net.mullvad.mullvadvpn.app.VpnActivity")
         val vpnAvailable = try {
             packageManager.getActivityInfo(vpn, 0)
             true
         } catch (_: PackageManager.NameNotFoundException) { false }
+
         val items = buildList {
-            add(VDesignHomeView.Navigation(VDesignHomeView.OVERVIEW, "Übersicht", getDrawable(R.drawable.ic_home)))
-            nuvio?.let { add(VDesignHomeView.Navigation(VDesignHomeView.NUVIO, "Nuvio TV", vDesignAppIcon(it))) }
-            smartTube?.let { add(VDesignHomeView.Navigation(VDesignHomeView.SMARTTUBE, "SmartTube", vDesignAppIcon(it))) }
-            spotify?.let { add(VDesignHomeView.Navigation(VDesignHomeView.SPOTIFY, "Spotify", vDesignAppIcon(it))) }
-            add(VDesignHomeView.Navigation(VDesignHomeView.ALL_APPS, "Alle Apps", getDrawable(R.drawable.ic_apps)))
-            if (vpnAvailable) add(VDesignHomeView.Navigation(VDesignHomeView.VPN, "Mullvad VPN", getDrawable(R.drawable.ic_vpn)))
-            add(VDesignHomeView.Navigation(VDesignHomeView.SETTINGS, "Einstellungen", getDrawable(R.drawable.ic_settings)))
+            add(VDesignHomeView.Navigation(VDesignHomeView.OVERVIEW, "Übersicht",
+                getDrawable(R.drawable.ic_home)))
+            nuvio?.let { add(VDesignHomeView.Navigation(
+                VDesignHomeView.NUVIO, "Nuvio TV", vDesignAppIcon(it), appIcon = true)) }
+            smartTube?.let { add(VDesignHomeView.Navigation(
+                VDesignHomeView.SMARTTUBE, "SmartTube", vDesignAppIcon(it), appIcon = true)) }
+            spotify?.let { add(VDesignHomeView.Navigation(
+                VDesignHomeView.SPOTIFY, "Spotify", vDesignAppIcon(it), appIcon = true)) }
+            add(VDesignHomeView.Navigation(VDesignHomeView.ALL_APPS, "Alle Apps",
+                getDrawable(R.drawable.ic_apps)))
+            if (vpnAvailable) add(VDesignHomeView.Navigation(VDesignHomeView.VPN, "Mullvad VPN",
+                getDrawable(R.drawable.ic_vpn)))
+            add(VDesignHomeView.Navigation(VDesignHomeView.SETTINGS, "Einstellungen",
+                getDrawable(R.drawable.ic_settings)))
         }
-        vDesign.bindNavigation(items, onOpen = { key ->
-            when (key) {
-                VDesignHomeView.OVERVIEW -> vDesign.focusOverview()
-                VDesignHomeView.NUVIO -> nuvio?.let { launch(it) }
-                VDesignHomeView.SMARTTUBE -> smartTube?.let { launch(it) }
-                VDesignHomeView.SPOTIFY -> spotify?.let { launch(it) }
-                VDesignHomeView.ALL_APPS -> openAllApps()
-                VDesignHomeView.SETTINGS -> openLauncherSettings()
-                VDesignHomeView.VPN -> {
-                    returnFocusFromVpn = true
-                    try { startActivity(Intent().setComponent(vpn)) }
-                    catch (_: ActivityNotFoundException) {
-                        returnFocusFromVpn = false
-                        toast("VPN nicht verfügbar")
-                    }
+        vDesign.bindNavigation(items,
+            showFullColorAppIcons = prefs.getBoolean("sidebar_color_icons", true),
+            onPreview = { key ->
+                when (key) {
+                    VDesignHomeView.ALL_APPS -> renderAllAppsPane()
+                    VDesignHomeView.SETTINGS -> previewLauncherSettings()
+                    VDesignHomeView.NUVIO -> showAppPreview("Nuvio TV", key)
+                    VDesignHomeView.SMARTTUBE -> showAppPreview("SmartTube", key)
+                    VDesignHomeView.SPOTIFY -> showAppPreview("Spotify", key)
+                    VDesignHomeView.VPN -> showVpnPreview()
                 }
-            }
-        }, onAllApps = {
-            if (!holdFired) { holdFired = true; openAllApps() }
-        }, onSystemActions = { anchor ->
-            if (!holdFired) { holdFired = true; showVDesignSystemActions(anchor) }
-        })
+            },
+            onOpen = { key ->
+                when (key) {
+                    VDesignHomeView.OVERVIEW, VDesignHomeView.ALL_APPS,
+                    VDesignHomeView.SETTINGS, VDesignHomeView.VPN ->
+                        vDesign.focusWorkspaceContent()
+                    VDesignHomeView.NUVIO -> {
+                        if (selectedNuvio != null) {
+                            nuvioVariants.firstOrNull { it.pkg == selectedNuvio }?.let { launch(it) }
+                        } else if (nuvioVariants.size > 1) {
+                            android.app.AlertDialog.Builder(this)
+                                .setTitle("Welche Nuvio-Installation öffnen?")
+                                .setItems(nuvioVariants.map { it.label + " (" + it.pkg + ")" }
+                                    .toTypedArray()) { _, index -> launch(nuvioVariants[index]) }
+                                .setNegativeButton(android.R.string.cancel, null).show()
+                        } else nuvioVariants.singleOrNull()?.let { launch(it) }
+                    }
+                    VDesignHomeView.SMARTTUBE -> smartTube?.let { launch(it) }
+                    VDesignHomeView.SPOTIFY -> spotify?.let { launch(it) }
+                }
+            },
+            onAllApps = {
+                if (!holdFired) { holdFired = true; openAllApps() }
+            },
+            onSystemActions = { anchor ->
+                if (!holdFired) { holdFired = true; showVDesignSystemActions(anchor) }
+            })
     }
+
+    /** The right pane is populated on focus. Nothing launches until OK. */
+    private fun renderAllAppsPane(force: Boolean = false) {
+        val visibleApps = sortedApps()
+        val signature = visibleApps.joinToString("|") { it.pkg + ":" + it.label } +
+            ":" + iconStyle()
+        if (!force && signature == appsPaneSignature) return
+        appsPaneSignature = signature
+        val remembered = if (vDesign.isContentFocused(currentFocus))
+            currentFocus?.tag as? String else null
+        allAppsGrid.removeAllViews()
+        allAppsGrid.columnCount = 5
+        val gap = dp(11)
+        for (app in visibleApps) {
+            val tile = WorkspaceAppTileView(this, app.pkg, app.label,
+                vDesignAppIcon(app), originalColors = colourIcons(),
+                launch = { launch(app) }, longPress = { onHold(it) })
+            allAppsGrid.addView(tile, GridLayout.LayoutParams().apply {
+                width = dp(145)
+                height = dp(135)
+                setMargins(0, 0, gap, gap)
+            })
+        }
+        findViewById<TextView>(R.id.allAppsTitle).text =
+            getString(R.string.all_apps) + "  ·  " + visibleApps.size
+        if (remembered != null) {
+            (0 until allAppsGrid.childCount).map { allAppsGrid.getChildAt(it) }
+                .firstOrNull { it.tag == remembered }?.requestFocus()
+        }
+    }
+
+    private fun previewLauncherSettings() {
+        if (settingsPanePrepared) return
+        settingsPanePrepared = true
+        settingsPreviewRendering = true
+        try {
+            showPanel()
+            renderSettings(0)
+        } finally {
+            settingsPreviewRendering = false
+        }
+    }
+
+    /** Provider-backed previews are supplied by the current feed, not mock sample cards. */
+    private fun showAppPreview(name: String, key: String) {
+        // A dedicated media pane is installed once in the same right viewport.
+        val current = workspaceAppPreviews.getOrPut(key) {
+            WorkspaceMediaPane(this, name,
+                loadArtwork = { view, uri -> loadPoster(view, uri) },
+                onSelect = { item -> openVDesignMedia(item) }).also {
+                vDesign.installWorkspacePane(key, it)
+            }
+        }
+        if (key == VDesignHomeView.NUVIO) current.bind(nuvioDashboardFeed)
+        else current.bind(NuvioDashboardFeed.EMPTY)
+    }
+
+    private val workspaceAppPreviews = mutableMapOf<String, WorkspaceMediaPane>()
+
+    private fun showVpnPreview() {
+        if (workspaceVpnPane != null) return
+        workspaceVpnPane = WorkspaceVpnEntryPane(this) {
+            returnFocusFromVpn = true
+            try {
+                startActivity(Intent().setClassName(packageName,
+                    "net.mullvad.mullvadvpn.app.VpnActivity"))
+            } catch (_: ActivityNotFoundException) {
+                returnFocusFromVpn = false
+                toast("Mullvad VPN nicht verfügbar")
+            }
+        }.also { vDesign.installWorkspacePane(VDesignHomeView.VPN, it) }
+    }
+
+    private var workspaceVpnPane: WorkspaceVpnEntryPane? = null
 
     /** Long OK on Settings retains the old invisible top bar's system entry points. */
     private fun showVDesignSystemActions(anchor: View) {
