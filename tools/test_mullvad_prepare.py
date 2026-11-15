@@ -25,6 +25,13 @@ spec.loader.exec_module(prepare)
 
 class PreparationTests(unittest.TestCase):
 
+    def test_embedded_launcher_uses_core_activity_without_unverified_ktx_metadata(self):
+        standalone = (prepare.ROOT / "app/build.gradle.kts").read_text()
+        staged = prepare.plume_library_build()
+        for gradle in (standalone, staged):
+            self.assertIn("androidx.activity:activity:1.10.1", gradle)
+            self.assertNotIn("androidx.activity:activity-ktx", gradle)
+
     def test_embedded_mullvad_page_is_staged_and_keeps_original_engine(self):
         embedded = (prepare.ROOT / "tools/mullvad/MullvadEmbeddedPanel.kt").read_text()
         host = (prepare.ROOT / "app/src/main/java/dev/plume/MainActivity.kt").read_text()
