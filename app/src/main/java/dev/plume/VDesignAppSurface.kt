@@ -2,63 +2,84 @@ package dev.plume
 
 import android.animation.ValueAnimator
 import android.content.Context
-import android.graphics.Color
+import android.graphics.Outline
 import android.graphics.Typeface
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
+import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
-import android.widget.FrameLayout
+import android.view.ViewGroup
+import android.view.ViewOutlineProvider
 import android.widget.GridLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
-import android.util.TypedValue
 
 /**
- * A real app preview inside the launcher shell, never an app-specific fake home screen.
- * Shows only published media from the existing Nuvio/Android TV/SmartTube feeds.
+ * Small self-contained right-hand preview for an installed source app.
+ * Artwork, text and actions come exclusively from currently published feeds.
+ * No second app-specific home page, invented recommendation or background poller.
  */
 internal class VDesignAppSurface(
     context: Context,
-    private val title: String,
+    title: String,
     icon: Drawable?,
     media: List<MediaItem>,
     nuvio: List<NuvioMediaItem>,
-    private val artwork: (ImageView, String?) -> Unit,
-    private val launchApp: () -> Unit,
-    private val openMedia: (MediaItem) -> Unit,
-    private val openNuvio: (NuvioMediaItem) -> Unit,
+    artwork: (ImageView, String?) -> Unit,
+    launchApp: () -> Unit,
+    openMedia: (MediaItem) -> Unit,
+    openNuvio: (NuvioMediaItem) -> Unit,
 ) : ScrollView(context) {
+    private companion object {
+        const val SURFACE = 0xFF22242A
+        const val INK = 0xFFF7F7F8.toInt()
+        const val SOFT = 0xFFB9BBC2.toInt()
+        const val FOCUS = 0xFFE7FF80.toInt()
+        const val DARK = 0xFF111217.toInt()
+        const val MAX_CARDS = 12
+    }
     private val density = resources.displayMetrics.density
-    private fun dp(n: Int) = (n * density).toInt()
-    private fun shape(color: Int, r: Int = 18) = GradientDrawable().apply {
+    private fun dp(v: Int) = (density * v).toInt().coerceAtLeast(1)
+    private fun surface(color: Int, radius: Int = 14) = GradientDrawable().apply {
         setColor(color)
-        cornerRadius = dp(r).toFloat()
+        cornerRadius = dp(radius).toFloat()
     }
-    private fun text(value: String, sp: Float, bold: Boolean = false) = TextView(context).apply {
-        this.text = value
-        setTextColor(0xFFF7F7F8.toInt())
-        setTextSize(TypedValue.COMPLEX_UNIT_SP, sp)
-        typeface = Typeface.create("sans-serif", if (bold) Typeface.BOLD else Typeface.NORMAL)
-        gravity = Gravity.CENTER_VERTICAL
-        includeFontPadding = false
-        maxLines = 2
-        ellipsize = android.text.TextUtils.TruncateAt.END
-    }
-    private fun focus(v: View) {
-        v.isFocusable = true
-        v.isClickable = true
-        v.setOnFocusChangeListener { view, focused ->
-            view.background = shape(if (focused) 0xFFE7FF80.toInt() else 0xFF22242A.toInt())
-            view.animate().cancel()
+    private fun label(value: String, sp: Float, strong: Boolean = false): TextView =
+        TextView(context).apply {
+            text = value
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, sp)
+            setTextColor(INK)
+            typeface = Typeface.create("sans-serif",
+                if (strong) Typeface.BOLD else Typeface.NORMAL)
+            gravity = Gravity.CENTER_VERTICAL
+            includeFontPadding = false
+            maxLines = 2
+            ellipsize = android.text.TextUtils.TruncateAt.END
+        }
+
+    private fun interactive(view: View, headline: TextView, detail: TextView? = null) {
+        view.isFocusable = true
+        view.isClickable = true
+        view.setOnFocusChangeListener { focusedView, focused ->
+            focusedView.background = surface(if (focused) FOCUS else SURFACE)
+            headline.setTextColor(if (focused) DARK else INK)
+            detail?.setTextColor(if (focused) DARK else SOFT)
+            focusedView.animate().cancel()
             if (ValueAnimator.areAnimatorsEnabled()) {
-                view.animate().scaleX(if (focused) 1.012f else 1f)
-                    .scaleY(if (focused) 1.012f else 1f).setDuration(145).start()
-            } else { view.scaleX = 1f; view.scaleY = 1f }
+                focusedView.animate()
+                    .scaleX(if (focused) 1.012f else 1f)
+                    .scaleY(if (focused) 1.012f else 1f)
+                    .setDuration(145L).start()
+            } else {
+                focusedView.scaleX = 1f
+                focusedView.scaleY = 1f
+            }
         }
     }
+
     init {
         isFillViewport = true
         isVerticalScrollBarEnabled = false
@@ -66,92 +87,100 @@ internal class VDesignAppSurface(
         setBackgroundColor(0xFF121317.toInt())
         val column = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(18), dp(5), dp(14), dp(26))
             clipChildren = false
+            setPadding(dp(18), dp(8), dp(18), dp(22))
         }
-        addView(column)
-        val header = LinearLayout(context).apply {
-            gravity = Gravity.CENTER_VERTICAL
+        addView(column, LayoutParams(-1, -2))
+        val heading = LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
-            setPadding(0, 0, 0, dp(20))
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, 0, 0, dp(18))
         }
-        icon?.let {
-            header.addView(ImageView(context).apply {
-                setImageDrawable(it.constantState?.newDrawable(resources)?.mutate() ?: it)
+        icon?.let { drawable ->
+            heading.addView(ImageView(context).apply {
+                setImageDrawable(drawable.constantState?.newDrawable(resources)?.mutate() ?: drawable)
                 scaleType = ImageView.ScaleType.FIT_CENTER
-            }, LinearLayout.LayoutParams(dp(56), dp(56)).apply { marginEnd = dp(18) })
+            }, LinearLayout.LayoutParams(dp(54), dp(54)).apply { marginEnd = dp(16) })
         }
-        header.addView(text(title, 29f, true), LinearLayout.LayoutParams(0, -2, 1f))
-        val launch = text("App öffnen  ›", 17f, true).apply {
+        heading.addView(label(title, 28f, true), LinearLayout.LayoutParams(0, -2, 1f))
+        val openLabel = label("App öffnen  ›", 16f, true).apply {
             gravity = Gravity.CENTER
-            setPadding(dp(17), dp(13), dp(17), dp(13))
-            background = shape(0xFF25272C.toInt())
-            setOnClickListener { launchApp() }
+            setPadding(dp(16), dp(11), dp(16), dp(11))
         }
-        focus(launch)
-        launch.setOnFocusChangeListener { view, selected ->
-            view.background = shape(if (selected) 0xFFE7FF80.toInt() else 0xFF25272C.toInt())
-            launch.setTextColor(if (selected) 0xFF111217.toInt() else 0xFFF7F7F8.toInt())
-        }
-        header.addView(launch)
-        column.addView(header)
+        interactive(openLabel, openLabel)
+        openLabel.setOnClickListener { launchApp() }
+        heading.addView(openLabel)
+        column.addView(heading)
+
         if (media.isEmpty() && nuvio.isEmpty()) {
-            column.addView(text("Diese App veröffentlicht derzeit keine Vorschaukacheln. Mit OK kannst du sie direkt öffnen.", 19f).apply {
-                setTextColor(0xFFB9BBC2.toInt())
-                setPadding(0, dp(24), 0, 0)
+            column.addView(label(
+                "Diese App veröffentlicht derzeit keine Vorschaukacheln. Mit OK öffnest du die App direkt.",
+                18f).apply {
+                setTextColor(SOFT)
+                setPadding(0, dp(18), 0, 0)
             })
         } else {
-        val grid = GridLayout(context).apply {
-            columnCount = 4
-            useDefaultMargins = false
-            clipChildren = false
-            clipToPadding = false
-        }
-        column.addView(grid)
-        val entries = mutableListOf<Triple<String, String?, Pair<String?, () -> Unit>>>()
-        for (item in nuvio.take(16)) {
-            entries += Triple(item.title, VDesignCardText.episode(item),
-                VDesignCardText.artwork(item) to { openNuvio(item) })
-        }
-        for (item in media.take(16 - entries.size)) {
-            entries += Triple(item.title, item.subtitle, item.imageUri to { openMedia(item) })
-        }
-        entries.forEachIndexed { index, (name, subtitle, image) ->
-            val card = LinearLayout(context).apply {
-                orientation = LinearLayout.VERTICAL
-                setPadding(dp(8), dp(8), dp(8), dp(10))
+            val grid = GridLayout(context).apply {
+                columnCount = 4
+                clipToPadding = false
                 clipChildren = false
-                background = shape(0xFF22242A.toInt())
-                contentDescription = listOfNotNull(name, subtitle).joinToString(", ")
             }
-            focus(card)
-            card.setOnClickListener { image.second() }
-            val poster = ImageView(context).apply {
-                scaleType = ImageView.ScaleType.CENTER_CROP
-                background = shape(0xFF34363B.toInt(), 12)
-                clipToOutline = true
-                outlineProvider = object : android.view.ViewOutlineProvider() {
-                    override fun getOutline(view: View, outline: android.graphics.Outline) {
-                        outline.setRoundRect(0, 0, view.width, view.height, dp(12).toFloat())
-                    }
+            column.addView(grid)
+            data class Entry(val title: String, val subtitle: String?,
+                val uri: String?, val onOpen: () -> Unit)
+            val entries = mutableListOf<Entry>()
+            for (item in nuvio.take(MAX_CARDS)) {
+                entries += Entry(item.title, VDesignCardText.episode(item),
+                    VDesignCardText.artwork(item), { openNuvio(item) })
+            }
+            for (item in media.take(MAX_CARDS - entries.size)) {
+                entries += Entry(item.title, item.subtitle, item.imageUri,
+                    { openMedia(item) })
+            }
+            entries.forEachIndexed { index, entry ->
+                val tile = LinearLayout(context).apply {
+                    orientation = LinearLayout.VERTICAL
+                    setPadding(dp(8), dp(8), dp(8), dp(9))
+                    clipChildren = false
+                    background = surface(SURFACE)
+                    contentDescription = listOfNotNull(entry.title, entry.subtitle)
+                        .joinToString(", ")
                 }
-            }
-            card.addView(poster, LinearLayout.LayoutParams(-1, dp(137)))
-            image.first?.let { artwork(poster, it) }
-            card.addView(text(name, 17f, true).apply { setPadding(dp(3), dp(9), dp(3), 0) })
-            subtitle?.takeIf { it.isNotBlank() }?.let {
-                card.addView(text(it, 13f).apply {
-                    setTextColor(0xFFB9BBC2.toInt())
-                    setPadding(dp(3), dp(3), dp(3), 0)
+                val art = ImageView(context).apply {
+                    scaleType = ImageView.ScaleType.CENTER_CROP
+                    background = surface(0xFF34363B.toInt(), 11)
+                    outlineProvider = object : ViewOutlineProvider() {
+                        override fun getOutline(v: View, outline: Outline) {
+                            outline.setRoundRect(0, 0, v.width, v.height,
+                                dp(11).toFloat())
+                        }
+                    }
+                    clipToOutline = true
+                    importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+                }
+                tile.addView(art, LinearLayout.LayoutParams(-1, dp(137)))
+                entry.uri?.let { artwork(art, it) }
+                val headline = label(entry.title, 17f, true).apply {
+                    setPadding(dp(3), dp(8), dp(3), 0)
+                }
+                tile.addView(headline)
+                val detail = entry.subtitle?.takeIf { it.isNotBlank() }?.let {
+                    label(it, 13f).apply {
+                        setTextColor(SOFT)
+                        setPadding(dp(3), dp(3), dp(3), 0)
+                    }.also(tile::addView)
+                }
+                interactive(tile, headline, detail)
+                tile.setOnClickListener { entry.onOpen() }
+                grid.addView(tile, GridLayout.LayoutParams(
+                    GridLayout.spec(index / 4),
+                    GridLayout.spec(index % 4, 1f)
+                ).apply {
+                    width = 0
+                    height = dp(217)
+                    setMargins(dp(4), 0, dp(9), dp(12))
                 })
             }
-            grid.addView(card, GridLayout.LayoutParams(GridLayout.spec(index / 4),
-                GridLayout.spec(index % 4, 1f)).apply {
-                width = 0
-                height = dp(218)
-                setMargins(dp(5), 0, dp(9), dp(14))
-            })
-        }
         }
     }
 }
