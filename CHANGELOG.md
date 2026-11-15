@@ -9,12 +9,12 @@ Keep the most important six changes first and use one `- ` bullet per change.
 
 ## Unreleased
 
-- **Expressive TV redesign.** Replace the old V-Design home grid with the user's new 1536×864 reference composition.
-- **One-line upcoming shelf.** Show six upcoming items with date badges and spatial D-Pad navigation.
-- **Compact settings.** Refresh launcher settings and all Mullvad TV pages with dark matte cards, lime focus and subtle transitions.
-- **Accessible shortcuts.** Add visible All Apps and installed Spotify shortcuts to the icon sidebar.
-- **Flexible UI tooling.** Retire outdated Plume design restrictions; maintained UI dependencies are permitted after review.
-- **Preserve Mullvad behavior.** Keep original account, relay, DNS, split-tunneling and service integrations.
+- **Unified navigation.** Keep a compact icon rail visible while Home, app previews, All Apps, Settings and Mullvad pages change on the right as soon as you focus an icon.
+- **Correct Nuvio launch.** Prefer production Nuvio packages and let you select an installed variant explicitly instead of opening a differently signed debug login.
+- **Recognizable app icons.** Switch between full-color installed app icons and a monochrome sidebar; use one consistent set of built-in system symbols.
+- **More visible episode artwork.** Reduce the pale curved Hero panel to the left half, with smaller readable controls.
+- **Embedded Mullvad controls.** Use original Mullvad service, repositories and eight compact TV subpages inside the launcher without switching Activities in the combined build.
+- **Modern TV interactions.** Reuse genuine provider artwork, compact in-place Settings and All Apps, D-Pad focus states, coalesced poster loading and reduced-motion-safe property transitions.
 
 ## 0.1.0
 
