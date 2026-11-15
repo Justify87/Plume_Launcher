@@ -495,7 +495,7 @@ internal class VpnSettingsUi(
         setSingleLine(true)
         inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI
         setSelectAllOnFocus(true)
-        setPadding(dp(18), dp(12), dp(18), dp(12))
+        VpnTvStyle.field(this)
     }
 
     private fun column() = LinearLayout(activity).apply { orientation = LinearLayout.VERTICAL }
