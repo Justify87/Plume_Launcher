@@ -81,7 +81,7 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
         setBackgroundColor(0xFF121317.toInt())
         // The small icon rail has no permanent labels or decorative divider.
         titleProgress = heading("WEITERSCHAUEN", 131, 94, 23)
-        titleAvailable = heading("NEUE FOLGEN", 1132, 94, 23)
+        titleAvailable = heading("VERFÜGBARE FOLGEN", 1132, 94, 23, 285)
         titleUpcoming = heading("DEMNÄCHST", 133, 547, 23)
         mount(View(context).apply { setBackgroundColor(0xFF45464B.toInt()) },
             VDesignCanvas.Box(1104, 94, 1, 413))
@@ -175,7 +175,7 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
     private fun fontPixels(reference: Int): Float =
         reference * scale() * resources.configuration.fontScale.coerceIn(0.85f, 1.35f)
 
-    private fun heading(label: String, x: Int, y: Int, textPx: Int): TextView {
+    private fun heading(label: String, x: Int, y: Int, textPx: Int, textWidth: Int = 365): TextView {
         val text = TextView(context).apply {
             this.text = label
             setTextColor(Palette.INK)
@@ -187,7 +187,7 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
             isFocusable = false
             maxLines = 1
         }
-        mount(text, VDesignCanvas.Box(x, y, 365, 37))
+        mount(text, VDesignCanvas.Box(x, y, textWidth, 37))
         return text
     }
 
@@ -237,7 +237,7 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
         onMediaOpen = onSelect
     }
 
-    /** Reuse the 14 slots across provider refreshes and local-midnight invalidation. */
+    /** Reuse twelve reference slots across provider refreshes and local-midnight invalidation. */
     fun bindFeed(feed: NuvioDashboardFeed) {
         val focusedCard = cards().firstOrNull { it.isFocused }
         val focusedId = focusedCard?.media?.stableId
@@ -315,6 +315,7 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
             anchored.removeAll { it.first === view }
         }
         menu.clear()
+        var appShortcuts = 0
         for (item in items) {
             val bar = FrameLayout(context).apply {
                 tag = item.key
@@ -358,10 +359,8 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
             menu += bar
             val y = when (item.key) {
                 OVERVIEW -> 111
-                NUVIO -> 197
-                SMARTTUBE -> 280
-                SPOTIFY -> 364
-                ALL_APPS -> 447
+                NUVIO, SMARTTUBE, SPOTIFY -> 197 + 83 * appShortcuts++
+                ALL_APPS -> 197 + 83 * appShortcuts
                 VPN -> 527
                 SETTINGS -> 608
                 else -> 197
