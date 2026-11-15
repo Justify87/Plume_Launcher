@@ -2805,7 +2805,10 @@ class MainActivity : ComponentActivity() {
         if (focusables.isEmpty()) return
         focusables.first().nextFocusUpId = focusables.last().id
         focusables.last().nextFocusDownId = focusables.first().id
-        (added.drop(focus.coerceIn(0, rows.size - 1)).firstOrNull { it.isFocusable } ?: focusables.first()).requestFocus()
+        if (!previewingSettings) {
+            (added.drop(focus.coerceIn(0, rows.size - 1)).firstOrNull { it.isFocusable }
+                ?: focusables.first()).requestFocus()
+        }
     }
 
     // ---------- layout lock ----------
@@ -3855,14 +3858,22 @@ class MainActivity : ComponentActivity() {
         toast(if (enabled) "App-Symbole: Originalfarben" else "App-Symbole: einfarbig")
     }
 
+    private var previewingSettings = false
+
     private fun previewVDesign(key: String) {
         if (!::vDesign.isInitialized) return
         if (vDesign.selectedSection() == key && key != VDesignHomeView.SETTINGS) return
         if (key == VDesignHomeView.SETTINGS) {
             if (allApps.visibility == View.VISIBLE) allApps.visibility = View.GONE
             if (settingsScrim.visibility != View.VISIBLE) {
-                showPanel()
-                renderSettings(0)
+                // Focus switches the preview, but must not steal the D-Pad from the rail.
+                previewingSettings = true
+                try {
+                    showPanel()
+                    renderSettings(0)
+                } finally {
+                    previewingSettings = false
+                }
             } else vDesign.showSection(key, settingsScrim)
             return
         }
