@@ -1,6 +1,3 @@
-# On-demand test APK only. No release build, publishing, tags, production
-# signing keys, version changes or GitHub Releases API.
-# The separate ci-integrated.yml remains the full automatic PR gate.
 name: Build Plume Launcher Advanced Debug APK
 
 on:
@@ -63,8 +60,6 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          # Default task in build-integrated.sh is ONLY :app:assembleOssProdDebug.
-          # No release, R8 job, GitHub Release, production signing or tag.
           bash tools/mullvad/build-integrated.sh
 
       - name: Verify installable Debug APK and collect artifact
