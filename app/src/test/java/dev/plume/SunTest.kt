@@ -5,7 +5,6 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** Expected times come from the astral library (python), for the local date around each solar noon. */
 class SunTest {
     private fun times(lat: Double, lon: Double, now: Long) = Sun.day(lat, lon, now) as Sun.Day.Times
 
@@ -22,15 +21,15 @@ class SunTest {
     @Test fun delhi() = times(28.61, 77.21, 1792910114000L).let { near(1792889896202L, it.rise); near(1792930307782L, it.set) }
 
     @Test fun darkAroundSunriseAndAtNight() {
-        val rise = 1782034581401L // Toronto, 21 June
+        val rise = 1782034581401L 
         assertTrue(Sun.dark(43.65, -79.38, rise - 10 * 60_000))
         assertFalse(Sun.dark(43.65, -79.38, rise + 10 * 60_000))
-        assertTrue(Sun.dark(43.65, -79.38, 1782062354000L + 12 * 3_600_000)) // solar midnight
+        assertTrue(Sun.dark(43.65, -79.38, 1782062354000L + 12 * 3_600_000)) 
     }
 
     @Test fun polar() {
-        assertTrue(Sun.day(69.65, 18.96, 1797850800000L) is Sun.Day.AlwaysDown) // Tromsø, December
-        assertTrue(Sun.day(69.65, 18.96, 1782039600000L) is Sun.Day.AlwaysUp) // Tromsø, June
+        assertTrue(Sun.day(69.65, 18.96, 1797850800000L) is Sun.Day.AlwaysDown) 
+        assertTrue(Sun.day(69.65, 18.96, 1782039600000L) is Sun.Day.AlwaysUp) 
     }
 
     @Test fun noPlaceUsesTheClock() {

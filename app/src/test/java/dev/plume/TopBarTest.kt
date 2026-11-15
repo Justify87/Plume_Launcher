@@ -21,7 +21,7 @@ class TopBarTest {
 
     @Test fun anIconSlidesPastTheOnesOnScreen() {
         val order = listOf("wifi", "sources", "apps", "plume")
-        val shown = listOf("wifi", "apps", "plume") // no input: Sources is not on screen
+        val shown = listOf("wifi", "apps", "plume") 
         assertEquals(listOf("wifi", "sources", "plume", "apps"), TopBar.slide(order, shown, "apps", 1))
         assertEquals(listOf("apps", "sources", "wifi", "plume"), TopBar.slide(order, shown, "apps", -1))
     }
@@ -30,7 +30,7 @@ class TopBarTest {
         val order = listOf("wifi", "apps", "plume")
         assertEquals(order, TopBar.slide(order, order, "wifi", -1))
         assertEquals(order, TopBar.slide(order, order, "plume", 1))
-        assertEquals(order, TopBar.slide(order, order, "system", 1)) // not on the bar
+        assertEquals(order, TopBar.slide(order, order, "system", 1)) 
     }
 
     @Test fun anAddedIconLandsRightAfterTheOneYouHeld() {
@@ -40,7 +40,7 @@ class TopBarTest {
         assertEquals(listOf("wifi", "apps", "plume", "system"), TopBar.addAfter(order, "system", "missing"))
     }
 
-    @Test fun aDefaultCanLeaveAnIconOut() { // Power is not on the bar until someone adds it
+    @Test fun aDefaultCanLeaveAnIconOut() { 
         val all = known + "power"
         assertEquals(known, TopBar.parse(null, all, all - "power", "plume"))
         assertEquals(known + "power", TopBar.parse("wifi,sources,apps,system,plume,power", all, all - "power", "plume"))
