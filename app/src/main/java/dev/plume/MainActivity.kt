@@ -4544,6 +4544,9 @@ class MainActivity : Activity() {
         returnTo = focusKey(from)
     }
 
+    /** Stable focus key of the launching tile; not a navigation destination. */
+    private var returnTo: String? = null
+
     private fun cardKey(p: Prog) = "card|${p.title}|${p.pkg}|${p.intent}"
     private fun focusKey(v: View?): String? = v?.tag as? String
 
