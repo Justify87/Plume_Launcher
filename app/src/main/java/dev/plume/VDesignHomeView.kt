@@ -403,7 +403,7 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
         onAllApps: () -> Unit,
         onSystemActions: (View) -> Unit,
         onPreview: (String) -> Unit = {},
-        onAppLongPress: (String, View) -> Unit = {},
+        onAppLongPress: (String, View) -> Unit = { _, _ -> },
     ) {
         open = onOpen
         allApps = onAllApps
