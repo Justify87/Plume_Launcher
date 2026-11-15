@@ -725,12 +725,7 @@ internal class VpnNetworkUi(
     }
 
     private fun style(button: Button, focused: Boolean, active: Boolean = false) {
-        button.setTextColor(if (focused) Color.WHITE else ink)
-        button.background = GradientDrawable().apply {
-            cornerRadius = dp(10).toFloat()
-            setColor(if (focused) accent else if (active) 0xFFBCDDE5.toInt() else surface)
-            setStroke(dp(if (focused) 3 else 1), if (focused) Color.WHITE else secondary)
-        }
+        VpnTvStyle.paint(button, focused, active)
     }
 
     private fun edit(hintText: String, initial: String, input: Int = InputType.TYPE_CLASS_TEXT) =
@@ -753,11 +748,11 @@ internal class VpnNetworkUi(
 
     private fun column() = LinearLayout(activity).apply {
         orientation = LinearLayout.VERTICAL
-        setPadding(dp(20), dp(8), dp(20), dp(16))
+        setPadding(dp(12), dp(6), dp(12), dp(8))
     }
 
-    private fun rowParams() = LinearLayout.LayoutParams(-1, dp(56)).apply {
-        bottomMargin = dp(5)
+    private fun rowParams() = LinearLayout.LayoutParams(-1, dp(46)).apply {
+        bottomMargin = dp(4)
     }
 
     private fun dp(size: Int): Int = (size * activity.resources.displayMetrics.density).toInt()
