@@ -382,6 +382,7 @@ internal class VpnNetworkUi(
 
     private fun promptCustomPort(mode: ObfuscationMode) {
         val field = EditText(activity).apply {
+            VpnTvStyle.field(this)
             hint = "Port (0–65535)"
             inputType = InputType.TYPE_CLASS_NUMBER
             setSingleLine(true)
@@ -660,6 +661,7 @@ internal class VpnNetworkUi(
 
     private fun promptOverrideJson() {
         val text = EditText(activity).apply {
+            VpnTvStyle.field(this)
             hint = "Mullvad-Settings-Patch (JSON)"
             minLines = 5
             maxLines = 12
@@ -730,6 +732,7 @@ internal class VpnNetworkUi(
 
     private fun edit(hintText: String, initial: String, input: Int = InputType.TYPE_CLASS_TEXT) =
         EditText(activity).apply {
+            VpnTvStyle.field(this)
             hint = hintText
             setText(initial)
             inputType = input
