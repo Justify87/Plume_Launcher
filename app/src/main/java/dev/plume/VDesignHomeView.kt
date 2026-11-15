@@ -168,9 +168,10 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
     }
 
     fun showWorkspace(key: String, force: Boolean = false) {
-        if (!force && key == currentWorkspace &&
-            (key == OVERVIEW || workspacePanels[key]?.visibility == View.VISIBLE)) return
+        val alreadyVisible = !force && key == currentWorkspace &&
+            (key == OVERVIEW || workspacePanels[key]?.visibility == View.VISIBLE)
         navigation = LauncherWorkspaceNavigation.focusRail(navigation, destination(key))
+        if (alreadyVisible) return
         homeContent.forEach { it.visibility = if (key == OVERVIEW) View.VISIBLE else View.GONE }
         workspacePanels.forEach { (destination, view) ->
             val selected = destination == key
@@ -544,8 +545,14 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
     /** Called before legacy homeNav: all visible V-Design D-pad moves are explicit. */
     fun handleDpad(focused: View?, keyCode: Int): Boolean {
         if (!isShown || focused == null) return false
-        if (isContentFocused(focused))
-            return if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) focusRememberedSidebar() else false
+        if (isContentFocused(focused)) {
+            if (keyCode != KeyEvent.KEYCODE_DPAD_LEFT) return false
+            // Let Android move between grid columns and settings controls first.
+            // Only the actual left edge returns focus to the persistent rail.
+            val next = focused.focusSearch(View.FOCUS_LEFT)
+            return if (next != null && next !== focused && isContentFocused(next))
+                false else focusRememberedSidebar()
+        }
         if (isRailFocused(focused) && currentWorkspace != OVERVIEW &&
             keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) return focusWorkspaceContent()
         val direction = when (keyCode) {
