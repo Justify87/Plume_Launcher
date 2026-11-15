@@ -154,6 +154,9 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
         super.onDetachedFromWindow()
     }
 
+    /** Refresh immediately after returning from VPN settings; timer covers live Home changes. */
+    fun refreshStatus() = refreshHeader()
+
     private fun refreshHeader() {
         val now = ZonedDateTime.now()
         dateHeader.text = now.format(DateTimeFormatter.ofPattern("EEE, d. MMM yyyy", Locale.GERMAN))
