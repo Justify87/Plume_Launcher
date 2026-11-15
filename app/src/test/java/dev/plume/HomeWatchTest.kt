@@ -105,18 +105,16 @@ class HomeWatchTest {
         assertNull(HomeWatch(false) { emptyMap() }.opened(atv, atvHome, 1_000))
     }
 
-    // #150: the Google TV launcher also draws notices and sign-in screens, and Plume took each for the home screen.
     @Test fun otherGoogleTvLauncherWindowsAreLeftAlone() {
         val w = watch(fire = false)
         for ((i, cls) in listOf(
             "$gtv.networkreauth.NetworkReauthActivity",
             "$gtv.dashboard.DashboardActivity",
             "$gtv.gemini.chat.ChatActivity",
-            "android.widget.FrameLayout", // a notice drawn by the launcher
+            "android.widget.FrameLayout", 
         ).withIndex()) assertNull(cls, w.opened(gtv, cls, 1_000L + i * 1_000))
     }
 
-    // The system gave no list: keep the rule that was there before, so Home on Google TV still works.
     @Test fun withoutAListTheGoogleTvLauncherCountsExceptItsDashboard() {
         val w = watch(fire = false, homes = emptySet())
         assertEquals(0L, w.opened(gtv, gtvHome, 1_000))
@@ -172,7 +170,7 @@ class HomeWatchTest {
         assertEquals(HomeWatch.KEEP, w.opened("dev.plume.advanced", "dev.plume.MainActivity", 2_300))
     }
 
-    @Test fun anotherAppOpeningDropsTheWaitingJump() { // Settings on top of Amazon's home
+    @Test fun anotherAppOpeningDropsTheWaitingJump() { 
         val w = watch()
         w.opened("dev.plume.advanced", "dev.plume.MainActivity", 1_000)
         assertEquals(HomeWatch.SETTINGS_WAIT_MS, w.opened(amazon, amazonHome, 2_000))
