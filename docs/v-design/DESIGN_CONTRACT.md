@@ -62,11 +62,32 @@ Launcher-Einstellungen und Mullvad-TV-Untermenüs teilen den matten Dunkelmodus:
 `#1B1C21` Fenster, `#202126` Zeilen, `#F7F7F8` Text, `#B8BAC1`
 Sekundärtext und `#E7FF80` Fokus. Kompakte Zeilen (ca. 44–46 dp),
 schmale Zwischenräume, Scroll nur bei Bedarf, klar lesbare Seitentitel. Kurze
-Animationsübergänge (ca. 145–165 ms) **ohne** Fokusversatz oder neue Abhängigkeiten.
+Animationsübergänge (ca. 145–165 ms) **ohne** Fokusversatz. Maintained UI-/Animationsbibliotheken sind zulässig, wenn sie tatsächlich helfen.
 
 Mullvads originaler Dienst, gRPC, Relaylisten, Konten, WireGuard, Rust/JNI, Split-Tunneling
 und VPN-Rechte sind weiterhin alleinige Autorität. Design-Umbau darf keine zweite
 „VPN-Implementierung“ installieren und niemals einen unbestätigten Status behaupten.
+
+## Technologie- und Änderungsfreiheit
+
+Frühere Vorgaben „Framework Views only“, „keine AndroidX-Bibliotheken“, „keine
+Compose-UI“, „kleine PRs“, „keine zusätzlichen Designkomponenten“ und
+„ursprüngliches Plume-Layout erhalten“ sind für Plume Launcher Advanced
+**aufgehoben**. Der Nutzer kann die bestehende UI auch vollständig ersetzen
+lassen. Ziel ist die bestmögliche Referenztreue, nicht die Beibehaltung alter
+Technik.
+
+Geeignete Material-Komponenten, AndroidX, ein Bildlader, Animationsbibliotheken,
+Custom Views oder selektive Compose-Module sind erlaubt. Vor Einführung prüfen:
+Maintainerstatus/Lizenz, sinnvolle Laufzeit-/RAM-/APK-Kosten, Android-TV-D-Pad,
+Barrierefreiheit, Android 8+, integrierten Mullvad-Gradle/Rust-Build und Wartbarkeit.
+**Keine Bibliothek nur der Mode wegen erzwingen.** Der vorhandene native View-Ansatz
+ist für diesen Entwurf weiterhin ein pragmatischer Ausgangspunkt.
+
+Die komplette Startseite, Launcher-Settings und Mullvad-TV-Oberflächen dürfen
+in einem zusammenhängenden PR geändert werden. Keine alte visuelle Konvention
+stellt eine Architektur- oder Dateigrenze dar. Datenechtheit, VPN-Sicherheit,
+Privatsphäre und technische Regressionstests bleiben verbindlich.
 
 ## Abnahme
 
