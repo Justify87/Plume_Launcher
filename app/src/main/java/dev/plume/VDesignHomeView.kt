@@ -247,8 +247,8 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
         lastZone = ZoneId.systemDefault()
         lastLocale = resources.configuration.locales[0] ?: Locale.getDefault()
         titleProgress.text = "WEITERSCHAUEN  ·  ${feed.inProgress.size.toString().padStart(2, '0')}"
-        titleAvailable.text = "NEUE FOLGEN"
-        availableBadge.text = "${feed.available.size} NEU"
+        titleAvailable.text = "VERFÜGBARE FOLGEN"
+        availableBadge.text = feed.available.size.toString()
         titleUpcoming.text = "DEMNÄCHST"
         progressCards.forEachIndexed { index, card ->
             card.bind(VDesignCardSlots.media(feed, NuvioSection.IN_PROGRESS, index),
