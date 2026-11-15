@@ -155,7 +155,6 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
     }
 
     private fun refreshHeader() {
-        if (!::dateHeader.isInitialized) return
         val now = ZonedDateTime.now()
         dateHeader.text = now.format(DateTimeFormatter.ofPattern("EEE, d. MMM yyyy", Locale.GERMAN))
         clockHeader.text = now.format(DateTimeFormatter.ofPattern("HH:mm", Locale.GERMAN))
