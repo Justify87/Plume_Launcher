@@ -1,6 +1,5 @@
 package dev.plume
 
-/** Only categories supported by the source data are assigned. Unknown is not a recommendation. */
 internal enum class MediaCategory { CONTINUE, NEW, RECOMMENDATION, UNKNOWN }
 internal enum class MediaKind { EPISODE, MOVIE, VIDEO, PODCAST, UNKNOWN }
 

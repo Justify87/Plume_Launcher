@@ -8,21 +8,14 @@ import kotlin.math.cos
 import kotlin.math.floor
 import kotlin.math.sin
 
-/**
- * Sunrise and sunset worked out on the TV (the NOAA sunrise equation, within a few minutes), so the Auto theme
- * follows the sky with no request to anyone. Times are epoch milliseconds.
- */
 internal object Sun {
-    /** Light all day (midnight sun), dark all day (polar night), or a sunrise and a sunset. */
     sealed class Day {
         object AlwaysUp : Day()
         object AlwaysDown : Day()
         class Times(val rise: Long, val set: Long) : Day()
     }
 
-    /** The sun's day closest to [now] at [lat], [lon] (degrees, east positive). */
     fun day(lat: Double, lon: Double, now: Long): Day {
-        // The solar noon nearest to now: its own sunrise and sunset decide whether it's light now.
         val n = floor(julian(now) - J2000 - 0.0009 + lon / 360).toLong()
         val noons = (n - 1..n + 1).map { noon(it.toDouble(), lon) }
         val i = noons.indices.minByOrNull { abs(noons[it].first - julian(now)) }!!
@@ -34,14 +27,12 @@ internal object Sun {
         return Day.Times(millis(transit - h), millis(transit + h))
     }
 
-    /** Dark between sunset and sunrise. */
     fun dark(lat: Double, lon: Double, now: Long) = when (val d = day(lat, lon, now)) {
         Day.AlwaysUp -> false
         Day.AlwaysDown -> true
         is Day.Times -> now < d.rise || now > d.set
     }
 
-    /** Solar noon (Julian date) and the sun's declination (radians) on day [n] after J2000. */
     private fun noon(n: Double, lon: Double): Pair<Double, Double> {
         val j = n + 0.0009 - lon / 360
         val m = (357.5291 + 0.98560028 * j).mod(360.0)
