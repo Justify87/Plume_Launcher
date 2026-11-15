@@ -2730,10 +2730,16 @@ class MainActivity : Activity() {
             key in pages -> -1.also { while (pages.last() != key) pages.removeAt(pages.size - 1) }
             else -> (if (pages.isEmpty()) 0 else 1).also { pages.add(key) }
         }
-        if (dir != 0) for (v in listOf<View>(settingsList, findViewById(R.id.settingsTitle), findViewById(R.id.settingsCrumb))) {
-            v.translationX = dp(18) * dir.toFloat()
-            v.alpha = 0f
-            v.animate().translationX(0f).alpha(1f).setDuration(165).setInterpolator(DECELERATE).start()
+        for (v in listOf<View>(settingsList, findViewById(R.id.settingsTitle), findViewById(R.id.settingsCrumb))) {
+            v.animate().cancel()
+            v.translationX = 0f
+            v.alpha = 1f
+            if (dir != 0 && ValueAnimator.areAnimatorsEnabled()) {
+                v.translationX = dp(18) * dir.toFloat()
+                v.alpha = 0f
+                v.animate().translationX(0f).alpha(1f)
+                    .setDuration(165).setInterpolator(DECELERATE).start()
+            }
         }
         findViewById<TextView>(R.id.settingsTitle).text = title
         findViewById<TextView>(R.id.settingsCrumb).apply {
@@ -2989,15 +2995,15 @@ class MainActivity : Activity() {
     private fun ink(a: Float) = ((a * 255).toInt() shl 24) or 0x00F7F7F8
     private fun restInk() = 0xFFF3F3F5.toInt()
     private fun valueInk(focused: Boolean = false) =
-        if (focused) 0xFFE2E3E6.toInt() else 0xFFB5B6BE.toInt()
+        if (focused) 0xFF272A21.toInt() else 0xFFB5B6BE.toInt()
     private fun focusInk() = Color.WHITE
     private fun iconInk(focused: Boolean) =
-        if (focused) 0xFFE7FF80.toInt() else 0xFFC7C9D0.toInt()
+        if (focused) 0xFF121317.toInt() else 0xFFC7C9D0.toInt()
 
-    private fun plate(radius: Int) = GradientDrawable().apply {
+    private fun plate(radius: Int, focused: Boolean = true) = GradientDrawable().apply {
         cornerRadius = dp(radius).toFloat()
-        setColor(0xFF2A2C32.toInt())
-        setStroke(dp(2), 0xFFE7FF80.toInt())
+        setColor(if (focused) 0xFFE7FF80.toInt() else 0xFF27282E.toInt())
+        if (!focused) setStroke(dp(1), 0xFF383940.toInt())
     }
 
     private fun TextView.panelShadow() {
@@ -3025,25 +3031,14 @@ class MainActivity : Activity() {
     /** Focus fades the plate in and lights the row; the row's own parts restyle themselves in [onFocus]. */
     private fun panelFocus(v: View, radius: Int, help: String?, area: Int?, onFocus: (Boolean) -> Unit) {
         val lit = plate(radius)
+        val rest = plate(radius, focused = false)
+        v.background = rest
         v.isFocusable = true
         v.isClickable = true
         v.setOnFocusChangeListener { _, focused ->
-            v.background = if (focused) lit else null
-            if (focused) ValueAnimator.ofInt(0, 255).apply {
-                duration = 140
-                interpolator = DECELERATE
-                addUpdateListener { lit.alpha = it.animatedValue as Int }
-            }.start()
-            if (!dark) { // the white card needs a shadow to stand off the near-white panel
-                v.outlineProvider = ViewOutlineProvider.BACKGROUND
-                v.elevation = if (focused) dp(3).toFloat() else 0f
-            }
+            v.background = if (focused) lit else rest
+            if (focused) showHelp(help)
             onFocus(focused)
-            if (focused) {
-                showHelp(help)
-                // Posted: when the panel first opens, the scrim has no size yet in this frame.
-                settingsScrim.post { if (v.hasFocus()) spotlight.show(areaBounds(area)) }
-            }
         }
     }
 
@@ -3118,7 +3113,7 @@ class MainActivity : Activity() {
             setOnClickListener { action() }
             panelFocus(this, 11, style?.help, style?.area) { focused ->
                 // The title glides to bright rather than snapping, so moving through the list feels smooth.
-                ValueAnimator.ofArgb(name.currentTextColor, if (focused) focusInk() else restInk()).apply {
+                ValueAnimator.ofArgb(name.currentTextColor, if (focused) 0xFF121317.toInt() else restInk()).apply {
                     duration = 160
                     interpolator = DECELERATE
                     addUpdateListener { a -> name.setTextColor(a.animatedValue as Int) }
@@ -3156,7 +3151,7 @@ class MainActivity : Activity() {
             }, LinearLayout.LayoutParams(MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
             setOnClickListener { action() }
             panelFocus(this, 18, style.help, style.area) { f ->
-                t.setTextColor(if (f) focusInk() else restInk())
+                t.setTextColor(if (f) 0xFF121317.toInt() else restInk())
                 n.setTextColor(valueInk(f))
                 chevron.setColorFilter(valueInk(f))
             }
@@ -3194,14 +3189,13 @@ class MainActivity : Activity() {
         val paint = { focused: Boolean ->
             pills.forEachIndexed { i, p ->
                 val on = options[i].first == picked
-                val c = if (on) (if (focused) focusInk() else restInk()) else valueInk(focused)
+                val c = if (on) (if (focused) 0xFF121317.toInt() else restInk()) else valueInk(focused)
                 p.setTextColor(c)
                 p.compoundDrawablesRelative.filterNotNull().forEach { it.setTint(c) }
-                val accent = glassLook().accent()
                 p.background = if (!on) null else GradientDrawable().apply {
                     cornerRadius = dp(9).toFloat()
-                    setColor(accent?.let { it and 0xFFFFFF or ((if (focused) 0x4D else 0x33) shl 24) } ?: ink(if (focused) .16f else .09f))
-                    setStroke(line, accent ?: ink(if (focused) .85f else .45f))
+                    setColor(if (focused) 0xFFB3CB54.toInt() else 0xFF343C28.toInt())
+                    setStroke(line, 0xFFE7FF80.toInt())
                 }
             }
         }
@@ -3228,7 +3222,7 @@ class MainActivity : Activity() {
                 art.on = on
                 art.focused = focused
                 art.invalidateSelf()
-                name.setTextColor(if (on) (if (focused) focusInk() else restInk()) else valueInk(focused))
+                name.setTextColor(if (on) (if (focused) 0xFF121317.toInt() else restInk()) else valueInk(focused))
                 name.typeface = Typeface.create(if (on) "sans-serif-medium" else "sans-serif", Typeface.NORMAL)
             }
         }
@@ -3314,11 +3308,11 @@ class MainActivity : Activity() {
             val c = if (on) (if (focused) focusInk() else restInk()) else valueInk(focused)
             track.background = GradientDrawable().apply {
                 cornerRadius = dp(12).toFloat()
-                if (on) setColor(glassLook().accent() ?: c) else setStroke(dp(2), c)
+                if (on) setColor(0xFFE7FF80.toInt()) else setStroke(dp(2), c)
             }
             knob.background = GradientDrawable().apply {
                 shape = GradientDrawable.OVAL
-                setColor(if (!on) c else if (dark) Color.BLACK else Color.WHITE)
+                setColor(if (!on) c else 0xFF121317.toInt())
             }
         }
         paint(false)
