@@ -3951,13 +3951,13 @@ class MainActivity : ComponentActivity() {
             true
         } catch (_: PackageManager.NameNotFoundException) { false }
         val items = buildList {
-            add(VDesignHomeView.Navigation(VDesignHomeView.OVERVIEW, "Startseite", getDrawable(R.drawable.ic_home)))
+            add(VDesignHomeView.Navigation(VDesignHomeView.OVERVIEW, "Startseite", getDrawable(R.drawable.ic_shell_home)))
             nuvio?.let { add(VDesignHomeView.Navigation(VDesignHomeView.NUVIO, "Nuvio TV", vDesignAppIcon(it))) }
             smartTube?.let { add(VDesignHomeView.Navigation(VDesignHomeView.SMARTTUBE, "SmartTube", vDesignAppIcon(it))) }
             spotify?.let { add(VDesignHomeView.Navigation(VDesignHomeView.SPOTIFY, "Spotify", vDesignAppIcon(it))) }
-            add(VDesignHomeView.Navigation(VDesignHomeView.ALL_APPS, "Alle Apps", getDrawable(R.drawable.ic_apps)))
-            if (vpnAvailable) add(VDesignHomeView.Navigation(VDesignHomeView.VPN, "Mullvad VPN", getDrawable(R.drawable.ic_vpn)))
-            add(VDesignHomeView.Navigation(VDesignHomeView.SETTINGS, "Einstellungen", getDrawable(R.drawable.ic_settings)))
+            add(VDesignHomeView.Navigation(VDesignHomeView.ALL_APPS, "Alle Apps", getDrawable(R.drawable.ic_shell_apps)))
+            if (vpnAvailable) add(VDesignHomeView.Navigation(VDesignHomeView.VPN, "Mullvad VPN", getDrawable(R.drawable.ic_shell_vpn)))
+            add(VDesignHomeView.Navigation(VDesignHomeView.SETTINGS, "Einstellungen", getDrawable(R.drawable.ic_shell_settings)))
         }
         vDesign.setColouredAppIcons(prefs.getBoolean("sidebar_coloured_icons", true))
         vDesign.bindNavigation(items, onOpen = { key ->
