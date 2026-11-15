@@ -50,3 +50,14 @@
 4. Live-Mullvad-Status und Split-Tunneling ohne neue Security-/Privacy-Regressionsfehler.
 
 **Schlussentscheidung bis zur Prüfung:** Draft / NO-GO. Quelländerungen und CI sind keine Geräte- oder Pixelabnahme.
+
+## M3b – Responsive All Apps (Fortsetzung 15.11.2026)
+
+- **Ursache:** Die erste neue App-Übersicht verwendete fünf feste 145-dp-Spalten, obwohl die Sidebar stets Platz beansprucht. Auf kleineren TV-Viewports und bei Overscan/abweichender Dichte konnte die fünfte Spalte abgeschnitten werden.
+- **Lösung:** Den gesamten `renderAllAppsPane`-Renderer ersetzt. Die neue reine `WorkspaceGridPolicy` berechnet 1–5 Spalten und Kachelbreiten aus der realen Breite des rechten Viewports einschließlich 48-dp-Innenabstand. Grid-Signatur enthält die berechnete Geometrie; ein erneuter Render erhält den fokussierten Paketnamen.
+- **Review:** Isolierte Grenzwerttests für 1100, 580, 90 dp und exakte Fünfspalten-Grenze erstellt. Keine Änderung an App-Launch-Intents oder VPN-Service. Der vorige PR-HEAD `0f94c71a` bestand Combined CI [43727194921](https://github.com/Justify87/Plume_Launcher/actions/runs/43727194921); der neue HEAD `4b3bddd9` hat zum Zeitpunkt dieser Dokumentation **noch keinen bestätigten CI-Lauf**.
+- **Entscheidung:** `code_review_pass_ci_pending`. Ohne Screenshot-/Shield-Review kein Abnahme-PASS.
+
+## Offene harte Zielabweichung
+
+Die `WorkspaceVpnEntryPane` ist weiterhin **nur** ein Einstieg in die separate Mullvad Activity. Die verbindliche Anforderung „Mullvad vollständig rechts in derselben Shell“ ist deshalb **nicht erfüllt**. Die Mullvad-Repositories und Tunnelsteuerung dürfen nicht durch eine kosmetische Scheinimplementierung ersetzt werden. Eine echte Lifecycle-Entkopplung der Activity bleibt der nächste eigenständige Meilenstein.
