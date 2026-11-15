@@ -367,7 +367,7 @@ internal class VpnNetworkUi(
         }
         val choices = listOf("Automatisch") + presets.map { it.toString() } +
             if (mode == ObfuscationMode.Udp2Tcp) emptyList() else listOf("Benutzerdefiniert …")
-        AlertDialog.Builder(activity)
+        VpnTvStyle.dialog(activity)
             .setTitle(modeTitle(mode) + ": Port")
             .setItems(choices.toTypedArray()) { _, index ->
                 when {
@@ -387,7 +387,7 @@ internal class VpnNetworkUi(
             inputType = InputType.TYPE_CLASS_NUMBER
             setSingleLine(true)
         }
-        AlertDialog.Builder(activity).setTitle(modeTitle(mode) + ": eigener Port")
+        VpnTvStyle.dialog(activity).setTitle(modeTitle(mode) + ": eigener Port")
             .setView(field)
             .setPositiveButton("Übernehmen", null)
             .setNegativeButton("Abbrechen", null)
@@ -463,7 +463,7 @@ internal class VpnNetworkUi(
         val actions = mutableListOf("Testen", "Als aktuellen API-Zugang verwenden",
             if (item.enabled) "Deaktivieren" else "Aktivieren")
         if (custom) actions += listOf("Bearbeiten", "Löschen")
-        AlertDialog.Builder(activity).setTitle(item.name.value)
+        VpnTvStyle.dialog(activity).setTitle(item.name.value)
             .setItems(actions.toTypedArray()) { _, choice ->
                 when (choice) {
                     0 -> withDaemon("API-Methode testen") {
@@ -502,7 +502,7 @@ internal class VpnNetworkUi(
     }
 
     private fun confirmDelete(item: ApiAccessMethodSetting) {
-        AlertDialog.Builder(activity).setTitle("API-Methode löschen?")
+        VpnTvStyle.dialog(activity).setTitle("API-Methode löschen?")
             .setMessage(item.name.value + " wird aus Mullvads Einstellungen entfernt.")
             .setNegativeButton("Abbrechen", null)
             .setPositiveButton("Löschen") { _, _ ->
@@ -518,7 +518,7 @@ internal class VpnNetworkUi(
     private fun chooseProxyType(item: ApiAccessMethodSetting?) {
         val current = item?.apiAccessMethod
         val which = if (current is ApiAccessMethod.CustomProxy.Shadowsocks) 1 else 0
-        AlertDialog.Builder(activity).setTitle("API-Zugangstyp")
+        VpnTvStyle.dialog(activity).setTitle("API-Zugangstyp")
             .setSingleChoiceItems(arrayOf("SOCKS5 Remote", "Shadowsocks"), which) { dialog, index ->
                 dialog.dismiss()
                 showProxyForm(item, index == 1)
@@ -572,7 +572,7 @@ internal class VpnNetworkUi(
             setPadding(dp(20), dp(8), dp(20), 0)
             addView(body)
         }
-        val dialog = AlertDialog.Builder(activity)
+        val dialog = VpnTvStyle.dialog(activity)
             .setTitle(if (item == null) "API-Zugang hinzufügen" else "API-Zugang bearbeiten")
             .setView(scroll)
             .setNegativeButton("Abbrechen", null)
@@ -614,7 +614,7 @@ internal class VpnNetworkUi(
                             api.testCustomApiAccessMethod(proxy).fold(
                                 { error ->
                                     apiFeedback.text = "API-Test fehlgeschlagen: " + error
-                                    AlertDialog.Builder(activity)
+                                    VpnTvStyle.dialog(activity)
                                         .setTitle("Mullvad-API-Test fehlgeschlagen")
                                         .setMessage(
                                             "Methode trotzdem speichern? Der Zugriff kann offline sein."
@@ -668,7 +668,7 @@ internal class VpnNetworkUi(
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE
             setHorizontallyScrolling(false)
         }
-        AlertDialog.Builder(activity).setTitle("Server-IP-Overrides importieren")
+        VpnTvStyle.dialog(activity).setTitle("Server-IP-Overrides importieren")
             .setView(text)
             .setNegativeButton("Abbrechen", null)
             .setPositiveButton("Importieren", null)
@@ -695,7 +695,7 @@ internal class VpnNetworkUi(
     }
 
     private fun confirmClearOverrides() {
-        AlertDialog.Builder(activity).setTitle("Alle Server-IP-Overrides entfernen?")
+        VpnTvStyle.dialog(activity).setTitle("Alle Server-IP-Overrides entfernen?")
             .setMessage("Mullvad setzt seine Relay-IP-Overrides auf Standard zurück.")
             .setNegativeButton("Abbrechen", null)
             .setPositiveButton("Zurücksetzen") { _, _ ->
