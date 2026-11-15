@@ -367,8 +367,13 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
                     setColor(if (focused) Palette.LIME else Color.TRANSPARENT)
                 }
                 bar.animate().cancel()
-                bar.animate().scaleX(if (focused) 1.04f else 1f)
-                    .scaleY(if (focused) 1.04f else 1f).setDuration(145).start()
+                if (android.animation.ValueAnimator.areAnimatorsEnabled()) {
+                    bar.animate().scaleX(if (focused) 1.04f else 1f)
+                        .scaleY(if (focused) 1.04f else 1f).setDuration(145).start()
+                } else {
+                    bar.scaleX = 1f
+                    bar.scaleY = 1f
+                }
             }
             style(false)
             bar.setOnFocusChangeListener { _, focused ->
