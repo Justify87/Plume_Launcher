@@ -1,5 +1,5 @@
 #!/bin/sh
-# PR change review: flag dependency, permission and changelog changes for human review.
+# PR change review: dependencies and UI technology are allowed. Review impact, not existence.
 # The Plume+Mullvad fork intentionally has dependencies and VPN permissions; do not
 # reject legitimate integration work solely because a new declaration was added.
 set -eu
@@ -16,15 +16,15 @@ notes=$(git diff "$base"...HEAD -- CHANGELOG.md | grep -c '^+- ' || true)
 
 {
     echo "### Plume change review"
-    echo "Review hints only: Mullvad integration may legitimately add dependencies or permissions."
+    echo "Review hints only: modern UI libraries and cohesive refactors are allowed. Keep VPN/privacy guardrails."
     echo "| Review item | Result |"
     echo "|---|---|"
 } >> "$summary"
 
 if [ -n "$deps" ]; then
-    echo "::warning title=Gradle dependency review::A dependency or plugin declaration changed; review purpose and supply-chain impact."
+    echo "::notice title=Gradle dependency review::UI dependencies are allowed; document size, license and supply-chain tradeoffs."
     printf '%s\n' "$deps"
-    echo "| Gradle dependencies/plugins | ⚠️ changed; review required |" >> "$summary"
+    echo "| Gradle dependencies/plugins | ℹ️ changed; UI dependencies allowed, review cost |" >> "$summary"
 else
     echo "| Gradle dependencies/plugins | ✅ no declaration changed |" >> "$summary"
 fi
