@@ -1,5 +1,8 @@
 package dev.plume
 
+import androidx.activity.ComponentActivity
+import androidx.activity.OnBackPressedCallback
+
 import android.animation.ObjectAnimator
 import android.animation.ValueAnimator
 import android.app.Activity
@@ -283,7 +286,7 @@ internal fun dropSessions(c: Context) {
 
 internal fun <T> preferTvApps(tv: List<T>, other: List<T>, pkg: (T) -> String) = (tv + other).distinctBy(pkg)
 
-class MainActivity : Activity() {
+class MainActivity : ComponentActivity() {
 
     /**
      * An app's icon is loaded once, but not held: the mono mark and the accent colour are made from it and kept, and a
@@ -408,6 +411,10 @@ class MainActivity : Activity() {
 
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
+        // The single persistent shell owns TV Back; registered before STARTED.
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() { handleShellBack() }
+        })
         // The system starts Home before the user unlocks (Direct Boot). Register first, so a missed
         // broadcast cannot leave the home screen empty. Do not read prefs, files or the cache yet.
         registerReceiver(unlockReceiver, IntentFilter(Intent.ACTION_USER_UNLOCKED))
@@ -600,16 +607,25 @@ class MainActivity : Activity() {
         }
     }
 
-    override fun onRequestPermissionsResult(code: Int, perms: Array<out String>, results: IntArray) {
-        if (code != MEDIA_REQUEST) return refreshWatchNext()
+    @Deprecated("Legacy media/TV callback; keep ComponentActivity's ActivityResult registry intact")
+    override fun onRequestPermissionsResult(
+        code: Int, perms: Array<String>, results: IntArray
+    ) {
+        super.onRequestPermissionsResult(code, perms, results)
+        if (code != MEDIA_REQUEST) {
+            refreshWatchNext()
+            return
+        }
         if (results.firstOrNull() == PackageManager.PERMISSION_GRANTED) afterPhotoAccess?.invoke()
         else toast(getString(R.string.photos_permission), long = true)
     }
 
-    @Deprecated("Only used for the default-home role request and the TV's own installer")
+    @Deprecated("Legacy installer and HOME role result; registered ActivityResult clients still need super")
     override fun onActivityResult(code: Int, result: Int, data: Intent?) {
+        super.onActivityResult(code, result, data)
         if (code == INSTALL_REQUEST) installerClosed()
-        if (code == ROLE_REQUEST && settingsScrim.visibility == View.VISIBLE) renderSettings(R.string.default_launcher)
+        if (code == ROLE_REQUEST && settingsScrim.visibility == View.VISIBLE)
+            renderSettings(R.string.default_launcher)
         if (code == ROLE_REQUEST && setupStep == 1) {
             setupStep = 0
             afterHomeRole()
@@ -1052,9 +1068,21 @@ class MainActivity : Activity() {
         vDesign.focusOverview()
     }
 
-    override fun onBackPressed() {
+    /**
+     * Back first belongs to Mullvad's nested page stack, then to the launcher
+     * content-to-rail movement. Home is always reachable; no separate VPN Activity.
+     */
+    private fun handleShellBack() {
         if (!ready || !::vDesign.isInitialized) return
         when {
+            vDesign.isContentFocused(currentFocus) &&
+                vDesign.selectedWorkspace() == VDesignHomeView.VPN -> {
+                val controller = embeddedVpnView?.tag
+                val consumed = runCatching {
+                    controller?.javaClass?.getMethod("handleBack")?.invoke(controller) as? Boolean
+                }.getOrNull() == true
+                if (!consumed) vDesign.focusRememberedSidebar()
+            }
             vDesign.isContentFocused(currentFocus) &&
                 vDesign.selectedWorkspace() == VDesignHomeView.SETTINGS ->
                     pageBack?.invoke() ?: run { vDesign.focusRememberedSidebar() }
@@ -3739,6 +3767,7 @@ class MainActivity : Activity() {
      * framework's long-press timer. We treat the first auto-repeat of OK as "held"; the long-click
      * listener in style() is a fallback for remotes that send no repeats. [holdFired] stops both firing.
      */
+    @android.annotation.SuppressLint("RestrictedApi")
     override fun dispatchKeyEvent(e: KeyEvent): Boolean {
         if (!ready) return super.dispatchKeyEvent(e)
         if (wallPreview != null) { // a picked wallpaper shown whole: any button brings the panel back
@@ -3793,6 +3822,9 @@ class MainActivity : Activity() {
         // The views are not overlay windows: they become children of the content viewport.
         vDesign.installWorkspacePane(VDesignHomeView.ALL_APPS, allApps)
         vDesign.installWorkspacePane(VDesignHomeView.SETTINGS, settingsScrim)
+        // Must create before STARTED so Mullvad can register Android VPN consent.
+        // Standalone Plume has no Mullvad class; that is not a runtime failure.
+        installEmbeddedVpnPane()
         findViewById<View>(R.id.content).visibility = View.INVISIBLE
         refreshVDesignNavigation()
         vDesign.bindFeed(nuvioDashboardFeed)
@@ -3994,21 +4026,43 @@ class MainActivity : Activity() {
         }
     }
 
-    private fun showVpnPreview() {
-        if (workspaceVpnPane != null) return
-        workspaceVpnPane = WorkspaceVpnEntryPane(this) {
-            returnFocusFromVpn = true
-            try {
-                startActivity(Intent().setClassName(packageName,
-                    "net.mullvad.mullvadvpn.app.VpnActivity"))
-            } catch (_: ActivityNotFoundException) {
-                returnFocusFromVpn = false
-                toast("Mullvad VPN nicht verfügbar")
-            }
-        }.also { vDesign.installWorkspacePane(VDesignHomeView.VPN, it) }
+    private var embeddedVpnView: View? = null
+
+    /**
+     * Original Mullvad controllers are compiled only into the combined APK.
+     * Reflection allows standalone Plume to ship without its whole dependency graph.
+     * Creation takes place during onCreate, not on first rail focus: the upstream
+     * ActivityResultRegistry requires registration before STARTED.
+     */
+    private fun installEmbeddedVpnPane() {
+        val activity = ComponentName(packageName, "net.mullvad.mullvadvpn.app.VpnActivity")
+        val present = try {
+            packageManager.getActivityInfo(activity, 0)
+            true
+        } catch (_: PackageManager.NameNotFoundException) { false }
+        if (!present) return
+        val embedded = try {
+            val bridge = Class.forName("net.mullvad.mullvadvpn.app.MullvadEmbeddedPanel")
+            bridge.getMethod("create", ComponentActivity::class.java)
+                .invoke(null, this) as? View
+        } catch (error: Exception) {
+            android.util.Log.e("Plume", "Embedded Mullvad initialization failed", error)
+            null
+        }
+        embeddedVpnView = embedded
+        val content = embedded ?: TextView(this).apply {
+            text = "Mullvad konnte nicht in die Launcher-Oberfläche eingebunden werden. " +
+                "Bitte den kombinierten APK-Build prüfen."
+            textSize = 18f
+            setTextColor(0xFFF7F7F8.toInt())
+            setBackgroundColor(0xFF16171C.toInt())
+            setPadding(dp(30), dp(32), dp(30), dp(24))
+        }
+        vDesign.installWorkspacePane(VDesignHomeView.VPN, content)
     }
 
-    private var workspaceVpnPane: WorkspaceVpnEntryPane? = null
+    /** The embedded Mullvad view is constructed once during onCreate. */
+    private fun showVpnPreview() = Unit
 
     /** Long OK on Settings retains the old invisible top bar's system entry points. */
     private fun showVDesignSystemActions(anchor: View) {
