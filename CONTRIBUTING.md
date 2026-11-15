@@ -1,69 +1,95 @@
-# Contributing to Plume
+# Contributing to Plume Launcher Advanced
 
-Thanks for wanting to help. Plume is a small project with one maintainer, so this page explains what fits, what doesn't, and how to send a change that can be merged quickly.
+This is **Justify87's independent hobby fork**, not the original Plume project's
+contribution policy. Its goal is a visually precise, expressive and usable
+Android TV launcher with integrated Mullvad VPN.
 
-## What Plume is
+## Active product and design rules
 
-Plume is a minimal home screen for Android TV and Google TV. Every change is weighed against these principles:
+1. **The current user-supplied 1536 × 864 screenshot is the source of truth for
+   the Home layout**, not the old M00–M07 V-Design mockup, upstream Plume styles,
+   screenshots in the historical README, or old archival milestones. See
+   [the active design contract](docs/v-design/DESIGN_CONTRACT.md).
+2. **Prefer visual fidelity and remote usability over legacy implementation
+   choices.** Refactor or replace existing Views/XML/layout architecture when
+   necessary. No previous grid, focus policy, animation, theme, panel width,
+   color, corner radius or legacy visual component is protected merely because
+   it already exists.
+3. **Modern libraries are allowed.** AndroidX, Material Components for Android,
+   animation, image-loading or layout libraries, and other maintained,
+   reasonably sized dependencies are permitted when they materially improve
+   the result. Kotlin/Views/XML remain convenient, **not mandatory**; Compose
+   is an option if its Android-TV performance, support and integration costs
+   are acceptable. A rewrite for its own sake is not required.
+4. **Budget is a constraint, not an ideology.** Favor simple, readable,
+   maintainable code; avoid heavyweight frameworks, duplicated VPN
+   implementations and expensive background activity without clear benefit.
+   No fixed APK-size/RAM ceilings or categorical dependency bans apply.
+5. **Optimize for a ten-foot interface.** Distinct directional focus,
+   predictable Back/Home behavior, compact and legible settings, proper
+   scrolling and stable focus restore matter more than phone-style UI
+   conventions. Animations should be short, smooth and respect accessibility
+   settings.
+6. **Real content only.** Poster art, metadata, progress, dates and VPN
+   connectivity/status originate from actual sources. Do not embed the
+   example series/illustrations from the reference image or invent account,
+   episode or network status.
 
-- **Small and light.** A 0.4 MB APK, about 50–70 MB of RAM, no third-party libraries, no extra background services.
-- **Simple home screen.** One calm screen with your apps and what you watch. Nothing competes for attention.
-- **Yours, not ours.** No ads, no sponsored content, no analytics, no account.
-- **Quiet on the network.** Plume only goes online for the things listed under [Privacy](README.md#privacy). Anything new that connects to the internet must be optional and off until the user turns it on.
+## Scope and architecture
 
-## What's out of scope
+A cohesive redesign **may span all UI files and menus in one pull request**.
+A feature issue and small isolated PRs are recommendations, not gates: a
+single cohesive change is easier to assess when it is reviewed and tested as
+one unit. Existing documentation, theme/Glass code, layout conventions and
+original Plume PR guidelines may be superseded.
 
-These will be declined, however well they're built:
+Do not delete working features merely to simplify the redesign: All Apps,
+Nuvio preview channels, external apps, HDMI sources, wallpaper, launcher
+role/accessibility setup, PIN and backups, and real Mullvad account/VPN
+functions must remain reachable. Update tests, screenshots, instructions and
+documentation to describe the **current** UI.
 
-- Ads, analytics, crash reporting services, or accounts
-- New third-party libraries or SDKs (AndroidX included)
-- Services, workers or alarms that run while Plume isn't on screen
-- Online metadata services that need an API key, such as TMDB
-- Rows, widgets or sections that copy the scrolling layouts of other launchers
+The TV launcher and Mullvad are integrated into one APK. The original Mullvad
+repositories/services/daemon remain authoritative for tunnel, account,
+relay, DNS and split-tunneling state. UI refactors must not silently alter
+VPN routing, disable kill-switch protections or misrepresent actual status.
+Do not change the pinned upstream submodule or Rust/JNI/VpnService behavior
+without a separate technical justification, test evidence and explicit review.
 
-More of your own content on the home screen, such as Up next or more of Continue Watching, is welcome as a design first. Open a feature request that shows how it keeps the screen calm. A clear description is enough; sketches and mockups help.
+## Safety and privacy rules that remain binding
 
-Not sure if an idea fits? Open a feature request first and ask. That's much cheaper than finding out after the code is written.
+- No ads, telemetry, analytics or secret account-data collection.
+- Never commit passwords, API tokens, signing keys, account numbers or
+  private VPN connection material.
+- Review new Android permissions, networking, native binaries and build
+  scripts for security and privacy impact.
+- Keep the approved integrated Mullvad CI, signing/release gates and VPN
+  regression checks; do not bypass failures just to make a design PR green.
+- No fictitious emulator/Shield acceptance. State clearly what ran and what
+  remains to be verified on physical devices.
 
-## Before you start
+## Review, testing and contribution process
 
-- **Bug fixes:** go ahead and open a pull request. Link the issue if there is one.
-- **Features:** open a [feature request](../../issues/new/choose) first and wait for a reply. Pull requests for features that weren't discussed may be closed.
-- **Translations:** see [Translations](#translations) below.
+For UI changes, describe the reference screenshot used, which screens
+changed, focus/Back behavior, notable dependency/performance tradeoffs,
+and show a screenshot or video from a working emulator/TV when possible.
+Run the existing JVM, Android lint and combined Plume+Mullvad checks.
+Report failures honestly. The maintainer decides when to merge; a successful
+compile does not establish pixel-exact appearance on a Shield.
 
-## Pull requests
+Third-party dependencies are reviewed for maintenance, licensing, size and
+supply chain; their presence is **not** a reason to reject a PR.
 
-- **One change per pull request.** A translation, a bug fix and a new menu are three pull requests. Mixed pull requests are hard to review and will be asked to split.
-- **Keep the diff small.** Match the style of the code around your change. Don't reformat or reorganise code you aren't changing.
-- **Test on a real TV** (or an Android TV emulator if you have no TV) and say which device and Android version you used.
-- **Mention size and memory changes.** If your change adds resources or keeps things in memory, give the APK size before and after.
-- **No new permissions** without discussing them in an issue first.
+Please keep the existing GPL-3.0 licensing and upstream credits.
+For translations, edit `app/src/main/res/values-<code>/strings.xml`,
+preserve placeholders (e.g. `%1$s`, `%d`) and use
+`python3 tools/lang.py check` to catch mismatches.
+For setup and diagnostics, see `tools/plume-install.sh` and
+`tools/plume-firetv-probe.sh`; when filing bugs include TV model, Android
+version, launcher version and reproduction steps.
 
-By sending a pull request you agree that your contribution is licensed under the project's [GPL-3.0 licence](LICENSE).
-
-## Translations
-
-Translations are welcome. Shipping every language costs very little: each language adds a few KB to the APK and no memory, because Android only loads the strings for the language the TV is set to.
-
-- A translation pull request adds or edits **only** `app/src/main/res/values-<code>/strings.xml`, for example `values-it/strings.xml`. No code changes, no new features.
-- Translate every string in `app/src/main/res/values/strings.xml`. Keep placeholders such as `%1$s` and `%d` exactly as they are.
-- Keep text short. TV screens are read from across the room, and long labels get cut off.
-- Run `python3 tools/lang.py check` before you send it: it lists the keys your language lacks, the keys it has that English does not, and the texts whose `%s` or `%d` markers differ from English. If your pull request adds a string to `values/strings.xml`, run it too and say in the description which languages were not translated.
-- If you add a language, please say whether you're happy to be asked about new strings later. Languages that fall far behind may be removed.
-
-Some of Plume's text still lives in the Kotlin code instead of `strings.xml`. Please don't move strings into `strings.xml` inside a translation pull request; open an issue instead, so the move happens once for every language.
-
-## Reporting bugs
-
-Use the [bug report form](../../issues/new/choose). The TV model, Android version and Plume version matter most, because many problems only happen on one manufacturer's TVs. A photo or video of the screen helps a lot.
-
-## Diagnostic tools
-
-The `tools/` directory contains helper scripts for testing:
-
-- `tools/plume-install.sh`: sets Plume up over adb for the kind of TV it finds (Fire TV, Google TV, Android TV), asks before it changes anything, checks each change, and puts back what it changed with `--undo` (not the APK). See the README, "Set up over adb". `tools/plume-install-test/run.sh` tests it against a fake `adb`.
-- `tools/plume-firetv-probe.sh`: collects Home button events and logs on Fire TV without changing settings. See [#87](../../issues/87).
-
-## Building
-
-See [Building from source](README.md#building-from-source) in the README.
+**Precedence for new UI development:** this file and
+`docs/v-design/DESIGN_CONTRACT.md` supersede contradictory legacy notes in
+`docs/v-design/{ROADMAP,STATE,HANDOFF,REVIEWS,DECISIONS,INVENTORY,TEST_MATRIX,DATA_CONTRACT}.md`
+and archived upstream contribution text. Historical evidence stays available
+for traceability but is not an active design restriction.
