@@ -567,7 +567,6 @@ class MainActivity : Activity() {
         scheduleVDesignMidnight()
         ui.post {
             if (!isDestroyed && ::vDesign.isInitialized && vDesign.isShown &&
-                settingsScrim.visibility != View.VISIBLE && allApps.visibility != View.VISIBLE &&
                 !vDesign.hasFocus() && setupDialog?.isShowing != true) vDesign.restoreFocus()
         }
         refreshWatchNext()
@@ -1048,17 +1047,21 @@ class MainActivity : Activity() {
         if (movingTop != null) endTopMove(false)
         if (settingsScrim.visibility == View.VISIBLE) closeLauncherSettings()
         if (allApps.visibility == View.VISIBLE) closeAllApps()
-        // Home always returns to the same single V-Design, including when an overlay was open.
-        vDesign.restoreFocus()
+        // Home resets the workspace selection, not merely the focus of an overlay.
+        vDesign.focusOverview()
     }
 
-    @Deprecated("Home screen: Back only closes overlays")
     override fun onBackPressed() {
-        if (!ready) return
+        if (!ready || !::vDesign.isInitialized) return
         when {
-            settingsScrim.visibility == View.VISIBLE -> pageBack?.invoke() ?: closeLauncherSettings()
-            allApps.visibility == View.VISIBLE -> closeAllApps()
-            ::vDesign.isInitialized && vDesign.hasFocus() -> vDesign.focusRememberedSidebar()
+            vDesign.isContentFocused(currentFocus) &&
+                vDesign.selectedWorkspace() == VDesignHomeView.SETTINGS ->
+                    pageBack?.invoke() ?: run { vDesign.focusRememberedSidebar() }
+            vDesign.isContentFocused(currentFocus) ->
+                vDesign.focusRememberedSidebar()
+            vDesign.selectedWorkspace() != VDesignHomeView.OVERVIEW ->
+                vDesign.focusOverview()
+            else -> vDesign.focusRememberedSidebar()
         }
     }
 
@@ -2457,13 +2460,18 @@ class MainActivity : Activity() {
 
     private fun showPanel() {
         panelFrom = currentFocus
-        // Dark: true black, set apart from the home screen by a hairline on its left edge.
         showPanelGlass()
-        findViewById<TextView>(R.id.settingsTitle).apply { setTextColor(focusInk()); panelShadow() }
-        for (id in listOf(R.id.settingsCrumb, R.id.settingsHelp)) findViewById<TextView>(id).apply { setTextColor(valueInk()); panelShadow() }
-        settingsScrim.background = ColorDrawable(0xDC090A0D.toInt())
+        findViewById<TextView>(R.id.settingsTitle).apply {
+            setTextColor(0xFFF7F7F8.toInt()); panelShadow()
+        }
+        for (id in listOf(R.id.settingsCrumb, R.id.settingsHelp))
+            findViewById<TextView>(id).apply {
+                setTextColor(0xFFB8BAC1.toInt()); panelShadow()
+            }
+        settingsScrim.background = ColorDrawable(0xFF16171C.toInt())
         pages.clear()
-        settingsScrim.visibility = View.VISIBLE
+        if (::vDesign.isInitialized) vDesign.showWorkspace(VDesignHomeView.SETTINGS)
+        else settingsScrim.visibility = View.VISIBLE
         homeFocusable(false)
     }
 
@@ -2485,13 +2493,12 @@ class MainActivity : Activity() {
         pageExit?.invoke()
         pageExit = null
         pageBack = null
-        settingsScrim.visibility = View.GONE
-        homeFocusable(allApps.visibility != View.VISIBLE) // the PIN can open over All apps
-        val previous = panelFrom?.takeIf { it.isAttachedToWindow && it.isShown }
-        if (previous?.requestFocus() != true) {
-            if (!::vDesign.isInitialized || !vDesign.restoreFocus())
-                findViewById<View>(R.id.launcherSettings).requestFocus()
-        }
+        settingsPanePrepared = false
+        if (::vDesign.isInitialized) {
+            // Closing an editor returns to the shell, never destroys its sidebar.
+            vDesign.focusRememberedSidebar()
+        } else settingsScrim.visibility = View.GONE
+        homeFocusable(true)
         panelFrom = null
     }
 
@@ -2767,7 +2774,9 @@ class MainActivity : Activity() {
         if (focusables.isEmpty()) return
         focusables.first().nextFocusUpId = focusables.last().id
         focusables.last().nextFocusDownId = focusables.first().id
-        (added.drop(focus.coerceIn(0, rows.size - 1)).firstOrNull { it.isFocusable } ?: focusables.first()).requestFocus()
+        if (!settingsPreviewRendering)
+            (added.drop(focus.coerceIn(0, rows.size - 1)).firstOrNull { it.isFocusable }
+                ?: focusables.first()).requestFocus()
     }
 
     // ---------- layout lock ----------
@@ -3345,16 +3354,9 @@ class MainActivity : Activity() {
     /** Refresh only the existing surfaces, retaining the focused All Apps tile when possible. */
     private fun refreshVisibleApps() {
         refreshVDesignNavigation()
-        if (allApps.visibility == View.VISIBLE) {
-            val focusedPackage = if (settingsScrim.visibility != View.VISIBLE) currentFocus?.tag as? String else null
-            openAllApps()
-            if (focusedPackage != null) {
-                (0 until allAppsGrid.childCount).asSequence()
-                    .map { allAppsGrid.getChildAt(it) }
-                    .firstOrNull { it.tag == focusedPackage }
-                    ?.requestFocus()
-            }
-        }
+        appsPaneSignature = null
+        if (::vDesign.isInitialized && vDesign.selectedWorkspace() == VDesignHomeView.ALL_APPS)
+            renderAllAppsPane(force = true)
     }
 
     private fun refreshApps() {
@@ -3751,16 +3753,21 @@ class MainActivity : Activity() {
         }
         // The settings panel is a vertical list: Left/Right step a row's value (its tag, see settingsRow) and
         // never leak focus to the home screen behind it. The PIN boxes and the city search box use them themselves.
-        if (settingsScrim.visibility == View.VISIBLE && currentFocus !== pinBox && currentFocus !is EditText &&
+        if (::vDesign.isInitialized && vDesign.isContentFocused(currentFocus) &&
+            vDesign.selectedWorkspace() == VDesignHomeView.SETTINGS &&
+            currentFocus !== pinBox && currentFocus !is EditText &&
             (e.keyCode == KeyEvent.KEYCODE_DPAD_LEFT || e.keyCode == KeyEvent.KEYCODE_DPAD_RIGHT)
         ) {
             @Suppress("UNCHECKED_CAST")
-            if (e.action == KeyEvent.ACTION_DOWN) (currentFocus?.tag as? (Int) -> Unit)?.invoke(if (e.keyCode == KeyEvent.KEYCODE_DPAD_LEFT) -1 else 1)
-            return true
+            val change = currentFocus?.tag as? (Int) -> Unit
+            if (change != null) {
+                if (e.action == KeyEvent.ACTION_DOWN)
+                    change(if (e.keyCode == KeyEvent.KEYCODE_DPAD_LEFT) -1 else 1)
+                return true
+            }
         }
-        if (e.action == KeyEvent.ACTION_DOWN && settingsScrim.visibility != View.VISIBLE && allApps.visibility != View.VISIBLE) {
-            if (::vDesign.isInitialized && vDesign.handleDpad(currentFocus, e.keyCode)) return true
-        }
+        if (e.action == KeyEvent.ACTION_DOWN && ::vDesign.isInitialized &&
+            vDesign.handleDpad(currentFocus, e.keyCode)) return true
         return super.dispatchKeyEvent(e)
     }
 
@@ -4094,8 +4101,9 @@ class MainActivity : Activity() {
     private fun homeFocusable(on: Boolean) {
         findViewById<ViewGroup>(R.id.content).descendantFocusability =
             if (on) ViewGroup.FOCUS_AFTER_DESCENDANTS else ViewGroup.FOCUS_BLOCK_DESCENDANTS
+        // The rail and its in-pane views are always focusable, even when Settings is selected.
         if (::vDesign.isInitialized) vDesign.descendantFocusability =
-            if (on) ViewGroup.FOCUS_AFTER_DESCENDANTS else ViewGroup.FOCUS_BLOCK_DESCENDANTS
+            ViewGroup.FOCUS_AFTER_DESCENDANTS
     }
 
     private fun fireHold(v: View) {
@@ -4529,42 +4537,16 @@ class MainActivity : Activity() {
         returnTo = focusKey(from)
     }
 
-    /** What Home goes back to: the pressed tile's package or the pressed card's [cardKey], and null for an app that Plume did not start. */
-    private var returnTo: String? = null
-
-    private fun cardKey(p: Prog) = "card|${p.title}|${p.pkg}|${p.intent}"
-
-    private fun focusKey(v: View?): String? = v?.tag as? String
-
-    /** The tile or card that [key] names, with the cards built up to it; null when it left the rows (uninstalled, hidden, off the list). */
+    /** Called by All Apps hotkeys; the permanent rail never disappears. */
     private fun openAllApps() {
-        allAppsGrid.removeAllViews()
-        val gap = dp(10)
-        val width = (resources.displayMetrics.widthPixels - dp(96) - gap * 5) / 6
-        for (a in sortedApps()) {
-            val t = appTile(a) // holding OK here pins it to the row (see onHold)
-            allAppsGrid.addView(t, GridLayout.LayoutParams().apply {
-                this.width = width
-                height = dp(76)
-                setMargins(0, 0, gap, gap)
-            })
-        }
-        allApps.visibility = View.VISIBLE
-        if (::vDesign.isInitialized) vDesign.visibility = View.INVISIBLE
-        // Glass shows the wallpaper here, so the home screen under the grid has to go; without glass the opaque
-        // background covers it anyway.
-        findViewById<View>(R.id.content).visibility = if (::vDesign.isInitialized || glassActive()) View.INVISIBLE else View.VISIBLE
-        homeFocusable(false)
-        allAppsGrid.getChildAt(0)?.requestFocus()
+        if (!::vDesign.isInitialized) return
+        vDesign.focusAllApps()
+        renderAllAppsPane()
+        vDesign.focusWorkspaceContent()
     }
 
     private fun closeAllApps() {
-        allApps.visibility = View.GONE
-        findViewById<View>(R.id.content).visibility = if (::vDesign.isInitialized) View.INVISIBLE else View.VISIBLE
-        if (::vDesign.isInitialized) vDesign.visibility = View.VISIBLE
-        homeFocusable(true)
-        if (::vDesign.isInitialized) vDesign.restoreFocus()
-        else findViewById<View>(R.id.allAppsButton).requestFocus() // back where it was opened from
+        if (::vDesign.isInitialized) vDesign.focusRememberedSidebar()
     }
 
     // ---------- screensaver ----------
@@ -5655,6 +5637,7 @@ class MainActivity : Activity() {
                     // Another mounted card may have requested the same URL while its download was in flight.
                     // Fill only this URI: unrelated failed posters wait for the ordinary online retry.
                     if (::vDesign.isInitialized) vDesign.artworkReady(uri, bmp)
+                    workspaceAppPreviews.values.forEach { it.artworkReady(uri, bmp) }
                 }
             }
         }
