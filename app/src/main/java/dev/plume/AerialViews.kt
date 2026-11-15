@@ -16,19 +16,17 @@ internal const val APPLE_AERIAL = "Apple Aerial"
 
 internal fun aerialScenes(c: Context) = videoScenes(c).filter { it.source == APPLE_AERIAL }
 
-/** The Apple scenes already downloaded, for the wallpaper or for the screensaver. */
 internal fun aerialFiles(c: Context): List<File> {
     val dir = c.getExternalFilesDir("wallpapers") ?: return emptyList()
     return aerialScenes(c).map { File(dir, it.file) }.filter { it.isFile }
 }
 
-/** Plays the downloaded scenes one after another in shuffled order; ◀ ▶ skip. 1080p at most (see validVideo). */
 internal class AerialShow(context: Context, files: List<File>) : SurfaceHolder.Callback {
     private val files = files.shuffled()
     private var index = 0
     private var player: MediaPlayer? = null
     private var ready = false
-    private var failures = 0 // in a row; stops the skip loop when every file is broken
+    private var failures = 0 
     val view = SurfaceView(context).also { it.holder.addCallback(this) }
 
     override fun surfaceCreated(holder: SurfaceHolder) { ready = true; play() }

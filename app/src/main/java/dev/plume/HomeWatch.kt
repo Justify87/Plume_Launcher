@@ -1,13 +1,7 @@
 package dev.plume
 
-/** One activity that answers the Home intent, as the system lists it. */
 class HomeEntry(val pkg: String, val cls: String, val target: String?)
 
-/**
- * The classes that the Google TV and Android TV launchers declare for Home: their home screens. Each launcher draws
- * other windows too (notices, sign-in, the dashboard). An alias is listed under its own name but its window
- * carries the real class, so both count.
- */
 fun stockHomes(found: List<HomeEntry>): Map<String, Set<String>> =
     found.filter { it.pkg == HomeWatch.GOOGLE_TV || it.pkg == HomeWatch.ANDROID_TV }
         .groupBy { it.pkg }.mapValues { (_, entries) -> entries.flatMap { listOfNotNull(it.cls, it.target) }.toSet() }
@@ -36,7 +30,7 @@ class HomeWatch(private val fire: Boolean, private val homes: () -> Map<String, 
             settingsMayFollow = pkg == PLUME || pkg.startsWith(AMAZON_SETTINGS)
             return null
         }
-        if (now - lastJump < JUMP_GAP_MS) return KEEP // one Home press sends several of these
+        if (now - lastJump < JUMP_GAP_MS) return KEEP 
         lastJump = now
         if (!settingsMayFollow || !fire) return 0
         waitingPkg = pkg
@@ -46,9 +40,9 @@ class HomeWatch(private val fire: Boolean, private val homes: () -> Map<String, 
     fun jumped() { waitingPkg = null }
 
     private fun isHome(pkg: String, cls: String?): Boolean = cls != null && when (pkg) {
-        GOOGLE_TV -> homes()[pkg].orEmpty().let { home -> if (home.isEmpty()) !cls.contains("dashboard", ignoreCase = true) else cls in home } // holding Home opens the dashboard
+        GOOGLE_TV -> homes()[pkg].orEmpty().let { home -> if (home.isEmpty()) !cls.contains("dashboard", ignoreCase = true) else cls in home } 
         ANDROID_TV -> cls in homes()[pkg].orEmpty()
-        AMAZON -> cls.startsWith("$AMAZON.ui.HomeActivity") // HomeActivity_vNext on current builds
+        AMAZON -> cls.startsWith("$AMAZON.ui.HomeActivity") 
         OLD_AMAZON -> cls == "$OLD_AMAZON.Launcher"
         else -> false
     }

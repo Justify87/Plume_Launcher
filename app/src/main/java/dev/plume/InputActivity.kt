@@ -17,7 +17,6 @@ import android.view.View
 import android.widget.FrameLayout
 import android.widget.TextView
 
-/** Plays a Fire TV input without handing it to Amazon's player or guessing its inputType number. */
 @Suppress("DEPRECATION")
 class InputActivity : Activity() {
     private lateinit var tv: TvView
@@ -40,7 +39,6 @@ class InputActivity : Activity() {
 
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
-        // TvView's video surface sits behind the window; an opaque window hides the picture.
         window.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
         window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_FULLSCREEN or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
             View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY

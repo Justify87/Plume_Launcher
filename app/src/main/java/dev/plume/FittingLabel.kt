@@ -10,10 +10,8 @@ import android.view.View
 import android.view.animation.LinearInterpolator
 import android.widget.TextView
 
-/** How far a name that is too wide for its box has to move, in pixels; 0 when it fits. */
 internal fun labelOverflow(textWidth: Float, boxWidth: Float) = maxOf(0f, textWidth - boxWidth)
 
-/** One round of a long name: it waits at the start, scrolls to the end, waits, and scrolls back. */
 internal class MarqueeCycle(val pauseMs: Int, val scrollMs: Int) {
     val totalMs get() = 2 * (pauseMs + scrollMs)
 }
@@ -24,7 +22,6 @@ internal fun marqueeCycle(overflowPx: Float, pxPerSecond: Float, pauseMs: Int = 
 
 private const val MIN_SCROLL_MS = 900
 
-/** How far the name has moved [timeMs] into its round: eased at both ends, so it starts and stops softly. */
 internal fun marqueeShift(timeMs: Int, overflowPx: Float, cycle: MarqueeCycle): Float {
     val t = timeMs % cycle.totalMs
     val leg = cycle.pauseMs + cycle.scrollMs
@@ -34,11 +31,6 @@ internal fun marqueeShift(timeMs: Int, overflowPx: Float, cycle: MarqueeCycle): 
     return overflowPx * (if (back) 1f - eased else eased)
 }
 
-/**
- * An app name that stays inside its box. It is centred when it fits. When it doesn't, it is cut with "…" until its
- * tile is selected ([setActive]), then it scrolls slowly to its end and back, with a pause at each end.
- * The box is [box] pixels wide, centred in the view (0: the view's width without its padding).
- */
 internal class FittingLabel @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null) : TextView(context, attrs) {
     var box = 0
         set(value) {
@@ -117,12 +109,12 @@ internal class FittingLabel @JvmOverloads constructor(context: Context, attrs: A
         val p = paint
         p.color = currentTextColor
         val left = if (box > 0) (width - box) / 2f else paddingLeft.toFloat()
-        val rtl = TextDirectionHeuristics.FIRSTSTRONG_LTR.isRtl(text, 0, text.length) // the text's own direction: the tiles are always left to right
+        val rtl = TextDirectionHeuristics.FIRSTSTRONG_LTR.isRtl(text, 0, text.length) 
         val full = p.measureText(text, 0, text.length)
         val shown = if (full <= avail || animator != null) text else TextUtils.ellipsize(text, p, avail, TextUtils.TruncateAt.END)
         val w = p.measureText(shown, 0, shown.length)
         val x = when {
-            full <= avail -> left + (avail - w) / 2f // fits: centred, still
+            full <= avail -> left + (avail - w) / 2f 
             rtl -> left + avail - w + shift
             else -> left - shift
         }
@@ -133,6 +125,6 @@ internal class FittingLabel @JvmOverloads constructor(context: Context, attrs: A
     }
 
     private companion object {
-        const val SPEED_DP = 28f // dp per second: slow enough to read
+        const val SPEED_DP = 28f 
     }
 }

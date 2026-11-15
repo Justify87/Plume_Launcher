@@ -29,7 +29,6 @@ import java.util.concurrent.Executors
  */
 private class Painting(val file: String, val title: String, val artist: String)
 
-/** One picture in the show: a painting with its caption, or one of your photos (no caption). */
 private class Picture(val title: String, val artist: String, val load: () -> Bitmap?)
 
 private val LIGHT = listOf(
@@ -50,18 +49,12 @@ internal val PAINTING_FILES = (LIGHT + DARK).map { "${it.file}.jpg" }
 internal fun paintingsDir(c: Context) = File(c.filesDir, "paintings")
 internal fun paintingsReady(c: Context) = PAINTING_FILES.all { File(paintingsDir(c), it).exists() }
 
-/**
- * The Gallery screensaver. Picked in launcher settings, which also restore the previous one when it's off.
- * Shows the paintings, a folder of your photos when one is chosen there ("ss_folder"), or the downloaded
- * Aerial Views scenes when "ss_folder" is [AERIAL_SCREENSAVER].
- * ◀ ▶ step through the pictures; any other key leaves to the launcher's home screen.
- */
 class GalleryDream : DreamService() {
     private lateinit var playback: GalleryPlayback
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
-        isInteractive = true // we handle keys ourselves (see dispatchKeyEvent)
+        isInteractive = true 
         isFullscreen = true
         playback = GalleryPlayback(this)
         setContentView(playback.view)
@@ -85,7 +78,6 @@ class GalleryDream : DreamService() {
     }
 }
 
-/** Previews Plume's screensaver without a system "dream now" activity. */
 @Suppress("DEPRECATION")
 class GalleryPreview : Activity() {
     private lateinit var playback: GalleryPlayback
@@ -117,7 +109,6 @@ class GalleryPreview : Activity() {
     }
 }
 
-/** Both hosts use the same content, controls and cleanup. */
 private class GalleryPlayback(context: Context) {
     private val show: GalleryShow?
     private val aerial: AerialShow?
@@ -135,24 +126,16 @@ private class GalleryPlayback(context: Context) {
     fun release() { show?.release(); aerial?.release() }
 }
 
-/**
- * Paints edge to edge on a SurfaceView at the UI's 1080p. Not 4K: this TV's display hardware shows a 4K app
- * surface as black (screenshots still show it, since they composite on the GPU).
- * Each painting fills the screen exactly, holds, then cross-fades to the next. The title shows for a few seconds per painting.
- * About 6 MB per decoded painting; one in memory, two during a cross-fade, plus the surface's buffers.
- * Outgoing paintings are recycled as soon as they're off screen, and everything when the dream ends.
- */
 private class GalleryShow(private val context: Context) : SurfaceHolder.Callback {
     private val paintings = pictures()
     private val io = Executors.newSingleThreadExecutor()
     val view = SurfaceView(context).also { it.holder.addCallback(this) }
 
-    /** A folder's photos in shuffled order if one is chosen and still has photos, else the theme's paintings. */
     private fun pictures(): List<Picture> {
         val prefs = context.getSharedPreferences("home", Context.MODE_PRIVATE)
         val photos = try {
             prefs.getString("ss_folder", null)?.takeIf { it != AERIAL_SCREENSAVER }?.let { folderPhotos(context.contentResolver, it) }.orEmpty()
-        } catch (e: Exception) { // photo access taken away
+        } catch (e: Exception) { 
             emptyList()
         }
         if (photos.isNotEmpty()) return photos.shuffled().map { id ->
@@ -166,7 +149,6 @@ private class GalleryShow(private val context: Context) : SurfaceHolder.Callback
 
     private class Slide(val bmp: Bitmap, val painting: Picture, val start: Long, val fadeMs: Long)
 
-    // Shared between the loader and the render thread; swaps and draws hold [lock], so a bitmap is
     // never recycled mid-draw.
     private val lock = Any()
     @Volatile private var current: Slide? = null
@@ -199,7 +181,7 @@ private class GalleryShow(private val context: Context) : SurfaceHolder.Callback
     }
 
     fun release() {
-        running = false // first: the render thread stops asking for the next painting before the pool is shut
+        running = false 
         io.shutdownNow()
         synchronized(lock) {
             current?.bmp?.recycle()
@@ -218,12 +200,11 @@ private class GalleryShow(private val context: Context) : SurfaceHolder.Callback
                 null
             } ?: return@execute
             synchronized(lock) {
-                if (!running) { // dream ended while decoding
+                if (!running) { 
                     bmp.recycle()
                     return@execute
                 }
-                previous?.bmp?.recycle() // stepped again mid-fade: that one won't be drawn any more
-                // The first painting fades up from black: keep that short or the screen just looks off.
+                previous?.bmp?.recycle() 
                 val fade = if (current == null) FIRST_FADE_MS else FADE_MS
                 previous = current
                 current = Slide(bmp, p, System.currentTimeMillis(), fade)
@@ -250,7 +231,7 @@ private class GalleryShow(private val context: Context) : SurfaceHolder.Callback
             } finally {
                 holder.unlockCanvasAndPost(canvas)
             }
-            Thread.sleep(FRAME_MS) // 30 fps is plenty for motion this slow, and spares the GPU
+            Thread.sleep(FRAME_MS) 
         }
     }
 
@@ -261,13 +242,12 @@ private class GalleryShow(private val context: Context) : SurfaceHolder.Callback
         val fade = ((now - cur.start).toFloat() / cur.fadeMs).coerceIn(0f, 1f)
         previous?.let {
             if (fade < 1f) drawSlide(c, it, ((1f - fade) * 255).toInt()) else {
-                it.bmp.recycle() // faded out: free it now rather than whenever GC gets to it
+                it.bmp.recycle() 
                 previous = null
             }
         }
         drawSlide(c, cur, (fade * 255).toInt())
 
-        // Title for the first seconds of each painting, fading in and out.
         val t = now - cur.start
         val a = when {
             t < FADE_MS -> t.toFloat() / FADE_MS
@@ -276,7 +256,7 @@ private class GalleryShow(private val context: Context) : SurfaceHolder.Callback
             else -> 0f
         }
         if (a > 0f && cur.painting.title.isNotEmpty()) {
-            val u = c.height / 1080f // design in 1080p units, draw at panel resolution
+            val u = c.height / 1080f 
             title.textSize = 30f * u
             artist.textSize = 22f * u
             title.alpha = (a * 235).toInt()
@@ -286,7 +266,6 @@ private class GalleryShow(private val context: Context) : SurfaceHolder.Callback
         }
     }
 
-    /** The paintings are already the screen's shape, so each one simply covers the whole surface. */
     private fun drawSlide(c: Canvas, s: Slide, alpha: Int) {
         paint.alpha = alpha
         c.drawBitmap(s.bmp, null, RectF(0f, 0f, c.width.toFloat(), c.height.toFloat()), paint)
