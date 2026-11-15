@@ -100,8 +100,7 @@ internal class VDesignAppSurface(
                 setTextColor(0xFFB9BBC2.toInt())
                 setPadding(0, dp(24), 0, 0)
             })
-            return@init
-        }
+        } else {
         val grid = GridLayout(context).apply {
             columnCount = 4
             useDefaultMargins = false
@@ -152,6 +151,7 @@ internal class VDesignAppSurface(
                 height = dp(218)
                 setMargins(dp(5), 0, dp(9), dp(14))
             })
+        }
         }
     }
 }
