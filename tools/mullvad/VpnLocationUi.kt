@@ -136,7 +136,7 @@ internal class VpnLocationUi(
     private fun hopType() = if (isEntry()) RelayHopType.ENTRY else RelayHopType.EXIT
 
     fun build(): LinearLayout = column().apply {
-        setPadding(dp(22), dp(13), dp(22), dp(14))
+        setPadding(dp(12), dp(8), dp(12), dp(10))
         title = label("Serverstandorte · Singlehop-Ausgang", 24f, true)
         addView(title)
         status = label("Mullvad-Relayliste wird geladen …", 14f)
@@ -670,15 +670,7 @@ internal class VpnLocationUi(
         gravity = Gravity.CENTER_VERTICAL or Gravity.START
         setPadding(dp(12), dp(3), dp(12), dp(3))
         setTextColor(ink)
-        val paint: (Boolean) -> Unit = { focused ->
-            setTextColor(if (focused) Color.WHITE else ink)
-            background = GradientDrawable().apply {
-                cornerRadius = dp(9).toFloat()
-                setColor(if (focused) accent else surface)
-                setStroke(dp(if (focused) 3 else 1),
-                    if (focused) Color.WHITE else secondary)
-            }
-        }
+        val paint: (Boolean) -> Unit = { focused -> VpnTvStyle.paint(this, focused) }
         paint(false)
         setOnFocusChangeListener { _, focused ->
             paint(focused)
@@ -697,8 +689,8 @@ internal class VpnLocationUi(
             } else false
         }
     }.also {
-        it.layoutParams = LinearLayout.LayoutParams(-1, dp(48)).apply {
-            bottomMargin = dp(5)
+        it.layoutParams = LinearLayout.LayoutParams(-1, dp(44)).apply {
+            bottomMargin = dp(3)
         }
     }
 
