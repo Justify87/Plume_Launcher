@@ -493,6 +493,7 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
 
     fun focusRememberedSidebar(): Boolean = focusSidebar(lastSidebarKey)
     fun focusOverview(): Boolean = focusSidebar(OVERVIEW)
+    fun focusAllApps(): Boolean = focusSidebar(ALL_APPS)
     fun focusVpn(): Boolean = focusSidebar(VPN)
 
     private fun rememberedCard(): VDesignCardView? {
