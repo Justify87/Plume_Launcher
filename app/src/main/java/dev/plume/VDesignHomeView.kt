@@ -49,7 +49,25 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
     private val menu = mutableListOf<View>()
     private val homeContent = mutableListOf<View>()
     private val workspacePanels = linkedMapOf<String, View>()
-    private var currentWorkspace = OVERVIEW
+    private var navigation = LauncherWorkspaceNavigation.State()
+    private fun destination(key: String): LauncherWorkspaceNavigation.Destination = when (key) {
+        NUVIO -> LauncherWorkspaceNavigation.Destination.NUVIO
+        SMARTTUBE -> LauncherWorkspaceNavigation.Destination.SMARTTUBE
+        SPOTIFY -> LauncherWorkspaceNavigation.Destination.SPOTIFY
+        ALL_APPS -> LauncherWorkspaceNavigation.Destination.ALL_APPS
+        SETTINGS -> LauncherWorkspaceNavigation.Destination.SETTINGS
+        VPN -> LauncherWorkspaceNavigation.Destination.VPN
+        else -> LauncherWorkspaceNavigation.Destination.HOME
+    }
+    private val currentWorkspace: String get() = when (navigation.destination) {
+        LauncherWorkspaceNavigation.Destination.HOME -> OVERVIEW
+        LauncherWorkspaceNavigation.Destination.NUVIO -> NUVIO
+        LauncherWorkspaceNavigation.Destination.SMARTTUBE -> SMARTTUBE
+        LauncherWorkspaceNavigation.Destination.SPOTIFY -> SPOTIFY
+        LauncherWorkspaceNavigation.Destination.ALL_APPS -> ALL_APPS
+        LauncherWorkspaceNavigation.Destination.SETTINGS -> SETTINGS
+        LauncherWorkspaceNavigation.Destination.VPN -> VPN
+    }
     private var preview: (String) -> Unit = {}
     private val cardBoxes = mutableMapOf<VDesignCardView, VDesignCanvas.Box>()
     private var lastSidebarKey = OVERVIEW
@@ -152,7 +170,7 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
     fun showWorkspace(key: String, force: Boolean = false) {
         if (!force && key == currentWorkspace &&
             (key == OVERVIEW || workspacePanels[key]?.visibility == View.VISIBLE)) return
-        currentWorkspace = key
+        navigation = LauncherWorkspaceNavigation.focusRail(navigation, destination(key))
         homeContent.forEach { it.visibility = if (key == OVERVIEW) View.VISIBLE else View.GONE }
         workspacePanels.forEach { (destination, view) ->
             val selected = destination == key
@@ -194,7 +212,9 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
             }
             return if (v.isFocusable && v.isEnabled) v else null
         }
-        return findFirst(content)?.requestFocus() == true
+        val moved = findFirst(content)?.requestFocus() == true
+        if (moved) navigation = LauncherWorkspaceNavigation.right(navigation, true)
+        return moved
     }
 
     private fun header(value: String, size: Int) = TextView(context).apply {
