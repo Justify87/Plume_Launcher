@@ -24,6 +24,28 @@ spec.loader.exec_module(prepare)
 
 
 class PreparationTests(unittest.TestCase):
+
+    def test_embedded_mullvad_page_is_staged_and_keeps_original_engine(self):
+        embedded = (prepare.ROOT / "tools/mullvad/MullvadEmbeddedPanel.kt").read_text()
+        host = (prepare.ROOT / "app/src/main/java/dev/plume/MainActivity.kt").read_text()
+        staging = (prepare.ROOT / "tools/mullvad/prepare.py").read_text()
+        for required in (
+            "management.tunnelState.collect", "management.connectionState.collect",
+            "VpnService.prepare(host)", "serviceBinding.bind()",
+            "connection.connect()", "connection.disconnect(", "connection.reconnect()",
+            "VpnAccountUi(", "VpnLocationUi(", "VpnSettingsUi(",
+            "VpnSplitTunnelingUi(", "VpnAdvancedUi(", "VpnNetworkUi(",
+            "VpnDiagnosticsUi(", "fun handleBack()",
+        ):
+            self.assertIn(required, embedded)
+        self.assertIn('with_name("MullvadEmbeddedPanel.kt")', staging)
+        self.assertIn("consumerProguardFiles", staging)
+        self.assertIn("MullvadEmbeddedPanel", host)
+        self.assertIn("private fun previewVDesign", host)
+        self.assertIn("sidebar_nuvio_package", host)
+        self.assertNotIn("SharedPreferences", embedded)
+        self.assertNotIn("HttpURLConnection", embedded)
+
     def test_overlay_only_removes_six_mullvad_aliases(self):
         import xml.etree.ElementTree as ET
         xml = prepare.overlay_manifest()
