@@ -1,6 +1,7 @@
 package dev.plume
 
 import androidx.activity.ComponentActivity
+import androidx.activity.OnBackPressedCallback
 import android.animation.ObjectAnimator
 import android.animation.ValueAnimator
 import android.app.Activity
@@ -412,6 +413,13 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
+        // ComponentActivity owns system Back dispatch. A lifecycle callback handles
+        // the shell without bypassing required Activity/OS Back behavior.
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                handleShellBack()
+            }
+        })
         // The system starts Home before the user unlocks (Direct Boot). Register first, so a missed
         // broadcast cannot leave the home screen empty. Do not read prefs, files or the cache yet.
         registerReceiver(unlockReceiver, IntentFilter(Intent.ACTION_USER_UNLOCKED))
@@ -1070,8 +1078,7 @@ class MainActivity : ComponentActivity() {
         vDesign.restoreFocus()
     }
 
-    @Deprecated("Back moves within the active launcher shell; Home selects the starting page")
-    override fun onBackPressed() {
+    private fun handleShellBack() {
         if (!ready) return
         when {
             settingsScrim.visibility == View.VISIBLE -> pageBack?.invoke() ?: closeLauncherSettings()
