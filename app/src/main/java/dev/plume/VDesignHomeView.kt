@@ -22,6 +22,7 @@ import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.time.ZoneId
 import java.util.Locale
+import java.lang.ref.WeakReference
 
 /** Reference-anchored sole productive V-Design home host; no Classic/Overview layout switch. */
 internal class VDesignHomeView(context: Context) : FrameLayout(context) {
@@ -69,6 +70,8 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
         LauncherWorkspaceNavigation.Destination.VPN -> VPN
     }
     private var preview: (String) -> Unit = {}
+    private var lastContentFocus: WeakReference<View>? = null
+    private var lastContentDestination: String? = null
     private val cardBoxes = mutableMapOf<VDesignCardView, VDesignCanvas.Box>()
     private var lastSidebarKey = OVERVIEW
     private var lastSection: NuvioSection? = null
@@ -535,10 +538,33 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
             ?: live.firstOrNull()
     }
 
-    /** Never persist a View reference; restore only real, attached, currently bound cells. */
+    /**
+     * Preserve an existing in-pane focus target when another Activity opens.
+     * Weak references cannot keep detached app tiles/settings rows alive after a rebind.
+     */
+    fun rememberWorkspaceFocus(view: View?) {
+        when {
+            isContentFocused(view) -> {
+                lastContentFocus = WeakReference(view)
+                lastContentDestination = currentWorkspace
+            }
+            isRailFocused(view) -> {
+                lastContentFocus = null
+                lastContentDestination = null
+            }
+        }
+    }
+
+    /** Restore only visible, attached targets; stale views always fall back to the rail. */
     fun restoreFocus(): Boolean {
         if (!isShown) return false
-        if (currentWorkspace != OVERVIEW) return focusRememberedSidebar()
+        if (currentWorkspace != OVERVIEW) {
+            val target = lastContentFocus?.get()
+            if (lastContentDestination == currentWorkspace && target != null &&
+                target.isAttachedToWindow && target.isShown && target.isFocusable &&
+                target.requestFocus()) return true
+            return focusRememberedSidebar()
+        }
         if (preferMediaOnReturn && rememberedCard()?.requestFocus() == true) return true
         return focusRememberedSidebar() || rememberedCard()?.requestFocus() == true
     }
