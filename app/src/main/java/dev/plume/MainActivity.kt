@@ -618,6 +618,7 @@ class MainActivity : Activity() {
 
     override fun onPause() {
         if (ready) {
+            if (::vDesign.isInitialized) vDesign.rememberWorkspaceFocus(currentFocus)
             resumed = false
             videoWallpaper.pause()
             findViewById<ImageView>(R.id.wallpaper).alpha = 1f
