@@ -12,12 +12,6 @@ import android.provider.Settings
 import android.view.KeyEvent
 import android.widget.Toast
 
-/**
- * Remote key remapping. Plume's Home key service already sees every key before any app does, so a key mapped
- * here is handled there: [Entry.short] runs on a press and [Entry.long] on a hold ("" when unset). An action is
- * "none" (swallow the key), "app:<package>", "hdmi:<input id>", "media:<name>", "sys:<name>" or "open:<place>" (Plume or Android Settings).
- * Kept in one preference string ("home"/"keymap", a line per key) and in memory only once a key is pressed.
- */
 object Remap {
     class Entry(val short: String, val long: String)
 
@@ -28,7 +22,6 @@ object Remap {
             HomeOverride.running?.applyKeyFilter()
         }
 
-    /** The key whose press was just taken to be learned: its repeats and its release are swallowed too. */
     var pending: String? = null
 
     private var map: LinkedHashMap<String, Entry>? = null
@@ -60,23 +53,18 @@ object Remap {
         "power" to (AccessibilityService.GLOBAL_ACTION_POWER_DIALOG to R.string.act_power),
     )
 
-    /** A Home intent opens this view once, after the main screen is ready. */
     const val OPEN_ALL_APPS = "open_all_apps"
 
-    /** Screens that a key can open without an app tile. */
     val OPEN = linkedMapOf(
         "settings" to (Settings.ACTION_SETTINGS to R.string.act_settings),
         "network" to (Settings.ACTION_WIFI_SETTINGS to R.string.act_network),
         "allapps" to (Intent.ACTION_MAIN to R.string.act_all_apps),
     )
 
-    /** A key's identity uses its scan code too, when available. */
     fun id(e: KeyEvent) = id(e.keyCode, e.scanCode)
 
-    /** Also keys with no code at all, which would all share one identity. */
     fun kept(e: KeyEvent) = kept(e.keyCode, e.scanCode)
 
-    // The same rules on plain numbers and a plain SharedPreferences, so the unit tests need no Android framework.
     internal fun id(keyCode: Int, scanCode: Int) = when {
         keyCode == KeyEvent.KEYCODE_UNKNOWN -> "s$scanCode"
         scanCode != 0 -> "k${keyCode}s$scanCode"
@@ -100,12 +88,10 @@ object Remap {
         map = m
     }
 
-    /** Forgets the keys held in memory, so the next [all] reads the preferences again. */
     internal fun reset() {
         map = null
     }
 
-    /** Saves a key's actions; a key left with none is forgotten and goes back to its usual job. */
     fun put(c: Context, id: String, short: String, long: String) {
         put(store(c), id, short, long)
         HomeOverride.running?.applyKeyFilter()
@@ -119,7 +105,6 @@ object Remap {
 
     private val KAMINO = ComponentName("com.amazon.tv.inputpreference.service", "com.amazon.tv.inputpreference.service.KaminoInputSwitchService")
 
-    /** The hardware number at the end of a TV input id ("…/HW2"); some Fire TV switchers accept it as inputType. */
     internal fun hardwareNumber(id: String) = Regex("/HW(\\d+)$").find(id)?.groupValues?.get(1)?.toInt()
 
     /** #146: this provider's inputs fail through Amazon's switcher, so Plume supplies the playback surface. */
@@ -144,7 +129,7 @@ object Remap {
         val started = port != null && try {
             c.startService(Intent().setComponent(KAMINO).putExtra("inputType", port)) != null
         } catch (e: Exception) {
-            false // not exported to other apps on this build, or Android refused a start from the background
+            false 
         }
         if (!started) Toast.makeText(c, R.string.fire_os_no_input, Toast.LENGTH_LONG).show()
     }
@@ -183,11 +168,9 @@ object Remap {
             }
         } catch (e: Exception) {
             if (action == "media:mute") Toast.makeText(s, R.string.mute_unavailable, Toast.LENGTH_LONG).show()
-            // An app that's gone, or an input that's unplugged: the key just does nothing.
         }
     }
 
-    /** What a key is called in the list: "Media play pause" for Android's own codes, "Key 4001" for the rest. */
     fun name(c: Context, id: String): String {
         val n = id.substring(1).substringBefore('s').toInt()
         val s = if (id[0] == 'k') KeyEvent.keyCodeToString(n) else ""

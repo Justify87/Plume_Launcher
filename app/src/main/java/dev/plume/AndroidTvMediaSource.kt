@@ -32,7 +32,6 @@ internal data class TvPreviewChannel(
     val channelProviderId: String?,
     val browsable: Boolean?,
 ) {
-    // Keep old Triple-style settings and wallpaper callers intact.
     val first: Long get() = id
     val second: String get() = packageName
     val third: String get() = displayName
@@ -54,8 +53,6 @@ internal data class NuvioProviderFeeds(
 internal object AndroidTvMediaSource {
     val categorizedNuvioKinds = setOf(NuvioChannelKind.IN_PROGRESS,
         NuvioChannelKind.AVAILABLE, NuvioChannelKind.UPCOMING)
-    /** Actual application IDs of this Nuvio fork, including its debug and Play Store variants. */
-    /** Current actual full/Play Store/debug/benchmark IDs plus historical fork installations. */
     fun isNuvioPackage(pkg: String?): Boolean = pkg in setOf(
         "com.nuvio.tv", "com.nuviodebug.com", "com.nuvio.app", "com.nuvio.appdebug",
         "com.nuvio.tv.debug", "com.nuvio.app.debug",
@@ -81,11 +78,6 @@ internal object AndroidTvMediaSource {
         }
     }
 
-    /**
-     * A separate M01 snapshot, not rendered by the existing Classic/Overview.
-     * Unknown/unapproved channels never contribute; fallback contains only started legacy
-     * Watch Next or classic mixed-channel entries, never supposed 'available' episodes.
-     */
     fun selectNuvio(
         channels: List<TvPreviewChannel>,
         programs: List<AndroidTvProgram>,
@@ -104,8 +96,6 @@ internal object AndroidTvMediaSource {
         }
         val progress = entries.filter { it.kind == NuvioChannelKind.IN_PROGRESS }.toMutableList()
         if (active.values.none { nuvioKind(it) == NuvioChannelKind.IN_PROGRESS }) {
-            // Prefer a real Watch Next record when it duplicates a Classic preview. Only
-            // identity + explicit episode numbers permit fallback dedupe; M02 owns full dedupe.
             val seenFallback = HashSet<String>()
             progress += legacyPrograms.filter { p ->
                 isNuvioPackage(p.item.sourcePackage) &&
@@ -128,15 +118,6 @@ internal object AndroidTvMediaSource {
             entries.filter { it.kind == NuvioChannelKind.UPCOMING })
     }
 
-    /**
-     * Nuvio's legacy Watch Next and Continue Watching channel mix in unstarted Next Up
-     * episodes, even though Watch Next marks all of them as CONTINUE. Only its entries
-     * with actual playback progress are resumable. Newer Nuvio versions additionally
-     * publish already-aired Next Up episodes in a distinct channel called "Next Up".
-     *
-     * Other apps retain the existing M06 rules. A generic Watch Next NEXT/NEW flag or
-     * engagement timestamp is never treated as proof that an episode was released.
-     */
     fun select(programs: List<AndroidTvProgram>, permissionGranted: Boolean): List<MediaItem> {
         if (!permissionGranted) return emptyList()
         val classified = programs.mapNotNull { program ->
@@ -197,9 +178,7 @@ internal object AndroidTvMediaSource {
         val seriesNames = listOfNotNull(
             program.seriesId?.trim()?.takeIf { it.isNotEmpty() },
             program.seriesTitle?.trim()?.takeIf { it.isNotEmpty() },
-            // Some providers put the series name in title and the episode in episode_title.
             program.item.title.takeIf {
-                // When the publisher identifies a series explicitly, a shared episode title
                 // ("Pilot") cannot be used as a second series key across unrelated shows.
                 program.seriesId.isNullOrBlank() && program.seriesTitle.isNullOrBlank() &&
                     ((!program.episodeTitle.isNullOrBlank() && it != program.episodeTitle) ||
@@ -207,8 +186,6 @@ internal object AndroidTvMediaSource {
             },
         ).distinct()
         program.internalProviderId?.trim()?.takeIf { it.isNotEmpty() }?.let { rawId ->
-            // Nuvio prefixes Watch Next IDs with "wn_" but not Preview IDs.
-            // Nuvio also scopes TV-episode keys to season/episode itself.
             val id = if (isNuvioPackage(pkg)) rawId.removePrefix("wn_") else rawId
             // Internal IDs can identify an entire series. Never merge other episodes or series.
             val suffix = when {
@@ -223,7 +200,6 @@ internal object AndroidTvMediaSource {
             if (season != null && episode != null) {
                 keys += "episode:$prefix:${part(series)}:${part(season)}:${part(episode)}"
             }
-            // Exact media deep links can disambiguate a series even without season/episode data.
             // Do not match plain launcher intents or match across unknown series.
             val uri = program.item.intentUri
             if (uri != null && uri.isNotBlank() && hasContentDeepLink(uri)) {

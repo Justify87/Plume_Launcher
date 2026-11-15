@@ -2,7 +2,6 @@ package dev.plume
 
 import java.util.Collections
 
-/** Pure, Android-free selection rules for both shared Overview rows and individual app pages. */
 internal object MediaFeedRules {
     /**
      * Android TV Watch Next: 0=continue, 1=next, 2=new, 3=watchlist.
@@ -48,7 +47,6 @@ internal object MediaFeedRules {
         }
     }
 
-    /** Some TV providers report seconds in a millisecond column. Keep unknown values null. */
     fun timestampMillis(value: Long?): Long? = when {
         value == null || value <= 0 -> null
         value < 100_000_000_000L -> value * 1000L
@@ -88,10 +86,6 @@ internal object MediaFeedRules {
     }
 }
 
-/**
- * An in-memory snapshot of independent sources. There is no querying, caching of images, service,
- * polling, or Android dependency here. Call [replaceSource] on the existing TV query executor.
- */
 internal class MediaFeedRepository {
     private val lock = Any()
     private val sources = LinkedHashMap<String, List<MediaItem>>()
@@ -99,14 +93,12 @@ internal class MediaFeedRepository {
     fun replaceSource(sourceId: String, items: List<MediaItem>) {
         require(sourceId.isNotBlank())
         require(items.all { it.sourceId == sourceId })
-        // Copy both collection layers so no caller can change a published snapshot later.
         val copy = items.map { it.copy(packageAliases = it.packageAliases.toSet()) }
         synchronized(lock) {
             if (copy.isEmpty()) sources.remove(sourceId) else sources[sourceId] = copy
         }
     }
 
-    /** Null filters mean all sources, apps, or categories. Caller receives an unmodifiable list. */
     fun snapshot(
         sourceId: String? = null,
         packageName: String? = null,

@@ -24,7 +24,6 @@ import java.time.ZoneId
 import java.util.Locale
 import java.lang.ref.WeakReference
 
-/** Reference-anchored sole productive V-Design home host; no Classic/Overview layout switch. */
 internal class VDesignHomeView(context: Context) : FrameLayout(context) {
     companion object {
         const val OVERVIEW = "vdesign:overview"
@@ -104,7 +103,6 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
         clipChildren = false
         clipToPadding = false
         setBackgroundColor(0xFF121317.toInt())
-        // The small icon rail has no permanent labels or decorative divider.
         titleProgress = heading("WEITERSCHAUEN", 131, 94, 23)
         titleAvailable = heading("VERFÜGBARE FOLGEN", 1132, 94, 20, 285).apply {
             letterSpacing = .09f
@@ -151,11 +149,9 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
             842 to 213, 1074 to 211, 1306 to 205
         )) card(VDesignCanvas.Box(x, 605, width, 218), VDesignCardView.Kind.COMPACT, upcomingCards)
         refreshHeader()
-        // Home-only views are captured before adding the persistent rail or other panes.
         homeContent += (0 until childCount).map { getChildAt(it) }
     }
 
-    /** Replace the former full-screen overlays with children of the right-hand viewport. */
     fun installWorkspacePane(key: String, content: View) {
         if (key == OVERVIEW) return
         workspacePanels.remove(key)?.let { old ->
@@ -165,7 +161,6 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
         (content.parent as? ViewGroup)?.removeView(content)
         content.visibility = View.GONE
         workspacePanels[key] = content
-        // The right pane uses the full height; its content owns internal padding.
         mount(content, VDesignCanvas.Box(103, 0, 1433, 864))
         menu.forEach { bringChildToFront(it) }
         if (currentWorkspace == key) showWorkspace(key, force = true)
@@ -250,14 +245,12 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
         super.onDetachedFromWindow()
     }
 
-    /** Refresh immediately after returning from VPN settings; timer covers live Home changes. */
     fun refreshStatus() = refreshHeader()
 
     private fun refreshHeader() {
         val now = ZonedDateTime.now()
         dateHeader.text = now.format(DateTimeFormatter.ofPattern("EEE, d. MMM yyyy", Locale.GERMAN))
         clockHeader.text = now.format(DateTimeFormatter.ofPattern("HH:mm", Locale.GERMAN))
-        // Active VPN transport is verifiable. The mere presence of the Mullvad Activity is not.
         val connectivity = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
         val active = connectivity?.getNetworkCapabilities(connectivity.activeNetwork)
         val vpn = active?.hasTransport(NetworkCapabilities.TRANSPORT_VPN) == true
@@ -348,7 +341,6 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
         }
     }
 
-    /** Immutable M02 snapshot plus callbacks from the existing shared poster cache and TV launcher. */
     fun bindMedia(loadArtwork: (ImageView, String?) -> Unit,
         sourceIcon: (String) -> Drawable?, onSelect: (NuvioMediaItem) -> Unit) {
         artworkLoader = loadArtwork
@@ -410,7 +402,6 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
     }
 
     fun artworkReady(uri: String, bitmap: Bitmap) {
-        // Avoid allocating a temporary concatenated card list for every decoded poster.
         progressCards.forEach { it.artworkReady(uri, bitmap) }
         availableCards.forEach { it.artworkReady(uri, bitmap) }
         upcomingCards.forEach { it.artworkReady(uri, bitmap) }
@@ -422,7 +413,6 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
         upcomingCards.forEach { it.retryMissingArtwork() }
     }
 
-    /** The rail remains visible. Focus selects content, OK activates the target. */
     fun bindNavigation(items: List<Navigation>, onOpen: (String) -> Unit,
         onPreview: (String) -> Unit = {}, showFullColorAppIcons: Boolean = true,
         onAllApps: () -> Unit, onSystemActions: (View) -> Unit) {
@@ -555,7 +545,6 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
         }
     }
 
-    /** Restore only visible, attached targets; stale views always fall back to the rail. */
     fun restoreFocus(): Boolean {
         if (!isShown) return false
         if (currentWorkspace != OVERVIEW) {
@@ -569,13 +558,10 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
         return focusRememberedSidebar() || rememberedCard()?.requestFocus() == true
     }
 
-    /** Called before legacy homeNav: all visible V-Design D-pad moves are explicit. */
     fun handleDpad(focused: View?, keyCode: Int): Boolean {
         if (!isShown || focused == null) return false
         if (isContentFocused(focused)) {
             if (keyCode != KeyEvent.KEYCODE_DPAD_LEFT) return false
-            // Let Android move between grid columns and settings controls first.
-            // Only the actual left edge returns focus to the persistent rail.
             val next = focused.focusSearch(View.FOCUS_LEFT)
             return if (next != null && next !== focused && isContentFocused(next))
                 false else focusRememberedSidebar()

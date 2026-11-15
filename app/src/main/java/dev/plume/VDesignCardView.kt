@@ -27,10 +27,6 @@ import java.util.Locale
 import kotlin.math.min
 import kotlin.math.roundToInt
 
-/**
- * The four reference card families share a single bitmap cache and the original Nuvio intents.
- * No mockup art or sample series names are bundled. A slot is focusable only with real media.
- */
 internal class VDesignCardView(
     context: Context,
     val kind: Kind,
@@ -137,8 +133,6 @@ internal class VDesignCardView(
                 roundImage(this, 28)
                 background = bg(Colors.SURFACE, 28)
                 addView(art, LayoutParams(-1, -1))
-                // The photographed subject stays to the right; the distinctive pale curved
-                // editorial panel is drawn rather than baked into a static hero image.
                 addView(object : View(context) {
                     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
                     private val path = Path()
@@ -154,8 +148,6 @@ internal class VDesignCardView(
                         val h = height.toFloat()
                         path.reset()
                         path.moveTo(0f, 0f)
-                        // The left overlay occupies roughly 44% of the frame rather than
-                        // the previous 60–70%, so the actual episode image remains visible.
                         path.lineTo(w * .50f, 0f)
                         path.cubicTo(w * .33f, h * .25f, w * .38f, h * .70f, w * .52f, h)
                         path.lineTo(0f, h)
@@ -265,7 +257,6 @@ internal class VDesignCardView(
         setOnClickListener { media?.let { onSelect?.invoke(it) } }
     }
 
-    /** Reflow type to the *actual* canvas viewport, not the physical display metrics. */
     fun updateViewportScale(viewportScale: Float) {
         if (viewportScale <= 0f) return
         val fontScale = resources.configuration.fontScale.coerceIn(.85f, 1.25f)
@@ -285,7 +276,6 @@ internal class VDesignCardView(
         emptyLabel?.let { adjust(it, 18) }
     }
 
-    /** Reference alternates lime, lavender and peach date chips across six visible tiles. */
     fun setUpcomingAccent(slot: Int) {
         if (kind != Kind.COMPACT) return
         dateBadge.background = bg(when (slot % 3) {
