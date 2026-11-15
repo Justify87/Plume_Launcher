@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- 960x540dp TV canvas maps to both 1080p and 4K. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/root"
     android:layout_width="match_parent"
@@ -161,6 +162,7 @@
 
     </LinearLayout>
 
+    <!-- setupVDesign reparents these panes into the persistent workspace. -->
     <ScrollView
         android:id="@+id/allApps"
         android:layout_width="match_parent"
