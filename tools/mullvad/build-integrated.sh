@@ -1,6 +1,4 @@
 #!/usr/bin/env bash
-# Build one Plume+Mullvad APK using Mullvad's pinned Android build container.
-# Matches upstream's /build, /cargo-target, cargo-registry and Gradle cache layout.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 repo_root="$PWD"

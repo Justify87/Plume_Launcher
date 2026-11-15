@@ -43,15 +43,12 @@ def wrong_markers(key, text, en):
 
 def check(strict, table):
     en = read(os.path.join(RES, 'values', 'strings.xml'))
-    # A language may use other plural quantities than English: only the strings are required.
     required = [k for k in en if ':' not in k]
     plural_names = sorted({k.split(':')[0] for k in en if ':' in k})
     rows, bad = [], 0
     for path in sorted(glob.glob(os.path.join(RES, 'values-*', 'strings.xml'))):
         code = os.path.basename(os.path.dirname(path))[len('values-'):]
         tr = read(path)
-        # A plural counts as missing when the translation has none of its forms (English has one and other; a language
-        # may have more, or other quantities).
         missing = [k for k in required if k not in tr] + [n for n in plural_names if not any(k.startswith(n + ':') for k in tr)]
         unknown = [k for k in tr if k not in en and k.split(':')[0] not in plural_names]
         markers = [k for k in tr if wrong_markers(k, tr[k], en)]
