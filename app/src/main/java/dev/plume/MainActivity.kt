@@ -601,17 +601,31 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    override fun onRequestPermissionsResult(code: Int, perms: Array<String>, results: IntArray) {
-        if (code != MEDIA_REQUEST) return refreshWatchNext()
-        if (results.firstOrNull() == PackageManager.PERMISSION_GRANTED) afterPhotoAccess?.invoke()
+    @Deprecated("Legacy TV/media permission callback; ComponentActivity owns ActivityResult delivery")
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<String>,
+        grantResults: IntArray,
+    ) {
+        // Required for ActivityResultRegistry, including embedded Mullvad's VPN consent.
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode != MEDIA_REQUEST) {
+            refreshWatchNext()
+            return
+        }
+        if (grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED)
+            afterPhotoAccess?.invoke()
         else toast(getString(R.string.photos_permission), long = true)
     }
 
-    @Deprecated("Only used for the default-home role request and the TV's own installer")
-    override fun onActivityResult(code: Int, result: Int, data: Intent?) {
-        if (code == INSTALL_REQUEST) installerClosed()
-        if (code == ROLE_REQUEST && settingsScrim.visibility == View.VISIBLE) renderSettings(R.string.default_launcher)
-        if (code == ROLE_REQUEST && setupStep == 1) {
+    @Deprecated("Legacy installer and HOME role callback; modern ActivityResults still need super")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        // Never bypass ComponentActivity's registered VPN/import/export result contracts.
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == INSTALL_REQUEST) installerClosed()
+        if (requestCode == ROLE_REQUEST && settingsScrim.visibility == View.VISIBLE)
+            renderSettings(R.string.default_launcher)
+        if (requestCode == ROLE_REQUEST && setupStep == 1) {
             setupStep = 0
             afterHomeRole()
         }
