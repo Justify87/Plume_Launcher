@@ -64,9 +64,22 @@ Removed `app/src/main/java/dev/plume/HomeFeedStatus.kt` plus these 16 unreferenc
 
 **M05 review:** The website removal is backed by repository `has_pages=false`, branch inventory and internal reference checks, but cannot prove absence of unknown external bookmarks. Website deletion does not affect Android compilation. No untested gallery/CDN behavior was changed. **Pass, with known upstream-gallery technical debt deferred to a dedicated functional PR.**
 
-## M06 — final verification
+## M06 — final verification and release decision (review)
 
-**Status:** pending.
+**Final source tree and diff review:** Compared the cleanup branch against `main@ded8972f02f003a0f8c820d98438a79d286b2d1e`. The reviewed candidate set removed **60 tracked files totaling 12,249,996 raw bytes** (M03 35; M04 17; M05 8), and added two active documents (this audit + `docs/architecture/ACTIVE_INTEGRATIONS.md`). No feature code, `AndroidManifest.xml`, `app/build.gradle.kts`, `.gitmodules`, `third_party/mullvadvpn-app` gitlink, `tools/mullvad/**`, or GitHub Actions workflow files were modified.
+
+**Static checks actually performed:**
+- Retrieved the branch's complete recursive Git tree and verified archive/site/obsolete assets are absent; the Mullvad gitlink stays pinned to `aa47f606b1a159214c7279344128119fa91be5fd`.
+- Scanned all **12** remaining Markdown files for ordinary local relative link targets: **23 local links, 0 broken**. Plain text back-references in this audit intentionally describe removed files.
+- Checked the Kotlin/test sources and Mullvad TV UI sources for deleted symbols and drawable names, plus central Android Manifest/layout/values resources. No discovered live reference; the dynamically resolved Material Symbol fill siblings that are actually used remain.
+- Confirmed `docs/v-design/DESIGN_CONTRACT.md`, `docs/v-design/VISUAL_REVIEW_2026-11.md`, `docs/workspace/REVIEWS.md`, debug/release playbooks, licensed sources, wallpaper assets, public-domain paintings and app icons remain.
+- GitHub metadata explicitly reports Pages disabled. The old website was removed instead of preserving misleading upstream download and privacy pages.
+- Kept the `CHANGELOG.md` version `0.1.0` release notes so `app/build.gradle.kts` still has an extractable version section.
+
+**What this review does *not* establish:** No actual `./gradlew testDebugUnitTest lintDebug assembleDebug`, Android resource packaging, R8 combined Mullvad release, or on-device Shield/VPN test was executed locally: the connected GitHub interface is a source/repository interface, not a local Android/NDK/Rust build environment. The GitHub PR's integrated CI is the required executable check; its final HEAD-specific status must be inspected before merge.
+
+**Release decision:** Source and documentation cleanup meets its static objective. **Do not merge until the PR's combined CI is green.** Physical Shield UI, Nuvio installed-variant login, VPN consent/tunnel/kill-switch, artwork, and screenshot visual QA remain separate hardware acceptance items. The latest visual reference original is still missing from Git, and the Gallery painting download uses the inherited upstream URL; both are explicitly deferred, not silently fixed.
+
 
 ## Remaining known limitations
 

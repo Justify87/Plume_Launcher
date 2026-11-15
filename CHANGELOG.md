@@ -9,6 +9,7 @@ Keep the most important six changes first and use one `- ` bullet per change.
 
 ## Unreleased
 
+- **Repository maintenance.** Remove obsolete archival documents, an unpublished upstream web site, historical screenshots, a dead helper and unused resources while preserving active media and VPN contracts.
 - **Expressive TV redesign.** Replace the old V-Design home grid with the user's new 1536×864 reference composition.
 - **One-line upcoming shelf.** Show six upcoming items with date badges and spatial D-Pad navigation.
 - **Compact settings.** Refresh launcher settings and all Mullvad TV pages with dark matte cards, lime focus and subtle transitions.
