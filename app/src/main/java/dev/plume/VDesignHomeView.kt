@@ -47,6 +47,10 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
 
     private val anchored = mutableListOf<Pair<View, VDesignCanvas.Box>>()
     private val homeElements = mutableListOf<View>()
+    // Settings and All Apps were originally root children. Keep them attached to this
+    // shell when offscreen so MainActivity.findViewById continues to work on every visit.
+    private val parkedPages = FrameLayout(context).apply { visibility = View.GONE }
+
     private val rightPane = FrameLayout(context).apply {
         setBackgroundColor(0xFF121317.toInt())
         isFocusable = false
@@ -135,6 +139,7 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
         )) card(VDesignCanvas.Box(x, 605, width, 218), VDesignCardView.Kind.COMPACT, upcomingCards)
         // A single permanent shell: media cards and a reparentable right-hand content pane
         // share this View. Only the compact icon rail stays on top at every navigation level.
+        addView(parkedPages, LayoutParams(0, 0))
         mount(rightPane, VDesignCanvas.Box(104, 64, 1418, 784))
         refreshHeader()
     }
@@ -236,21 +241,37 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
         if (width > 0 && height > 0) position(view, box)
     }
 
-    /** Swap content only on sidebar focus; the physical sidebar and Activity never disappear. */
+    /**
+     * One permanent shell: replace the page on the right, never the left rail.
+     * Persistent settings/apps Views are parked offscreen rather than detached:
+     * the existing launcher's many findViewById-based features still work.
+     */
     fun showSection(key: String, content: View? = null) {
-        if (key == visibleSection && (key == OVERVIEW || rightPane.getChildAt(0) === content)) return
+        if (key == visibleSection &&
+            (key == OVERVIEW || rightPane.getChildAt(0) === content)) return
         visibleSection = key
-        val home = key == OVERVIEW
-        homeElements.forEach { it.visibility = if (home) View.VISIBLE else View.INVISIBLE }
+        val isHome = key == OVERVIEW
+        homeElements.forEach { it.visibility = if (isHome) View.VISIBLE else View.INVISIBLE }
         rightPane.animate().cancel()
         rightPane.alpha = 1f
         rightPane.translationX = 0f
-        rightPane.visibility = if (home) View.GONE else View.VISIBLE
-        if (home) return
+        if (isHome) {
+            rightPane.visibility = View.GONE
+            return
+        }
+        rightPane.visibility = View.VISIBLE
         if (rightPane.getChildAt(0) !== content) {
-            rightPane.removeAllViews()
+            val previous = rightPane.getChildAt(0)
+            if (previous != null) {
+                rightPane.removeView(previous)
+                if (previous.id == R.id.allApps || previous.id == R.id.settingsScrim) {
+                    previous.visibility = View.GONE
+                    parkedPages.addView(previous, FrameLayout.LayoutParams(-1, -1))
+                }
+            }
             if (content != null) {
                 (content.parent as? ViewGroup)?.removeView(content)
+                content.visibility = View.VISIBLE
                 rightPane.addView(content, FrameLayout.LayoutParams(-1, -1))
             }
         }
