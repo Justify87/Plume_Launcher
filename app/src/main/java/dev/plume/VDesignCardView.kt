@@ -276,7 +276,7 @@ internal class VDesignCardView(
         progressFill.scaleX = (percent ?: 0) / 100f
         percentText.text = percent?.let { "$it %" }
         heroButton.visibility = if (kind == Kind.HERO && item != null) View.VISIBLE else View.GONE
-        newBadge.visibility = if (kind == Kind.AVAILABLE && item != null) View.VISIBLE else View.GONE
+        newBadge.visibility = if (kind == Kind.AVAILABLE && item?.showNewBadge == true) View.VISIBLE else View.GONE
         dateBadge.text = item?.releaseDate?.format(DateTimeFormatter.ofPattern("EE d", locale))
             ?.uppercase(locale).orEmpty()
         dateBadge.visibility = if (kind == Kind.COMPACT && item?.releaseDate != null)
