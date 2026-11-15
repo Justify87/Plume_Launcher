@@ -49,3 +49,16 @@ internal object NuvioInstallationPolicy {
         return candidates.singleOrNull()
     }
 }
+
+/** An app-preview intent may only target the package which published the media card. */
+internal object WorkspaceMediaLaunchPolicy {
+    fun valid(owner: String?, componentPackage: String?, declaredPackage: String?,
+        hasSelector: Boolean, dataScheme: String?): Boolean {
+        if (owner.isNullOrBlank() || (componentPackage == null && declaredPackage == null))
+            return false
+        if (componentPackage != null && componentPackage != owner) return false
+        if (declaredPackage != null && declaredPackage != owner) return false
+        if (hasSelector || dataScheme in setOf("file", "content")) return false
+        return true
+    }
+}
