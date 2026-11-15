@@ -2561,6 +2561,13 @@ class MainActivity : Activity() {
             R.string.icon_style to Triple(getString(R.string.icon_style), getString(ICON_STYLES.getValue(iconStyle()))) {
                 steps[R.string.icon_style]!!(1)
             },
+            R.string.sidebar_color_icons to Triple(getString(R.string.sidebar_color_icons),
+                toggle(prefs.getBoolean("sidebar_color_icons", true))) {
+                val old = prefs.getBoolean("sidebar_color_icons", true)
+                prefs.edit().putBoolean("sidebar_color_icons", !old).apply()
+                refreshVDesignNavigation()
+                renderSettings(R.string.sidebar_color_icons)
+            },
             R.string.cw_apps to Triple(getString(R.string.cw_apps), if (cwOff == 0) getString(R.string.all_on) else getString(R.string.n_off, cwOff)) { pickWatchSources() },
             R.string.cw_channels to Triple(getString(R.string.cw_channels), getString(R.string.n_on, channelsOn)) { pickChannels() },
             R.string.youtube_subscriptions to Triple(getString(R.string.youtube_subscriptions),
@@ -2625,7 +2632,7 @@ class MainActivity : Activity() {
             Triple(R.string.section_style, "${rows[R.string.theme]!!.second} · ${getString(glassName())}",
                 listOf(R.string.theme, R.string.glass, R.string.app_animations)),
             Triple(R.string.section_applications, rows[R.string.sort_apps]!!.second,
-                listOf(R.string.sort_apps, R.string.icon_style)),
+                listOf(R.string.sort_apps, R.string.icon_style, R.string.sidebar_color_icons)),
             Triple(R.string.section_tv_media, rows[R.string.cw_channels]!!.second,
                 listOf(R.string.cw_apps, R.string.cw_channels)),
             Triple(R.string.section_clock_weather,
