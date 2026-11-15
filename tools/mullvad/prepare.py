@@ -79,18 +79,14 @@ WITNESSED_COMPILER_JARS = (
 
 
 def stage_witnessed_compiler_checksums(path: Path) -> None:
-    """Add exactly two independently verified hashes to the disposable copy.
+    """Extend only the disposable Gradle lock with two cross-checked JAR hashes.
 
-    Do not modify the upstream submodule or Gradle's verification configuration.
-    Fail closed if the pinned lockfile metadata changes or the jars are already
-    present with a different hash.
+    Require the exact upstream metadata hashes first; refuse unexpected
+    artifacts instead of disabling checksum/signature verification.
     """
     xml = path.read_text(encoding="utf-8")
     for name, module_sha, jar_sha in WITNESSED_COMPILER_JARS:
-        opening = (
-            f'      <component group="org.jetbrains.kotlinx" name="{name}" version="1.6.4">\\n'
-        ).replace("\\\\n", "\\n")
-        # Match a complete component, never a global artifact name elsewhere.
+        opening = f'      <component group="org.jetbrains.kotlinx" name="{name}" version="1.6.4">\n'
         if xml.count(opening) != 1:
             raise RuntimeError(f"Unexpected pinned Gradle metadata for {name} 1.6.4")
         begin = xml.index(opening)
@@ -99,18 +95,18 @@ def stage_witnessed_compiler_checksums(path: Path) -> None:
             raise RuntimeError(f"Incomplete Gradle verification component: {name}")
         block = xml[begin:end]
         module = (
-            f'         <artifact name="{name}-1.6.4.module">\\n'
+            f'         <artifact name="{name}-1.6.4.module">\n'
             f'            <sha256 value="{module_sha}"'
-        ).replace("\\\\n", "\\n")
+        )
         if module not in block:
             raise RuntimeError(f"Unrecognized upstream module SHA256 for {name}")
         if f'<artifact name="{name}-1.6.4.jar">' in block:
             raise RuntimeError(f"Compiler JAR is already pinned: {name}")
         addition = (
-            f'         <artifact name="{name}-1.6.4.jar">\\n'
-            f'            <sha256 value="{jar_sha}" origin="Independently cross-checked witness"/>\\n'
-            f'         </artifact>\\n'
-        ).replace("\\\\n", "\\n")
+            f'         <artifact name="{name}-1.6.4.jar">\n'
+            f'            <sha256 value="{jar_sha}" origin="Independent witness verification"/>\n'
+            f'         </artifact>\n'
+        )
         block = block.replace(module, addition + module, 1)
         xml = xml[:begin] + block + xml[end:]
     path.write_text(xml, encoding="utf-8")
