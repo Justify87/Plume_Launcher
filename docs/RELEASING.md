@@ -7,8 +7,9 @@ YubiKey-Signer, F-Droid-Pipeline und seine `android/20xx.xx`-Tags sind **nicht**
 
 ## Einmalige Signierung einrichten
 
-Der vorhandene `.github/workflows/debug-apk.yml` liefert Debug-APKs und unsignierte
-R8-Releases. Eine Debug-APK aus GitHub Actions ist **keine** dauerhaft updatefähige
+Der manuelle `.github/workflows/debug-apk.yml` baut **ausschließlich** die
+kombinierte Debug-APK. Der getrennte PR-/Release-Build prüft zusätzlich einen
+unsignierten R8-Release. Eine Debug-APK aus GitHub Actions ist **keine** dauerhaft updatefähige
 Release-APK. Die neue `.github/workflows/release.yml` bricht ab, wenn kein dauerhafter
 Release-Schlüssel eingerichtet wurde. Dies war die exakte Ursache des fehlgeschlagenen
 ersten `v0.1.0`-Release-Laufs [#43644701229](https://github.com/Justify87/Plume_Launcher/actions/runs/43644701229):

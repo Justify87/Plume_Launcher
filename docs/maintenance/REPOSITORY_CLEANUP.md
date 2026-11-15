@@ -78,6 +78,8 @@ Removed `app/src/main/java/dev/plume/HomeFeedStatus.kt` plus these 16 unreferenc
 
 **What this review does *not* establish:** No actual `./gradlew testDebugUnitTest lintDebug assembleDebug`, Android resource packaging, R8 combined Mullvad release, or on-device Shield/VPN test was executed locally: the connected GitHub interface is a source/repository interface, not a local Android/NDK/Rust build environment. The GitHub PR's integrated CI is the required executable check; its final HEAD-specific status must be inspected before merge.
 
+**Final-review correction:** Cross-checked `docs/RELEASING.md` against the actual current `debug-apk.yml`, `ci-integrated.yml` and `release.yml`; replaced an obsolete claim that manual debug builds also produce unsigned R8 releases. The manual workflow **only** builds debug; CI/release validate R8. This is a documentation correction, not a workflow change.
+
 **Release decision:** Source and documentation cleanup meets its static objective. **Do not merge until the PR's combined CI is green.** Physical Shield UI, Nuvio installed-variant login, VPN consent/tunnel/kill-switch, artwork, and screenshot visual QA remain separate hardware acceptance items. The latest visual reference original is still missing from Git, and the Gallery painting download uses the inherited upstream URL; both are explicitly deferred, not silently fixed.
 
 
