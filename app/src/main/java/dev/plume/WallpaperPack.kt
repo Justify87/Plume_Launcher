@@ -19,12 +19,10 @@ internal data class PackPhoto(val file: String, val size: Long, val sha: String)
         require(packFileName(file) && size in 12..50_000_000 && sha.matches(Regex("[a-f0-9]{40}")))
     }
 
-    // GitHub identifies a file by the SHA-1 of its Git blob, including this header.
     private fun digest() = MessageDigest.getInstance("SHA-1").apply { update("blob $size\u0000".toByteArray(Charsets.UTF_8)) }
 
     fun current(dir: File) = File(dir, file).let { it.isFile && matches(it) }
 
-    /** Replace only this file after verification. A failed download keeps the installed image. */
     fun download(dir: File, open: () -> InputStream): Boolean {
         if (current(dir)) return false
         if (!dir.isDirectory && !dir.mkdirs()) throw IOException("Cannot create $dir")

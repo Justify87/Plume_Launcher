@@ -6,7 +6,6 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlin.math.ceil
 
-/** M04 presentation values: no invented duration, episode number, release time or "new" claim. */
 internal object VDesignCardText {
     fun episode(item: NuvioMediaItem): String? {
         val parts = listOfNotNull(item.seasonNumber?.let { "S$it" },

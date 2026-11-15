@@ -51,8 +51,6 @@ internal object VDesignFocusNavigator {
             Target.Sidebar(sidebarKey) else Target.Stay
         val closest = candidates.minWithOrNull(compareBy<Cell> { candidate ->
             val b = candidate.box
-            // Prioritize a shared band/column. A diagonal jump costs more than a
-            // slightly longer move in the same row or column.
             val transverse = when (direction) {
                 Direction.LEFT, Direction.RIGHT -> axisGap(a.y, a.y + a.height, b.y, b.y + b.height)
                 Direction.UP, Direction.DOWN -> axisGap(a.x, a.x + a.width, b.x, b.x + b.width)

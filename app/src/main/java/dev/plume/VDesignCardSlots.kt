@@ -1,9 +1,5 @@
 package dev.plume
 
-/**
- * Android-free binding policy for the 3+3+6 fixed reference cells.
- * The full immutable feed owns counts; these are only visible windows.
- */
 internal object VDesignCardSlots {
     fun media(feed: NuvioDashboardFeed, section: NuvioSection, slot: Int,
         upcomingOffset: Int = 0): NuvioMediaItem? {
@@ -16,7 +12,6 @@ internal object VDesignCardSlots {
         }
     }
 
-    /** A one-line six-card viewport slides by one item, without skipping episodes. */
     fun nextUpcomingOffset(total: Int, current: Int, slot: Int, direction: Int): Int {
         val max = (total - 6).coerceAtLeast(0)
         val safe = current.coerceIn(0, max)
