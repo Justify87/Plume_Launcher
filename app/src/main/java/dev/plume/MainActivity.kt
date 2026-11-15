@@ -3894,7 +3894,8 @@ class MainActivity : Activity() {
         for (app in visibleApps) {
             val tile = WorkspaceAppTileView(this, app.pkg, app.label,
                 vDesignAppIcon(app), originalColors = colourIcons(),
-                launch = { launch(app) }, longPress = { onHold(it) })
+                launch = { launch(app) },
+                longPress = { if (!holdFired) fireHold(it) })
             allAppsGrid.addView(tile, GridLayout.LayoutParams().apply {
                 width = dp(145)
                 height = dp(135)
