@@ -2457,30 +2457,21 @@ class MainActivity : Activity() {
         showPanelGlass()
         findViewById<TextView>(R.id.settingsTitle).apply { setTextColor(focusInk()); panelShadow() }
         for (id in listOf(R.id.settingsCrumb, R.id.settingsHelp)) findViewById<TextView>(id).apply { setTextColor(valueInk()); panelShadow() }
-        settingsScrim.background = spotlight.apply { reset() }
+        settingsScrim.background = ColorDrawable(0xDC090A0D.toInt())
         pages.clear()
         settingsScrim.visibility = View.VISIBLE
         homeFocusable(false)
     }
 
-    /** The panel is frosted glass over the wallpaper when Glass is on, and the plain surface otherwise. */
+    /** One stable dark surface: never let wallpaper glass obscure settings text or focus. */
     private fun showPanelGlass() {
         val panel = findViewById<GlassBox>(R.id.settingsPanel)
-        if (glassActive()) {
-            panel.background = null
-            panel.setWillNotDraw(false)
-            styleGlass(panel.glass, dp(22).toFloat(), flatRight = true)
-        } else {
-            panel.setWillNotDraw(true)
-            panel.background = if (!dark) ColorDrawable(0xFFF7F8FA.toInt())
-                else LayerDrawable(arrayOf(ColorDrawable(DARK_BG), ColorDrawable(PANEL_EDGE))).apply {
-                    setLayerGravity(1, Gravity.START or Gravity.FILL_VERTICAL)
-                    setLayerWidth(1, 1)
-                }
+        panel.setWillNotDraw(true)
+        panel.background = GradientDrawable().apply {
+            setColor(0xFF1B1C21.toInt())
+            setStroke(dp(1), 0xFF35363E.toInt())
         }
         panel.invalidate()
-        if (settingsScrim.background === spotlight) spotlight.invalidateSelf()
-        settingsScrim.invalidate()
     }
 
     private fun closeLauncherSettings() {
@@ -2740,9 +2731,9 @@ class MainActivity : Activity() {
             else -> (if (pages.isEmpty()) 0 else 1).also { pages.add(key) }
         }
         if (dir != 0) for (v in listOf<View>(settingsList, findViewById(R.id.settingsTitle), findViewById(R.id.settingsCrumb))) {
-            v.translationX = dp(32) * dir.toFloat()
+            v.translationX = dp(18) * dir.toFloat()
             v.alpha = 0f
-            v.animate().translationX(0f).alpha(1f).setDuration(200).setInterpolator(DECELERATE).start()
+            v.animate().translationX(0f).alpha(1f).setDuration(165).setInterpolator(DECELERATE).start()
         }
         findViewById<TextView>(R.id.settingsTitle).text = title
         findViewById<TextView>(R.id.settingsCrumb).apply {
@@ -2756,7 +2747,7 @@ class MainActivity : Activity() {
         rows.forEachIndexed { i, (name, value, action) ->
             val style = styles.getOrNull(i)
             settingsList.addView(settingsRow(name, value, steps.getOrNull(i), style, action),
-                LinearLayout.LayoutParams(MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { if (style?.header != true) topMargin = dp(4) })
+                LinearLayout.LayoutParams(MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { if (style?.header != true) topMargin = dp(2) })
         }
         // Focus wraps: Up from the first row goes to the last, Down from the last to the first. Group titles are skipped.
         (settingsList.parent as View).scrollTo(0, 0)
@@ -2994,24 +2985,23 @@ class MainActivity : Activity() {
                            val art: String? = null, val ext: Boolean = false, val header: Boolean = false, val hero: Boolean = false,
                            val dim: String? = null)
 
-    // Settings colours, one set for each surface (dark or light, solid or glass). Over glass the text is a little
-    // stronger and has a soft shadow, as the wallpaper's colour shows through the panel. Focus is always the brightest.
-    private fun ink(a: Float) = (fg and 0xFFFFFF) or ((a * 255).toInt() shl 24)
-    private fun restInk() = ink(if (dark) (if (glassActive()) .9f else .82f) else (if (glassActive()) .86f else .8f))
+    // Settings share the same matte, high-contrast palette as the TV home and VPN.
+    private fun ink(a: Float) = ((a * 255).toInt() shl 24) or 0x00F7F7F8
+    private fun restInk() = 0xFFF3F3F5.toInt()
     private fun valueInk(focused: Boolean = false) =
-        if (focused) ink(if (dark) .85f else .8f) else ink(if (glassActive()) (if (dark) .68f else .64f) else .56f)
-    private fun focusInk() = if (dark) Color.WHITE else fg
-    private fun iconInk(focused: Boolean) = if (focused) focusInk() else ink(if (dark) (if (glassActive()) .8f else .7f) else .65f)
+        if (focused) 0xFFE2E3E6.toInt() else 0xFFB5B6BE.toInt()
+    private fun focusInk() = Color.WHITE
+    private fun iconInk(focused: Boolean) =
+        if (focused) 0xFFE7FF80.toInt() else 0xFFC7C9D0.toInt()
 
-    /** The plate under the focused row: a white veil in dark, a white card in light (its shadow is the view's elevation). */
     private fun plate(radius: Int) = GradientDrawable().apply {
         cornerRadius = dp(radius).toFloat()
-        setColor(if (dark) (if (glassActive()) 0x2EFFFFFF else 0x1FFFFFFF) else if (glassActive()) 0xC7FFFFFF.toInt() else Color.WHITE)
-        if (dark) setStroke(1, 0x14FFFFFF) // 1px, a hairline that catches the light
+        setColor(0xFF2A2C32.toInt())
+        setStroke(dp(2), 0xFFE7FF80.toInt())
     }
 
     private fun TextView.panelShadow() {
-        if (glassActive()) setShadowLayer(dp(3).toFloat(), 0f, dp(1).toFloat(), if (dark) 0x73000000 else 0x59FFFFFF)
+        setShadowLayer(0f, 0f, 0f, Color.TRANSPARENT)
     }
 
     /** The filled twin of an outlined Material Symbols icon (ms_x has ms_x_fill), or the icon itself. */
@@ -3029,7 +3019,7 @@ class MainActivity : Activity() {
         typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
         setTextColor(valueInk())
         panelShadow()
-        setPadding(dp(16), dp(18), dp(16), dp(4))
+        setPadding(dp(13), dp(11), dp(13), dp(3))
     }
 
     /** Focus fades the plate in and lights the row; the row's own parts restyle themselves in [onFocus]. */
@@ -3121,12 +3111,12 @@ class MainActivity : Activity() {
             id = View.generateViewId()
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(16), dp(if (stacked) 12 else 6), dp(16), dp(if (stacked) 14 else 6))
-            minimumHeight = dp(if (sub != null) 68 else 56)
+            setPadding(dp(12), dp(if (stacked) 9 else 4), dp(12), dp(if (stacked) 10 else 4))
+            minimumHeight = dp(if (sub != null) 57 else 46)
             addView(line, LinearLayout.LayoutParams(MATCH_PARENT, wrap))
             below?.let { addView(it, LinearLayout.LayoutParams(MATCH_PARENT, wrap).apply { topMargin = dp(10); marginStart = if (iconView != null) dp(40) else 0 }) }
             setOnClickListener { action() }
-            panelFocus(this, 12, style?.help, style?.area) { focused ->
+            panelFocus(this, 11, style?.help, style?.area) { focused ->
                 // The title glides to bright rather than snapping, so moving through the list feels smooth.
                 ValueAnimator.ofArgb(name.currentTextColor, if (focused) focusInk() else restInk()).apply {
                     duration = 160
