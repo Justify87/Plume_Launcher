@@ -423,7 +423,7 @@ internal class VpnDiagnosticsUi(
 
     private fun column() = LinearLayout(activity).apply {
         orientation = LinearLayout.VERTICAL
-        setPadding(dp(28), dp(16), dp(28), dp(24))
+        setPadding(dp(12), dp(6), dp(12), dp(9))
     }
 
     private fun label(value: String, size: Float, bold: Boolean = false) =
@@ -432,7 +432,7 @@ internal class VpnDiagnosticsUi(
             textSize = size
             setTextColor(if (bold) ink else secondary)
             if (bold) setTypeface(typeface, Typeface.BOLD)
-            setPadding(0, dp(9), 0, dp(9))
+            setPadding(0, dp(4), 0, dp(4))
         }
 
     private fun action(title: String, click: () -> Unit) = Button(activity).apply {
@@ -442,19 +442,8 @@ internal class VpnDiagnosticsUi(
         setTextColor(ink)
         isFocusable = true
         setOnClickListener { click() }
-        setOnFocusChangeListener { _, hasFocus ->
-            setTextColor(if (hasFocus) Color.WHITE else ink)
-            background = GradientDrawable().apply {
-                cornerRadius = dp(10).toFloat()
-                setColor(if (hasFocus) accent else surface)
-                setStroke(dp(if (hasFocus) 3 else 1), if (hasFocus) Color.WHITE else secondary)
-            }
-        }
-        background = GradientDrawable().apply {
-            cornerRadius = dp(10).toFloat()
-            setColor(surface)
-            setStroke(dp(1), secondary)
-        }
+        VpnTvStyle.paint(this, false)
+        setOnFocusChangeListener { view, hasFocus -> VpnTvStyle.paint(view as Button, hasFocus) }
         setOnKeyListener { _, key, event ->
             if (event.action == KeyEvent.ACTION_DOWN && key == KeyEvent.KEYCODE_DPAD_LEFT) {
                 backToRail()
