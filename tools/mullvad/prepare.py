@@ -28,6 +28,7 @@ android {
     defaultConfig {
         minSdk = 28
         testInstrumentationRunner = "dev.plume.ActivityTest"
+        consumerProguardFiles("consumer-rules.pro")
 
         // Preserve the original Plume generated resource without modifying its Kotlin.
         val changelog = file("CHANGELOG.md").readText().replace("\r", "")
@@ -256,6 +257,14 @@ def prepare(output: Path) -> Path:
     )
     shutil.copy2(ROOT / "CHANGELOG.md", library / "CHANGELOG.md")
     (library / "build.gradle.kts").write_text(plume_library_build(), encoding="utf-8")
+    # The standalone Launcher uses reflection only to avoid loading Mullvad in the
+    # standalone APK. Preserve the bridge's stable JVM entry points in R8 releases.
+    (library / "consumer-rules.pro").write_text(
+        "-keep class net.mullvad.mullvadvpn.app.MullvadEmbeddedPanel { " +
+        "public static android.view.View create(androidx.activity.ComponentActivity); " +
+        "public boolean handleBack(); }\\n",
+        encoding="utf-8",
+    )
 
     overlay = android / "app/src/ossProd/AndroidManifest.xml"
     overlay.parent.mkdir(parents=True, exist_ok=True)
