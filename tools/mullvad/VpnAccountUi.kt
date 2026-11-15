@@ -90,7 +90,7 @@ internal class VpnAccountUi(
             addView(loginInput, LinearLayout.LayoutParams(dp(420), dp(58)))
             addView(action("Anmelden") { login() })
             addView(action("Neues Mullvad-Konto erstellen") {
-                AlertDialog.Builder(activity)
+                VpnTvStyle.dialog(activity)
                     .setTitle("Neues Konto erstellen?")
                     .setMessage("Mullvad erstellt eine neue Kontonummer. Notiere sie, bevor du fortfährst. Ein bestehendes Konto wird dadurch nicht übernommen.")
                     .setNegativeButton("Abbrechen", null)
@@ -208,7 +208,7 @@ internal class VpnAccountUi(
             { notice(createError(it)) },
             { number ->
                 // The account number is deliberately never written to preferences or logs.
-                AlertDialog.Builder(activity)
+                VpnTvStyle.dialog(activity)
                     .setTitle("Neue Mullvad-Kontonummer")
                     .setMessage("Diese Nummer jetzt sicher notieren:\n\n" +
                         number.value.chunked(4).joinToString(" ") +
@@ -224,7 +224,7 @@ internal class VpnAccountUi(
     }
 
     private fun confirmLogout() {
-        AlertDialog.Builder(activity)
+        VpnTvStyle.dialog(activity)
             .setTitle("Bei Mullvad abmelden?")
             .setMessage("Dieses Gerät wird abgemeldet. Eine laufende VPN-Verbindung kann dadurch beendet werden.")
             .setNegativeButton("Abbrechen", null)
@@ -248,7 +248,7 @@ internal class VpnAccountUi(
         val remainingTime = if (expiry != null && expiry.isAfter(ZonedDateTime.now())) {
             "\nDas Konto besitzt noch bezahlte Restlaufzeit."
         } else ""
-        AlertDialog.Builder(activity)
+        VpnTvStyle.dialog(activity)
             .setTitle("Mullvad-Konto unwiderruflich löschen?")
             .setMessage("Alle Geräte und verbleibende Kontolaufzeit gehen verloren." +
                 remainingTime + "\nZum Bestätigen die vollständige Kontonummer eingeben.")
@@ -344,7 +344,7 @@ internal class VpnAccountUi(
         val number = (deviceState as? DeviceState.LoggedIn)?.accountNumber ?: limitAccount ?: return
         if (listedAccount != number || device !in listedDevices) return
         val ownDevice = (deviceState as? DeviceState.LoggedIn)?.device?.id == device.id
-        AlertDialog.Builder(activity)
+        VpnTvStyle.dialog(activity)
             .setTitle("Gerät entfernen?")
             .setMessage(device.displayName() +
                 if (ownDevice) "\nDas ist dieses Gerät. Die VPN-Anmeldung wird dadurch ungültig."
