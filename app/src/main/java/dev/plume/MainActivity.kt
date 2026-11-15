@@ -3883,17 +3883,27 @@ class MainActivity : Activity() {
     }
 
     /** The right pane is populated on focus. Nothing launches until OK. */
+    /**
+     * One complete right-pane renderer: adapt tile width and column count to the
+     * actual content viewport, not to the full display's width or density.
+     * Preserve focused package on data/geometry refresh.
+     */
     private fun renderAllAppsPane(force: Boolean = false) {
         val visibleApps = sortedApps()
+        val density = resources.displayMetrics.density
+        val viewportPx = allApps.width.takeIf { it > 0 }
+            ?: (vDesign.width * (1433f / 1536f)).toInt().takeIf { it > 0 }
+            ?: (resources.displayMetrics.widthPixels * (1433f / 1536f)).toInt()
+        val geometry = WorkspaceGridPolicy.calculate((viewportPx / density).toInt())
         val signature = visibleApps.joinToString("|") { it.pkg + ":" + it.label } +
-            ":" + iconStyle()
+            ":" + iconStyle() + ":" + geometry.columns + ":" + geometry.tileWidth
         if (!force && signature == appsPaneSignature) return
         appsPaneSignature = signature
         val remembered = if (vDesign.isContentFocused(currentFocus))
             currentFocus?.tag as? String else null
         allAppsGrid.removeAllViews()
-        allAppsGrid.columnCount = 5
-        val gap = dp(11)
+        allAppsGrid.columnCount = geometry.columns
+        val gap = dp(geometry.gap)
         for (app in visibleApps) {
             val tile = WorkspaceAppTileView(this, app.pkg, app.label,
                 vDesignAppIcon(app, originalColor = colourIcons()),
@@ -3901,7 +3911,7 @@ class MainActivity : Activity() {
                 launch = { launch(app) },
                 longPress = { if (!holdFired) fireHold(it) })
             allAppsGrid.addView(tile, GridLayout.LayoutParams().apply {
-                width = dp(145)
+                width = dp(geometry.tileWidth)
                 height = dp(135)
                 setMargins(0, 0, gap, gap)
             })
