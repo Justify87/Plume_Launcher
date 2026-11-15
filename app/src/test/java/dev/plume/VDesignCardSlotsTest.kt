@@ -36,12 +36,16 @@ class VDesignCardSlotsTest {
         assertEquals("upcoming-11", VDesignCardSlots.media(feed, NuvioSection.UPCOMING, 5, 6)?.title)
         assertEquals("upcoming-12", VDesignCardSlots.media(feed, NuvioSection.UPCOMING, 5, 7)?.title)
     }
-    @Test fun horizontalPagingReachesLastEntryWithoutCrossingBounds() {
+    @Test fun horizontalPagingAdvancesOneTitleWithoutSkippingOrWrapping() {
         assertEquals(0, VDesignCardSlots.nextUpcomingOffset(6, 0, 5, +1))
-        assertEquals(6, VDesignCardSlots.nextUpcomingOffset(13, 0, 5, +1))
-        assertEquals(7, VDesignCardSlots.nextUpcomingOffset(13, 6, 5, +1))
-        assertEquals(1, VDesignCardSlots.nextUpcomingOffset(13, 7, 0, -1))
-        assertEquals(0, VDesignCardSlots.nextUpcomingOffset(13, 1, 0, -1))
+        assertEquals(1, VDesignCardSlots.nextUpcomingOffset(13, 0, 5, +1))
+        assertEquals("upcoming-6", VDesignCardSlots.media(
+            NuvioDashboardFeed(emptyList(), emptyList(), (0 until 13).map {
+                entry("upcoming-$it", NuvioSection.UPCOMING)
+            }), NuvioSection.UPCOMING, 5, 1)?.title)
+        assertEquals(7, VDesignCardSlots.nextUpcomingOffset(13, 7, 5, +1))
+        assertEquals(6, VDesignCardSlots.nextUpcomingOffset(13, 7, 0, -1))
+        assertEquals(0, VDesignCardSlots.nextUpcomingOffset(13, 0, 0, -1))
         assertEquals(0, VDesignCardSlots.nextUpcomingOffset(13, 0, 3, +1))
     }
 }
