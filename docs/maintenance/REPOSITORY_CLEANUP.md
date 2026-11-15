@@ -56,9 +56,13 @@ Removed `app/src/main/java/dev/plume/HomeFeedStatus.kt` plus these 16 unreferenc
 
 **Review:** Removed only a self-contained dead helper and resource-only candidates, with no modifications to active UI, startup, VPN service or migration logic. **Source-level pass; Android resource-link/compilation and R8 review pending final PR CI.**
 
-## M05 — optional legacy decisions
+## M05 — optional legacy decisions (review)
 
-**Status:** pending.
+**Decision on old project website:** The live GitHub repository metadata returned `has_pages: false`, `homepage: ""` and there is no `gh-pages` branch. The site still linked to the **original** Plume download, releases and old Downloader code, and its privacy/terms pages described the old product. Therefore deleted its **8** static HTML/CSS/JS/assets files (`docs/index.html`, `docs/privacy.html`, `docs/terms.html`, `docs/style.css`, `docs/theme.js`, `docs/plume-icon.png`, `docs/home-dark.jpg`, `docs/home-light.jpg`; 743,181 bytes). Kept the separate **current fork icon source** `docs/plume-advanced-icon.svg`.
+
+**Protected optional assets:** The seven `screensaver/*.jpg` public-domain painting source files stay; the current `Gallery.kt` downloads `gallery-1` from the old upstream but changing that is a separate functional network migration requiring a verified replacement source. Ten downloadable `wallpapers/*.webp` plus their manifest README stay. Fire TV/installer diagnostic tools are still referenced and remain available.
+
+**M05 review:** The website removal is backed by repository `has_pages=false`, branch inventory and internal reference checks, but cannot prove absence of unknown external bookmarks. Website deletion does not affect Android compilation. No untested gallery/CDN behavior was changed. **Pass, with known upstream-gallery technical debt deferred to a dedicated functional PR.**
 
 ## M06 — final verification
 
