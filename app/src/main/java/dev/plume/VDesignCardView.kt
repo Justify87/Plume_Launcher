@@ -7,6 +7,8 @@ import android.graphics.Color
 import android.graphics.Outline
 import android.graphics.Paint
 import android.graphics.Path
+import android.graphics.LinearGradient
+import android.graphics.Shader
 import android.graphics.Typeface
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
@@ -138,8 +140,15 @@ internal class VDesignCardView(
                 // The photographed subject stays to the right; the distinctive pale curved
                 // editorial panel is drawn rather than baked into a static hero image.
                 addView(object : View(context) {
-                    private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFDFEAA9.toInt() }
+                    private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
                     private val path = Path()
+                    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+                        super.onSizeChanged(w, h, oldw, oldh)
+                        if (w > 0 && h > 0) paint.shader = LinearGradient(
+                            0f, 0f, w * .35f, h.toFloat(),
+                            intArrayOf(0xFFE2E7BF.toInt(), 0xFFCFD9A4.toInt(), 0xFFB2C076.toInt()),
+                            floatArrayOf(0f, .55f, 1f), Shader.TileMode.CLAMP)
+                    }
                     override fun onDraw(canvas: Canvas) {
                         val w = width.toFloat()
                         val h = height.toFloat()
