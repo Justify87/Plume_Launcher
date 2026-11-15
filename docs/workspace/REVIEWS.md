@@ -35,12 +35,16 @@
 - **Review:** Datenwahrheit und Intent-Grenzen in Kotlin-Unit-Tests spezifiziert; pixelgenauer Bildvergleich nicht ausgeführt.
 - **Entscheidung:** `partial_ci_and_visual_qa_pending`.
 
-## M5 – Mullvad innerhalb derselben Shell
+## M5 – Mullvad direkt in der rechten Shell (Konsolidierung #47 → #48)
 
-- **Status:** **NICHT erfüllt.** Die Mullvad-Management-UI ist weiterhin an `VpnActivity : ComponentActivity`, deren `lifecycleScope`/ActivityResult-Registrierungen und ihre acht Unterseiten gebunden. Die momentan im rechten Bereich eingehängte `WorkspaceVpnEntryPane` ist ein **transparenter Übergangseinstieg**, kein nativer Mullvad-Inline-Controller. OK darauf öffnet noch die bestehende Mullvad Activity.
-- **Ursächliche nächste Arbeit:** Controller von der Activity-Lebensdauer ablösen; originalen Repository-/Tunnelstatus über einen gemeinsamen Lifecycle-Owner an eine im Launcher gehostete View binden. Staging und standalone-Launcher-Variante testen. Erst danach die getrennte Activity aus regulärer Navigation entfernen.
-- **Review:** Keine fiktive Mullvad-Verbindung oder neuer Tunnelcode erzeugt. Kein Nutzerauftrag zum Embedded-VPN als bestanden markieren.
-- **Entscheidung:** `blocked_unimplemented`.
+- **Befund #47:** Dessen kombinierter Build [43714683744](https://github.com/Justify87/Plume_Launcher/actions/runs/43714683744) scheiterte an einem nicht geprüften `core-ktx:1.13.0.aar`, noch **vor** einem verifizierten Kotlin-Compile des neuen Controllers.
+- **Umsetzung:** Der komplette `MullvadEmbeddedPanel.kt` aus #47 wurde in #48 übernommen und an `MainActivity : ComponentActivity` angebunden. Die Registrierung der Android-VPN-Freigabe erfolgt bereits in `onCreate`. Die acht originalen Mullvad-TV-Bereiche (Status, Standorte, Konto, VPN-Einstellungen, Split Tunneling, Erweitert, Netzwerk, Diagnose) sind echte Kinder des rechten Workspace-Panes. Back reicht verschachtelte Navigation zuerst an den eingebetteten Controller weiter. Die alte Launcher-`WorkspaceVpnEntryPane` wurde gelöscht.
+- **Sicherheit:** Dieselben Mullvad-Repositories, `ServiceConnectionManager`, `ManagementService` und `ConnectionProxy` werden weiter genutzt. Keine zweite Tunnelimplementierung; die ursprüngliche `VpnActivity` bleibt ausschließlich als Kompatibilitätsziel für externe Notification-/Systemintents verfügbar. Reflection-Einstieg und R8-Keep-Regel stimmen überein.
+- **Performance:** Start von Mullvad-Flows und Dienstaktivierung erfolgt erst, wenn der VPN-Content tatsächlich sichtbar wird.
+- **Dependency-Review:** `androidx.core:core-ktx:1.16.0` ist mit AAR-Prüfsumme im gepinnten Mullvad-Upstream-Lockfile vorhanden; deshalb in beiden Buildvarianten ausdrücklich gewählt. [Erster CI-Durchlauf #48 43757505801](https://github.com/Justify87/Plume_Launcher/actions/runs/43757505801) hat Standalone-Tests/Lint/Debug und Staging-Tests bestanden, aber der kombinierte Build scheiterte an zwei **zusätzlich fehlenden** alten Compiler-Coroutines-JAR-Prüfsummen (`kotlinx-coroutines-android/core-jvm:1.6.4`).
+- **Ursachenbehebung:** `tools/mullvad/prepare.py` ergänzt **nur im verworfenen Build-Staging** die zwei festen, unabhängig anhand von Briars `witness.gradle` und Bazels Kotlin-Abhängigkeitsliste gegengeprüften SHA-256-Werte. Das Original-Submodul und Gradles Verifikationsrichtlinie bleiben unangetastet. Die Routine verlangt unveränderte bekannte Modul-Hashes und verweigert doppelte oder unbekannte Einträge. Dafür wurden Fixture-/Fehlerfalltests erstellt.
+- **Review:** PR #47 ist als überholt **geschlossen, nicht gemergt**. Die Kotlin-Unit-Tests, Lint und Standalone-Kompilierung waren erfolgreich; die finale kombinierte Prüfung (inklusive Rust/JNI/Release-R8), echte TV-Navigation und Tunnel-Liveabnahme bleiben weiterhin Abnahmegates.
+- **Entscheidung:** `implemented_ci_pending_hardware_pending`. Kein Merge bei offener Build-/Geräteabnahme.
 
 ## Gesamtgate
 
@@ -58,6 +62,6 @@
 - **Review:** Isolierte Grenzwerttests für 1100, 580, 90 dp und exakte Fünfspalten-Grenze erstellt. Keine Änderung an App-Launch-Intents oder VPN-Service. Der vorige PR-HEAD `0f94c71a` bestand Combined CI [43727194921](https://github.com/Justify87/Plume_Launcher/actions/runs/43727194921); der neue HEAD `4b3bddd9` hat zum Zeitpunkt dieser Dokumentation **noch keinen bestätigten CI-Lauf**.
 - **Entscheidung:** `code_review_pass_ci_pending`. Ohne Screenshot-/Shield-Review kein Abnahme-PASS.
 
-## Offene harte Zielabweichung
+## Fortsetzungsstatus
 
-Die `WorkspaceVpnEntryPane` ist weiterhin **nur** ein Einstieg in die separate Mullvad Activity. Die verbindliche Anforderung „Mullvad vollständig rechts in derselben Shell“ ist deshalb **nicht erfüllt**. Die Mullvad-Repositories und Tunnelsteuerung dürfen nicht durch eine kosmetische Scheinimplementierung ersetzt werden. Eine echte Lifecycle-Entkopplung der Activity bleibt der nächste eigenständige Meilenstein.
+Der frühere M5-Blocker (nur ein separater VPN-Einstieg statt eingebettetem Controller) ist **im Code adressiert**. Ob der Originaldienst auf der Shield tatsächlich korrekt verbindet, insbesondere mit Split-Tunneling und Android-Systemfreigabe, ist erst nach erfolgreichem Combined CI und physischem TV-Test nachgewiesen.
