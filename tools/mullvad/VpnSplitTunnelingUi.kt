@@ -98,7 +98,243 @@ internal class VpnSplitTunnelingUi(
                 background = shape(surface, if (focused) accent else secondary, if (focused) 3 else 1)
             }
             setPadding(dp(12), 0, dp(12), 0)
-            VpnTvStyle.paint(this, false)
+            background = shape(surface, secondary, 1)
+            addTextChangedListener(object : TextWatcher {
+                override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
+                override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                    searchText = s?.toString().orEmpty()
+                    renderList()
+                }
+                override fun afterTextChanged(s: Editable?) = Unit
+            })
+        }
+        searchRow.addView(search, LinearLayout.LayoutParams(0, dp(52), 1f))
+        searchRow.addView(button("Suche leeren") {
+            search.setText("")
+            search.requestFocus()
+        }, LinearLayout.LayoutParams(dp(165), dp(52)).apply { marginStart = dp(12) })
+        addView(searchRow)
+        count = label("App-Liste wird geladen", 14f)
+        addView(count)
+        addView(label(
+            "Androids „Verbindungen ohne VPN blockieren“ kann Ausnahmen verhindern. " +
+                "Eine gespeicherte Mullvad-Ausnahme beweist keine ungetunnelte Route. " +
+                "Sperrmodus in Androids VPN-Systemeinstellungen prüfen.", 13f))
+        list = ListView(activity).apply {
+            divider = ColorDrawable(Color.TRANSPARENT)
+            dividerHeight = dp(5)
+            isVerticalScrollBarEnabled = true
+            selector = selection()
+            adapter = rows
+            setOnItemClickListener { _, _, position, _ ->
+                shown.getOrNull(position)?.let { changeApp(it) }
+            }
+            setOnKeyListener { _, key, event ->
+                if (event.action == KeyEvent.ACTION_DOWN && key == KeyEvent.KEYCODE_DPAD_LEFT) {
+                    focusRail()
+                    true
+                } else false
+            }
+        }
+        addView(list, LinearLayout.LayoutParams(-1, 0, 1f).apply { topMargin = dp(6) })
+        renderState()
+    }
+
+    fun start() {
+        activity.lifecycleScope.launch {
+            repository.splitTunnelingEnabled.collect {
+                enabled = it
+                renderState()
+                renderList()
+            }
+        }
+        activity.lifecycleScope.launch {
+            repository.excludedApps.collect {
+                excluded = it
+                renderState()
+                renderList()
+            }
+        }
+        activity.lifecycleScope.launch {
+            preferences.showSystemAppsSplitTunneling().collect {
+                showSystem = it
+                renderState()
+                renderList()
+            }
+        }
+        refreshApps()
+    }
+
+    fun onDaemonReady(ready: Boolean) {
+        daemonReady = ready
+        renderState()
+        renderList()
+    }
+
+    fun onResume() {
+        if (!registered) {
+            val filter = IntentFilter().apply {
+                addAction(Intent.ACTION_PACKAGE_ADDED)
+                addAction(Intent.ACTION_PACKAGE_REMOVED)
+                addAction(Intent.ACTION_PACKAGE_CHANGED)
+                addAction(Intent.ACTION_PACKAGE_REPLACED)
+                addDataScheme("package")
+            }
+            activity.registerReceiver(packageReceiver, filter)
+            registered = true
+        }
+        refreshApps()
+    }
+
+    fun onPause() {
+        if (registered) {
+            activity.unregisterReceiver(packageReceiver)
+            registered = false
+        }
+    }
+
+    private fun refreshApps() {
+        val request = ++sequence
+        activity.lifecycleScope.launch {
+            try {
+                val next = withContext(Dispatchers.IO) { applications.apps() }
+                if (request != sequence) return@launch
+                installed = next
+                loaded = true
+                renderList()
+            } catch (error: Exception) {
+                if (request == sequence) notice("App-Liste nicht lesbar: " +
+                    (error.message ?: error.javaClass.simpleName))
+            }
+        }
+    }
+
+    private fun toggleEnabled() {
+        if (!daemonReady) return notice("Mullvad-Dienst noch nicht bereit.")
+        withDaemon("Split Tunneling") {
+            repository.enableSplitTunneling(!enabled).fold(
+                { notice("Aktivierung fehlgeschlagen: " + it) },
+                { notice("Änderung über Mullvad gesendet; Status wird aktualisiert.") },
+            )
+        }
+    }
+
+    private fun toggleSystem() {
+        activity.lifecycleScope.launch {
+            try {
+                preferences.setShowSystemAppsSplitTunneling(!showSystem)
+            } catch (error: Exception) {
+                notice("App-Anzeige fehlgeschlagen: " + (error.message ?: "Unbekannt"))
+            }
+        }
+    }
+
+    private fun changeApp(entry: Entry) {
+        if (!daemonReady) return notice("Mullvad-Dienst noch nicht bereit.")
+        val name = entry.app.packageName
+        val remove = name in excluded
+        withDaemon("App-Ausnahme") {
+            val result = if (remove) repository.includeApp(name) else repository.excludeApp(name)
+            result.fold(
+                { notice("App-Ausnahme fehlgeschlagen: " + it) },
+                { notice("Änderung an Mullvad gesendet; gespeicherte Antwort folgt.") },
+            )
+        }
+    }
+
+    private fun renderState() {
+        if (!::toggle.isInitialized) return
+        state.text = when {
+            !daemonReady -> "Dienst nicht bereit · keine Änderungen möglich"
+            enabled -> "Split Tunneling aktiv · " + excluded.size + " gespeicherte Ausnahmen"
+            else -> "Split Tunneling aus · " + excluded.size + " gespeicherte Ausnahmen inaktiv"
+        }
+        toggle.text = if (enabled) "Split Tunneling: AN · OK zum Ausschalten"
+            else "Split Tunneling: AUS · OK zum Einschalten"
+        toggle.isEnabled = daemonReady
+        system.text = if (showSystem) "System-/Hintergrundapps: sichtbar"
+            else "System-/Hintergrundapps: ausblenden"
+    }
+
+    private fun renderList() {
+        if (!::list.isInitialized) return
+        val selected = shown.getOrNull(list.selectedItemPosition)?.app?.packageName?.value
+        val known = installed.map { it.packageName }.toHashSet()
+        val missing = excluded.filterNot { it in known }.map {
+            Entry(AppData(it, 0, it.value, true), true)
+        }
+        shown = (installed.asSequence()
+            .filter { showSystem || !it.isSystemApp || it.packageName in excluded }
+            .map { Entry(it) }.toList() + missing)
+            .filter {
+                searchText.isBlank() ||
+                    it.app.name.contains(searchText.trim(), ignoreCase = true) ||
+                    it.app.packageName.value.contains(searchText.trim(), ignoreCase = true)
+            }
+            .sortedWith(compareByDescending<Entry> { it.app.packageName in excluded }
+                .thenBy { it.app.name.lowercase(Locale.getDefault()) }
+                .thenBy { it.app.packageName.value })
+        rows.notifyDataSetChanged()
+        count.text = if (!loaded) "Apps werden geladen …" else
+            shown.size.toString() + " von " + installed.size + " VPN-fähigen Apps sichtbar · " +
+                excluded.size + " Ausnahmen" + if (enabled) "" else " (inaktiv)"
+        if (selected != null && list.hasFocus()) {
+            val index = shown.indexOfFirst { it.app.packageName.value == selected }
+            if (index >= 0) list.setSelection(index)
+        }
+    }
+
+    // ListView recycles rows: hundreds of packages do not allocate hundreds of buttons/icons.
+    private val rows = object : BaseAdapter() {
+        override fun getCount() = shown.size
+        override fun getItem(position: Int): Any = shown[position]
+        override fun getItemId(position: Int) = position.toLong()
+        override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
+            val row = (convertView as? LinearLayout) ?: LinearLayout(activity).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                setPadding(dp(14), dp(7), dp(14), dp(7))
+                minimumHeight = dp(68)
+                addView(ImageView(activity).apply { scaleType = ImageView.ScaleType.FIT_CENTER },
+                    LinearLayout.LayoutParams(dp(46), dp(46)).apply { marginEnd = dp(15) })
+                addView(LinearLayout(activity).apply {
+                    orientation = LinearLayout.VERTICAL
+                    addView(label("", 17f, true))
+                    addView(label("", 13f))
+                }, LinearLayout.LayoutParams(0, -2, 1f))
+            }
+            val entry = shown[position]
+            (row.getChildAt(0) as ImageView).setImageDrawable(
+                if (entry.missing) null else runCatching {
+                    activity.packageManager.getApplicationIcon(entry.app.packageName.value)
+                }.getOrNull())
+            val labels = row.getChildAt(1) as LinearLayout
+            (labels.getChildAt(0) as TextView).text = entry.app.name
+            val isExcluded = entry.app.packageName in excluded
+            (labels.getChildAt(1) as TextView).text = when {
+                entry.missing -> "Nicht installiert / sichtbar · OK: Ausnahme entfernen"
+                isExcluded && enabled -> "Ausgeschlossen (ohne VPN konfiguriert)"
+                isExcluded -> "Ausnahme gespeichert, derzeit inaktiv"
+                enabled -> "Im VPN eingeschlossen"
+                else -> "Nicht ausgeschlossen · Split Tunneling aus"
+            } + " · " + entry.app.packageName.value
+            row.contentDescription = entry.app.name + ", " +
+                (if (isExcluded) "ausgeschlossen" else "eingeschlossen") + ", OK zum Umschalten"
+            return row
+        }
+    }
+
+    private fun selection() = StateListDrawable().apply {
+        val focused = shape(VpnTvStyle.LIME, VpnTvStyle.LIME, 1)
+        addState(intArrayOf(android.R.attr.state_pressed), focused)
+        addState(intArrayOf(android.R.attr.state_selected), focused)
+        addState(intArrayOf(android.R.attr.state_focused), focused)
+        addState(intArrayOf(), ColorDrawable(Color.TRANSPARENT))
+    }
+    private fun button(title: String, onClick: () -> Unit) = Button(activity).apply {
+        text = title
+        textSize = 16f
+        VpnTvStyle.paint(this, false)
         setOnFocusChangeListener { view, focused -> VpnTvStyle.paint(view as Button, focused) }
         setOnClickListener { onClick() }
         setOnKeyListener { _, key, event ->
