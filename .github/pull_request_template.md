@@ -1,17 +1,33 @@
-## What this changes
+## What changed and why
 
-<!-- One or two sentences. Link the issue, for example "Fixes #12". Features need an issue that was discussed first. -->
+<!-- A cohesive redesign may change Home, Settings and Mullvad together. No feature issue or small-diff requirement. -->
 
-## How it was tested
+## Design reference and visual QA
 
-- Device and Android version:
-- What you checked:
+- Reference: current user-supplied expressive 1536×864 screenshot / applicable design specification
+- Screens changed:
+- Screenshot/video evidence, device resolution and font/display scale:
+- Known visual differences, if any:
 
-## Checklist
+## Navigation and functionality
 
-- [ ] This pull request makes one change (a translation, a fix or a feature, not several).
-- [ ] It adds no third-party libraries, background services or new permissions.
-- [ ] Anything new that goes online is optional and off by default.
-- [ ] I matched the style of the surrounding code and didn't reformat unrelated code.
-- [ ] User-visible changes have an entry under `## Unreleased` in CHANGELOG.md, written in ASD-STE100.
-- [ ] APK size before and after, if resources were added:
+- D-Pad and focus restore:
+- Back/Home/All Apps/System actions:
+- Mullvad connection, account/settings, split tunnel and other impacted functions:
+
+## Technology and performance
+
+- Libraries or refactors introduced (allowed when justified):
+- APK/memory/startup impact if measurable:
+- Android permission/network/security changes (if any):
+
+## Verification
+
+- [ ] JVM tests and Android lint
+- [ ] Combined Plume+Mullvad ARM64 CI
+- [ ] Actual Android TV/emulator focus and overscan checks (or explicitly pending)
+- [ ] Real VPN connection/permissions check if affected (or explicitly pending)
+- [ ] CHANGELOG.md updated for user-facing behavior
+- [ ] Secrets, signing, data integrity and privacy gates preserved
+
+A passing build is not proof of pixel-perfect design or real-device VPN behavior.
