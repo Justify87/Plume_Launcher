@@ -4537,6 +4537,9 @@ class MainActivity : Activity() {
         returnTo = focusKey(from)
     }
 
+    private fun cardKey(p: Prog) = "card|${p.title}|${p.pkg}|${p.intent}"
+    private fun focusKey(v: View?): String? = v?.tag as? String
+
     /** Called by All Apps hotkeys; the permanent rail never disappears. */
     private fun openAllApps() {
         if (!::vDesign.isInitialized) return
