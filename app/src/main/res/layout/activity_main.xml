@@ -167,68 +167,69 @@
 
     </LinearLayout>
 
-    <!-- All apps: hidden until the Apps tile is pressed; Back closes it. -->
+    <!-- These are real right-pane contents. setupVDesign reparents both into the
+         persistent workspace; neither is ever displayed as a full-screen overlay. -->
     <ScrollView
         android:id="@+id/allApps"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:background="#16171C"
         android:clipChildren="false"
         android:clipToPadding="false"
-        android:paddingStart="48dp"
-        android:background="#121317"
-        android:paddingTop="20dp"
-        android:paddingEnd="48dp"
-        android:paddingBottom="18dp"
+        android:fillViewport="true"
+        android:paddingStart="24dp"
+        android:paddingTop="26dp"
+        android:paddingEnd="24dp"
+        android:paddingBottom="22dp"
         android:scrollbars="none"
         android:visibility="gone">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:orientation="vertical"
             android:clipChildren="false"
-            android:orientation="vertical">
+            android:clipToPadding="false">
 
             <TextView
                 android:id="@+id/allAppsTitle"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="14dp"
+                android:layout_marginBottom="18dp"
                 android:fontFamily="sans-serif-medium"
+                android:letterSpacing="0.07"
                 android:text="@string/all_apps"
-                android:letterSpacing="0.12"
                 android:textColor="#F7F7F8"
-                android:textSize="22sp" />
+                android:textSize="25sp" />
 
             <GridLayout
                 android:id="@+id/allAppsGrid"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:columnCount="5"
                 android:clipChildren="false"
-                android:columnCount="6" />
+                android:clipToPadding="false" />
         </LinearLayout>
     </ScrollView>
 
-    <!-- Launcher settings: side panel over a dimmed home screen; Back closes it. -->
     <FrameLayout
         android:id="@+id/settingsScrim"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#99000000"
-        android:clickable="true"
+        android:background="#16171C"
         android:visibility="gone">
 
         <dev.plume.GlassBox
             android:id="@+id/settingsPanel"
-            android:layout_width="600dp"
+            android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:layout_gravity="end"
+            android:layout_gravity="start"
             android:orientation="vertical"
-            android:paddingStart="20dp"
-            android:paddingTop="19dp"
-            android:paddingEnd="20dp"
-            android:paddingBottom="15dp">
+            android:paddingStart="25dp"
+            android:paddingTop="22dp"
+            android:paddingEnd="25dp"
+            android:paddingBottom="18dp">
 
-            <!-- "Plume settings ›" above a section's title, so you know where Back goes. -->
             <TextView
                 android:id="@+id/settingsCrumb"
                 android:layout_width="wrap_content"
@@ -239,18 +240,17 @@
 
             <TextView
                 android:id="@+id/settingsTitle"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:fontFamily="sans-serif-medium"
                 android:paddingStart="14dp"
                 android:text="@string/plume_settings"
-                android:textSize="23sp" />
+                android:textSize="25sp" />
 
-            <!-- Scrolls once the rows outgrow the screen; focus moving down scrolls it along. -->
             <ScrollView
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="14dp"
                 android:layout_weight="1"
                 android:scrollbars="none">
 
@@ -261,12 +261,11 @@
                     android:orientation="vertical" />
             </ScrollView>
 
-            <!-- What the focused row does; empty for rows that need no explaining, but always 3 lines tall. -->
             <TextView
                 android:id="@+id/settingsHelp"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
+                android:layout_marginTop="7dp"
                 android:lineSpacingMultiplier="1.15"
                 android:ellipsize="end"
                 android:maxLines="2"
