@@ -328,6 +328,7 @@ internal class MullvadEmbeddedPanel private constructor(private val host: Compon
             })
         }
         showPage(0)
+        root.tag = this
         root.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
             override fun onViewAttachedToWindow(v: View) { activate() }
             override fun onViewDetachedFromWindow(v: View) {}
@@ -379,6 +380,9 @@ internal class MullvadEmbeddedPanel private constructor(private val host: Compon
         advancedUi.start()
         networkUi.start()
         diagnosticsUi.start()
+        settingsUi.onResume()
+        splitUi.onResume()
+        diagnosticsUi.onResume()
         host.lifecycleScope.launch {
             management.connectionState.collect { state ->
                 daemonReady = state == GrpcConnectivityState.Ready
