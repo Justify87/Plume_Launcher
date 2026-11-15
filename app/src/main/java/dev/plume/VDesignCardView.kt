@@ -73,10 +73,10 @@ internal class VDesignCardView(
         importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
     }
     private val title = label(
-        when (kind) { Kind.HERO -> 51; Kind.STANDARD -> 25; Kind.AVAILABLE -> 25; Kind.COMPACT -> 22 },
+        when (kind) { Kind.HERO -> 38; Kind.STANDARD -> 25; Kind.AVAILABLE -> 25; Kind.COMPACT -> 22 },
         bold = true, darkInk = kind == Kind.HERO)
     private val episode = label(
-        when (kind) { Kind.HERO -> 23; Kind.STANDARD -> 19; Kind.AVAILABLE -> 19; Kind.COMPACT -> 17 },
+        when (kind) { Kind.HERO -> 19; Kind.STANDARD -> 19; Kind.AVAILABLE -> 19; Kind.COMPACT -> 17 },
         darkInk = kind == Kind.HERO)
     private val percentText = label(18, darkInk = kind == Kind.HERO)
     private val progressTrack = FrameLayout(context).apply {
@@ -137,15 +137,15 @@ internal class VDesignCardView(
                 roundImage(this, 28)
                 background = bg(Colors.SURFACE, 28)
                 addView(art, LayoutParams(-1, -1))
-                // The photographed subject stays to the right; the distinctive pale curved
-                // editorial panel is drawn rather than baked into a static hero image.
+                // Keep at least half the actual episode art visible. The accent is a light
+                // curved reading area, never an opaque image replacing the provider poster.
                 addView(object : View(context) {
                     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
                     private val path = Path()
                     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
                         super.onSizeChanged(w, h, oldw, oldh)
                         if (w > 0 && h > 0) paint.shader = LinearGradient(
-                            0f, 0f, w * .35f, h.toFloat(),
+                            0f, 0f, w * .40f, h.toFloat(),
                             intArrayOf(0xFFE2E7BF.toInt(), 0xFFCFD9A4.toInt(), 0xFFB2C076.toInt()),
                             floatArrayOf(0f, .55f, 1f), Shader.TileMode.CLAMP)
                     }
@@ -154,8 +154,8 @@ internal class VDesignCardView(
                         val h = height.toFloat()
                         path.reset()
                         path.moveTo(0f, 0f)
-                        path.lineTo(w * .62f, 0f)
-                        path.cubicTo(w * .45f, h * .27f, w * .45f, h * .70f, w * .70f, h)
+                        path.lineTo(w * .48f, 0f)
+                        path.cubicTo(w * .43f, h * .25f, w * .37f, h * .70f, w * .50f, h)
                         path.lineTo(0f, h)
                         path.close()
                         canvas.drawPath(path, paint)
@@ -164,13 +164,13 @@ internal class VDesignCardView(
                 val content = LinearLayout(context).apply {
                     orientation = LinearLayout.VERTICAL
                     gravity = Gravity.CENTER_VERTICAL
-                    setPadding(px(39), px(32), px(6), px(27))
+                    setPadding(px(24), px(24), px(5), px(21))
                     addView(title, LinearLayout.LayoutParams(-1, -2))
                     addView(episode, LinearLayout.LayoutParams(-1, -2).apply { topMargin = px(8) })
-                    addView(heroButton, LinearLayout.LayoutParams(-2, -2).apply { topMargin = px(27) })
-                    addView(playback, LinearLayout.LayoutParams(-1, -2).apply { topMargin = px(22) })
+                    addView(heroButton, LinearLayout.LayoutParams(-2, -2).apply { topMargin = px(21) })
+                    addView(playback, LinearLayout.LayoutParams(-1, -2).apply { topMargin = px(17) })
                 }
-                addView(content, LayoutParams(px(414), -1, Gravity.START))
+                addView(content, LayoutParams(px(325), -1, Gravity.START))
             }
             Kind.STANDARD -> {
                 roundImage(this, 22)
@@ -270,10 +270,10 @@ internal class VDesignCardView(
         fun adjust(view: TextView, sourcePx: Int) =
             view.setTextSize(TypedValue.COMPLEX_UNIT_PX, sourcePx * viewportScale * fontScale)
         adjust(title, when (kind) {
-            Kind.HERO -> 51; Kind.STANDARD -> 25; Kind.AVAILABLE -> 25; Kind.COMPACT -> 22
+            Kind.HERO -> 38; Kind.STANDARD -> 25; Kind.AVAILABLE -> 25; Kind.COMPACT -> 22
         })
         adjust(episode, when (kind) {
-            Kind.HERO -> 23; Kind.STANDARD -> 19; Kind.AVAILABLE -> 19; Kind.COMPACT -> 17
+            Kind.HERO -> 19; Kind.STANDARD -> 19; Kind.AVAILABLE -> 19; Kind.COMPACT -> 17
         })
         adjust(percentText, 18)
         adjust(heroButton, 25)
