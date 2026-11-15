@@ -245,9 +245,11 @@ grep -E 'cat=\[android\.intent\.category\.HOME\]|HomeActivity|HudActivity|quicks
 lag() { # $1 = HH:MM:SS the step started at (on the TV's clock), $2 = HH:MM:SS the next step started at (or empty)
   awk -v s="$1" -v e="$2" '
     function ms(t,  a) { split(t, a, /[:.]/); return ((a[1] * 60 + a[2]) * 60 + a[3]) * 1000 + a[4] }
+    # Handle timestamps wrapping at midnight.
     function rel(t) { return ((ms(t) - lo) % 86400000 + 86400000) % 86400000 }
     BEGIN { lo = ms(s ".000"); hi = 25000; if (e != "") { n = rel(e ".000"); if (n < hi) hi = n } }
     { t = rel($2); if (t > hi) next }
+    # Distinguish Android system launches from app-initiated launches by UID.
     function uid(l) { if (match(l, /from uid [0-9]+/)) return substr(l, RSTART + 9, RLENGTH - 9) + 0; return -1 }
     { own = /cmp=dev\.plume\.advanced/ && uid($0) >= 10000 }
     h == "" && /cat=\[android\.intent\.category\.HOME\]/ && !own { h = t; hp = /cmp=dev\.plume\.advanced/ }
