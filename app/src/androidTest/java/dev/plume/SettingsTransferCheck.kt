@@ -4,7 +4,6 @@ import android.app.Instrumentation
 import android.content.Context
 import java.io.File
 
-/** Framework JSON, storage, and preference checks. Uses separate test preferences and a separate file. */
 class SettingsTransferCheck(private val runner: Instrumentation) {
     fun run() {
         val context = runner.targetContext

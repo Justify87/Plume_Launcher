@@ -16,7 +16,6 @@ import android.view.ViewGroup
 import android.view.accessibility.AccessibilityEvent
 import android.widget.TextView
 
-/** Framework-only device tests: run connectedDebugAndroidTest on an awake TV with HDMI and tuner inputs. */
 class ActivityTest : Instrumentation() {
     private var current = 0
     private var failures = 0
