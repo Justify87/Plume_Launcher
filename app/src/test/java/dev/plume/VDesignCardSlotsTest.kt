@@ -14,40 +14,34 @@ class VDesignCardSlotsTest {
         remainingMillis = null, lastWatchedMillis = null, providerOrder = 0,
         legacyFallback = false,
     )
-    @Test fun partialOrEmptySectionsNeverReceiveDummiesOrCrossFeedContent() {
+    @Test fun sectionsNeverReceiveFakeOrCrossFeedContent() {
         val feed = NuvioDashboardFeed(
-            inProgress = listOf(entry("started", NuvioSection.IN_PROGRESS)),
-            available = emptyList(),
-            upcoming = listOf(entry("soon", NuvioSection.UPCOMING)),
+            listOf(entry("started", NuvioSection.IN_PROGRESS)), emptyList(),
+            listOf(entry("soon", NuvioSection.UPCOMING)),
         )
         assertEquals("started", VDesignCardSlots.media(feed, NuvioSection.IN_PROGRESS, 0)?.title)
         assertNull(VDesignCardSlots.media(feed, NuvioSection.IN_PROGRESS, 1))
         assertNull(VDesignCardSlots.media(feed, NuvioSection.AVAILABLE, 0))
         assertEquals("soon", VDesignCardSlots.media(feed, NuvioSection.UPCOMING, 0)?.title)
         assertNull(VDesignCardSlots.media(feed, NuvioSection.UPCOMING, 1))
-        assertNull(VDesignCardSlots.media(feed, NuvioSection.UPCOMING, 8))
+        assertNull(VDesignCardSlots.media(feed, NuvioSection.UPCOMING, 6))
         assertNull(VDesignCardSlots.media(feed, NuvioSection.IN_PROGRESS, -1))
     }
-
-    @Test fun eightVisibleUpcomingCardsAreAWindowAndAllCountsSurvive() {
-        val feed = NuvioDashboardFeed(
-            emptyList(), emptyList(), (0 until 13).map {
-                entry("upcoming-$it", NuvioSection.UPCOMING)
-            },
-        )
+    @Test fun sixVisibleUpcomingCardsRemainWindowOverFullFeed() {
+        val feed = NuvioDashboardFeed(emptyList(), emptyList(), (0 until 13).map {
+            entry("upcoming-$it", NuvioSection.UPCOMING)
+        })
         assertEquals(13, feed.upcoming.size)
-        assertEquals("upcoming-0", VDesignCardSlots.media(feed, NuvioSection.UPCOMING, 0)?.title)
-        assertEquals("upcoming-7", VDesignCardSlots.media(feed, NuvioSection.UPCOMING, 7)?.title)
-        assertEquals("upcoming-5", VDesignCardSlots.media(feed, NuvioSection.UPCOMING, 0, 5)?.title)
-        assertEquals("upcoming-12", VDesignCardSlots.media(feed, NuvioSection.UPCOMING, 7, 5)?.title)
+        assertEquals("upcoming-5", VDesignCardSlots.media(feed, NuvioSection.UPCOMING, 5)?.title)
+        assertEquals("upcoming-11", VDesignCardSlots.media(feed, NuvioSection.UPCOMING, 5, 6)?.title)
+        assertEquals("upcoming-12", VDesignCardSlots.media(feed, NuvioSection.UPCOMING, 5, 7)?.title)
     }
-
-    @Test fun pagingNeverSkipsTheLastEntryOrEscapesTheSection() {
-        assertEquals(0, VDesignCardSlots.nextUpcomingOffset(8, 0, 7, +1))
-        assertEquals(4, VDesignCardSlots.nextUpcomingOffset(13, 0, 7, +1))
-        assertEquals(5, VDesignCardSlots.nextUpcomingOffset(13, 4, 7, +1))
-        assertEquals(1, VDesignCardSlots.nextUpcomingOffset(13, 5, 1, -1))
+    @Test fun horizontalPagingReachesLastEntryWithoutCrossingBounds() {
+        assertEquals(0, VDesignCardSlots.nextUpcomingOffset(6, 0, 5, +1))
+        assertEquals(6, VDesignCardSlots.nextUpcomingOffset(13, 0, 5, +1))
+        assertEquals(7, VDesignCardSlots.nextUpcomingOffset(13, 6, 5, +1))
+        assertEquals(1, VDesignCardSlots.nextUpcomingOffset(13, 7, 0, -1))
         assertEquals(0, VDesignCardSlots.nextUpcomingOffset(13, 1, 0, -1))
-        assertEquals(0, VDesignCardSlots.nextUpcomingOffset(13, 0, 2, +1))
+        assertEquals(0, VDesignCardSlots.nextUpcomingOffset(13, 0, 3, +1))
     }
 }
