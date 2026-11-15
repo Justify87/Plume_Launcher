@@ -491,8 +491,7 @@ internal class VpnAccountUi(
         textSize = 18f
         setTextColor(ink)
         setHintTextColor(secondary)
-        background = VpnTvStyle.background(activity, false)
-        setPadding(dp(14), dp(7), dp(14), dp(7))
+        VpnTvStyle.field(this)
         setOnKeyListener { _, keyCode, event ->
             if (event.action == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
                 focusRail()
