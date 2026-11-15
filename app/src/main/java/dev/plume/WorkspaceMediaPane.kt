@@ -28,6 +28,7 @@ internal class WorkspaceMediaPane(
         clipToPadding = false
     }
     private val cards = mutableListOf<VDesignCardView>()
+    private var lastFeed: NuvioDashboardFeed? = null
 
     init {
         isFillViewport = true
@@ -49,6 +50,9 @@ internal class WorkspaceMediaPane(
 
     /** Rebuild only when real provider data is rebound; no fake preview thumbnails. */
     fun bind(feed: NuvioDashboardFeed) {
+        if (lastFeed == feed) return
+        val oldFocus = cards.firstOrNull { it.isFocused }?.media?.stableId
+        lastFeed = feed
         content.removeAllViews()
         cards.clear()
         content.addView(title(appName, 26f))
@@ -82,6 +86,7 @@ internal class WorkspaceMediaPane(
             }
             content.addView(row)
         }
+        if (oldFocus != null) cards.firstOrNull { it.media?.stableId == oldFocus }?.requestFocus()
         if (!found) {
             content.addView(TextView(context).apply {
                 text = "Keine freigegebenen Medienkacheln verfügbar"
