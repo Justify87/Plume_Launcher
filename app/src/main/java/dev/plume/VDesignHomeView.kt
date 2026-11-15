@@ -279,6 +279,7 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
 
     private fun bindUpcoming() {
         upcomingCards.forEachIndexed { index, card ->
+            card.setUpcomingAccent(index)
             card.bind(VDesignCardSlots.media(latestFeed, NuvioSection.UPCOMING,
                 index, upcomingOffset), lastNow, lastZone, lastLocale)
             card.showEmpty(if (index == 0 && latestFeed.upcoming.isEmpty()) "Keine Einträge" else null)
