@@ -1,5 +1,8 @@
 package dev.plume
 
+import androidx.activity.ComponentActivity
+import androidx.activity.OnBackPressedCallback
+
 import android.animation.ObjectAnimator
 import android.animation.ValueAnimator
 import android.app.Activity
@@ -283,7 +286,7 @@ internal fun dropSessions(c: Context) {
 
 internal fun <T> preferTvApps(tv: List<T>, other: List<T>, pkg: (T) -> String) = (tv + other).distinctBy(pkg)
 
-class MainActivity : Activity() {
+class MainActivity : ComponentActivity() {
 
     /**
      * An app's icon is loaded once, but not held: the mono mark and the accent colour are made from it and kept, and a
@@ -350,7 +353,10 @@ class MainActivity : Activity() {
     private lateinit var wifi: ImageView
     private lateinit var glass: GlassLayer // paints the blurred wallpaper under glass tiles
     private lateinit var videoWallpaper: VideoWallpaper
-    private lateinit var vDesign: VDesignHomeView // sole Home renderer
+    private lateinit var vDesign: VDesignHomeView // permanent icon rail + one content viewport
+    private var settingsPreviewRendering = false
+    private var settingsPanePrepared = false
+    private var appsPaneSignature: String? = null
     private val vDesignDayTick = object : Runnable {
         override fun run() {
             if (!ready || !resumed || isDestroyed) return
@@ -405,6 +411,10 @@ class MainActivity : Activity() {
 
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
+        // The single persistent shell owns TV Back; registered before STARTED.
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() { handleShellBack() }
+        })
         // The system starts Home before the user unlocks (Direct Boot). Register first, so a missed
         // broadcast cannot leave the home screen empty. Do not read prefs, files or the cache yet.
         registerReceiver(unlockReceiver, IntentFilter(Intent.ACTION_USER_UNLOCKED))
@@ -564,7 +574,6 @@ class MainActivity : Activity() {
         scheduleVDesignMidnight()
         ui.post {
             if (!isDestroyed && ::vDesign.isInitialized && vDesign.isShown &&
-                settingsScrim.visibility != View.VISIBLE && allApps.visibility != View.VISIBLE &&
                 !vDesign.hasFocus() && setupDialog?.isShowing != true) vDesign.restoreFocus()
         }
         refreshWatchNext()
@@ -587,7 +596,7 @@ class MainActivity : Activity() {
             prefs.edit().remove("return_settings").remove("return_dream").remove("reopen_settings").apply()
             if (movingTop != null) endTopMove(false)
             if (settingsScrim.visibility == View.VISIBLE) closeLauncherSettings()
-            if (allApps.visibility != View.VISIBLE) openAllApps()
+            openAllApps() // external All Apps intent always enters the persistent grid
         }
     }
 
@@ -598,16 +607,25 @@ class MainActivity : Activity() {
         }
     }
 
-    override fun onRequestPermissionsResult(code: Int, perms: Array<out String>, results: IntArray) {
-        if (code != MEDIA_REQUEST) return refreshWatchNext()
+    @Deprecated("Legacy media/TV callback; keep ComponentActivity's ActivityResult registry intact")
+    override fun onRequestPermissionsResult(
+        code: Int, perms: Array<String>, results: IntArray
+    ) {
+        super.onRequestPermissionsResult(code, perms, results)
+        if (code != MEDIA_REQUEST) {
+            refreshWatchNext()
+            return
+        }
         if (results.firstOrNull() == PackageManager.PERMISSION_GRANTED) afterPhotoAccess?.invoke()
         else toast(getString(R.string.photos_permission), long = true)
     }
 
-    @Deprecated("Only used for the default-home role request and the TV's own installer")
+    @Deprecated("Legacy installer and HOME role result; registered ActivityResult clients still need super")
     override fun onActivityResult(code: Int, result: Int, data: Intent?) {
+        super.onActivityResult(code, result, data)
         if (code == INSTALL_REQUEST) installerClosed()
-        if (code == ROLE_REQUEST && settingsScrim.visibility == View.VISIBLE) renderSettings(R.string.default_launcher)
+        if (code == ROLE_REQUEST && settingsScrim.visibility == View.VISIBLE)
+            renderSettings(R.string.default_launcher)
         if (code == ROLE_REQUEST && setupStep == 1) {
             setupStep = 0
             afterHomeRole()
@@ -616,6 +634,7 @@ class MainActivity : Activity() {
 
     override fun onPause() {
         if (ready) {
+            if (::vDesign.isInitialized) vDesign.rememberWorkspaceFocus(currentFocus)
             resumed = false
             videoWallpaper.pause()
             findViewById<ImageView>(R.id.wallpaper).alpha = 1f
@@ -1045,17 +1064,33 @@ class MainActivity : Activity() {
         if (movingTop != null) endTopMove(false)
         if (settingsScrim.visibility == View.VISIBLE) closeLauncherSettings()
         if (allApps.visibility == View.VISIBLE) closeAllApps()
-        // Home always returns to the same single V-Design, including when an overlay was open.
-        vDesign.restoreFocus()
+        // Home resets the workspace selection, not merely the focus of an overlay.
+        vDesign.focusOverview()
     }
 
-    @Deprecated("Home screen: Back only closes overlays")
-    override fun onBackPressed() {
-        if (!ready) return
+    /**
+     * Back first belongs to Mullvad's nested page stack, then to the launcher
+     * content-to-rail movement. Home is always reachable; no separate VPN Activity.
+     */
+    private fun handleShellBack() {
+        if (!ready || !::vDesign.isInitialized) return
         when {
-            settingsScrim.visibility == View.VISIBLE -> pageBack?.invoke() ?: closeLauncherSettings()
-            allApps.visibility == View.VISIBLE -> closeAllApps()
-            ::vDesign.isInitialized && vDesign.hasFocus() -> vDesign.focusRememberedSidebar()
+            vDesign.isContentFocused(currentFocus) &&
+                vDesign.selectedWorkspace() == VDesignHomeView.VPN -> {
+                val controller = embeddedVpnView?.tag
+                val consumed = runCatching {
+                    controller?.javaClass?.getMethod("handleBack")?.invoke(controller) as? Boolean
+                }.getOrNull() == true
+                if (!consumed) vDesign.focusRememberedSidebar()
+            }
+            vDesign.isContentFocused(currentFocus) &&
+                vDesign.selectedWorkspace() == VDesignHomeView.SETTINGS ->
+                    pageBack?.invoke() ?: run { vDesign.focusRememberedSidebar() }
+            vDesign.isContentFocused(currentFocus) ->
+                vDesign.focusRememberedSidebar()
+            vDesign.selectedWorkspace() != VDesignHomeView.OVERVIEW ->
+                vDesign.focusOverview()
+            else -> vDesign.focusRememberedSidebar()
         }
     }
 
@@ -2454,13 +2489,18 @@ class MainActivity : Activity() {
 
     private fun showPanel() {
         panelFrom = currentFocus
-        // Dark: true black, set apart from the home screen by a hairline on its left edge.
         showPanelGlass()
-        findViewById<TextView>(R.id.settingsTitle).apply { setTextColor(focusInk()); panelShadow() }
-        for (id in listOf(R.id.settingsCrumb, R.id.settingsHelp)) findViewById<TextView>(id).apply { setTextColor(valueInk()); panelShadow() }
-        settingsScrim.background = ColorDrawable(0xDC090A0D.toInt())
+        findViewById<TextView>(R.id.settingsTitle).apply {
+            setTextColor(0xFFF7F7F8.toInt()); panelShadow()
+        }
+        for (id in listOf(R.id.settingsCrumb, R.id.settingsHelp))
+            findViewById<TextView>(id).apply {
+                setTextColor(0xFFB8BAC1.toInt()); panelShadow()
+            }
+        settingsScrim.background = ColorDrawable(0xFF16171C.toInt())
         pages.clear()
-        settingsScrim.visibility = View.VISIBLE
+        if (::vDesign.isInitialized) vDesign.showWorkspace(VDesignHomeView.SETTINGS)
+        else settingsScrim.visibility = View.VISIBLE
         homeFocusable(false)
     }
 
@@ -2482,13 +2522,12 @@ class MainActivity : Activity() {
         pageExit?.invoke()
         pageExit = null
         pageBack = null
-        settingsScrim.visibility = View.GONE
-        homeFocusable(allApps.visibility != View.VISIBLE) // the PIN can open over All apps
-        val previous = panelFrom?.takeIf { it.isAttachedToWindow && it.isShown }
-        if (previous?.requestFocus() != true) {
-            if (!::vDesign.isInitialized || !vDesign.restoreFocus())
-                findViewById<View>(R.id.launcherSettings).requestFocus()
-        }
+        settingsPanePrepared = false
+        if (::vDesign.isInitialized) {
+            // Closing an editor returns to the shell, never destroys its sidebar.
+            vDesign.focusRememberedSidebar()
+        } else settingsScrim.visibility = View.GONE
+        homeFocusable(true)
         panelFrom = null
     }
 
@@ -2550,6 +2589,13 @@ class MainActivity : Activity() {
             },
             R.string.icon_style to Triple(getString(R.string.icon_style), getString(ICON_STYLES.getValue(iconStyle()))) {
                 steps[R.string.icon_style]!!(1)
+            },
+            R.string.sidebar_color_icons to Triple(getString(R.string.sidebar_color_icons),
+                toggle(prefs.getBoolean("sidebar_color_icons", true))) {
+                val old = prefs.getBoolean("sidebar_color_icons", true)
+                prefs.edit().putBoolean("sidebar_color_icons", !old).apply()
+                refreshVDesignNavigation()
+                renderSettings(R.string.sidebar_color_icons)
             },
             R.string.cw_apps to Triple(getString(R.string.cw_apps), if (cwOff == 0) getString(R.string.all_on) else getString(R.string.n_off, cwOff)) { pickWatchSources() },
             R.string.cw_channels to Triple(getString(R.string.cw_channels), getString(R.string.n_on, channelsOn)) { pickChannels() },
@@ -2615,7 +2661,7 @@ class MainActivity : Activity() {
             Triple(R.string.section_style, "${rows[R.string.theme]!!.second} · ${getString(glassName())}",
                 listOf(R.string.theme, R.string.glass, R.string.app_animations)),
             Triple(R.string.section_applications, rows[R.string.sort_apps]!!.second,
-                listOf(R.string.sort_apps, R.string.icon_style)),
+                listOf(R.string.sort_apps, R.string.icon_style, R.string.sidebar_color_icons)),
             Triple(R.string.section_tv_media, rows[R.string.cw_channels]!!.second,
                 listOf(R.string.cw_apps, R.string.cw_channels)),
             Triple(R.string.section_clock_weather,
@@ -2764,7 +2810,9 @@ class MainActivity : Activity() {
         if (focusables.isEmpty()) return
         focusables.first().nextFocusUpId = focusables.last().id
         focusables.last().nextFocusDownId = focusables.first().id
-        (added.drop(focus.coerceIn(0, rows.size - 1)).firstOrNull { it.isFocusable } ?: focusables.first()).requestFocus()
+        if (!settingsPreviewRendering)
+            (added.drop(focus.coerceIn(0, rows.size - 1)).firstOrNull { it.isFocusable }
+                ?: focusables.first()).requestFocus()
     }
 
     // ---------- layout lock ----------
@@ -3342,16 +3390,9 @@ class MainActivity : Activity() {
     /** Refresh only the existing surfaces, retaining the focused All Apps tile when possible. */
     private fun refreshVisibleApps() {
         refreshVDesignNavigation()
-        if (allApps.visibility == View.VISIBLE) {
-            val focusedPackage = if (settingsScrim.visibility != View.VISIBLE) currentFocus?.tag as? String else null
-            openAllApps()
-            if (focusedPackage != null) {
-                (0 until allAppsGrid.childCount).asSequence()
-                    .map { allAppsGrid.getChildAt(it) }
-                    .firstOrNull { it.tag == focusedPackage }
-                    ?.requestFocus()
-            }
-        }
+        appsPaneSignature = null
+        if (::vDesign.isInitialized && vDesign.selectedWorkspace() == VDesignHomeView.ALL_APPS)
+            renderAllAppsPane(force = true)
     }
 
     private fun refreshApps() {
@@ -3726,6 +3767,7 @@ class MainActivity : Activity() {
      * framework's long-press timer. We treat the first auto-repeat of OK as "held"; the long-click
      * listener in style() is a fallback for remotes that send no repeats. [holdFired] stops both firing.
      */
+    @android.annotation.SuppressLint("RestrictedApi")
     override fun dispatchKeyEvent(e: KeyEvent): Boolean {
         if (!ready) return super.dispatchKeyEvent(e)
         if (wallPreview != null) { // a picked wallpaper shown whole: any button brings the panel back
@@ -3748,20 +3790,25 @@ class MainActivity : Activity() {
         }
         // The settings panel is a vertical list: Left/Right step a row's value (its tag, see settingsRow) and
         // never leak focus to the home screen behind it. The PIN boxes and the city search box use them themselves.
-        if (settingsScrim.visibility == View.VISIBLE && currentFocus !== pinBox && currentFocus !is EditText &&
+        if (::vDesign.isInitialized && vDesign.isContentFocused(currentFocus) &&
+            vDesign.selectedWorkspace() == VDesignHomeView.SETTINGS &&
+            currentFocus !== pinBox && currentFocus !is EditText &&
             (e.keyCode == KeyEvent.KEYCODE_DPAD_LEFT || e.keyCode == KeyEvent.KEYCODE_DPAD_RIGHT)
         ) {
             @Suppress("UNCHECKED_CAST")
-            if (e.action == KeyEvent.ACTION_DOWN) (currentFocus?.tag as? (Int) -> Unit)?.invoke(if (e.keyCode == KeyEvent.KEYCODE_DPAD_LEFT) -1 else 1)
-            return true
+            val change = currentFocus?.tag as? (Int) -> Unit
+            if (change != null) {
+                if (e.action == KeyEvent.ACTION_DOWN)
+                    change(if (e.keyCode == KeyEvent.KEYCODE_DPAD_LEFT) -1 else 1)
+                return true
+            }
         }
-        if (e.action == KeyEvent.ACTION_DOWN && settingsScrim.visibility != View.VISIBLE && allApps.visibility != View.VISIBLE) {
-            if (::vDesign.isInitialized && vDesign.handleDpad(currentFocus, e.keyCode)) return true
-        }
+        if (e.action == KeyEvent.ACTION_DOWN && ::vDesign.isInitialized &&
+            vDesign.handleDpad(currentFocus, e.keyCode)) return true
         return super.dispatchKeyEvent(e)
     }
 
-    /** Mount the sole V-Design Home view above the wallpaper and below All Apps/settings overlays. */
+    /** Create one permanent launcher shell, then move the actual XML content into it. */
     private fun setupVDesign() {
         val root = findViewById<FrameLayout>(R.id.root)
         vDesign = VDesignHomeView(this)
@@ -3772,63 +3819,250 @@ class MainActivity : Activity() {
         )
         root.addView(vDesign, root.indexOfChild(allApps),
             FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT))
+        // The views are not overlay windows: they become children of the content viewport.
+        vDesign.installWorkspacePane(VDesignHomeView.ALL_APPS, allApps)
+        vDesign.installWorkspacePane(VDesignHomeView.SETTINGS, settingsScrim)
+        // Must create before STARTED so Mullvad can register Android VPN consent.
+        // Standalone Plume has no Mullvad class; that is not a runtime failure.
+        installEmbeddedVpnPane()
         findViewById<View>(R.id.content).visibility = View.INVISIBLE
         refreshVDesignNavigation()
         vDesign.bindFeed(nuvioDashboardFeed)
-        vDesign.post {
-            if (ready && settingsScrim.visibility != View.VISIBLE && allApps.visibility != View.VISIBLE)
-                vDesign.restoreFocus()
-        }
+        vDesign.post { if (ready) vDesign.restoreFocus() }
     }
 
-    /** Every entry must resolve to an installed app or a real local Activity. */
-    /** Existing user-installed app icons remain visible after removing the Classic app row. */
-    private fun vDesignAppIcon(app: App): Drawable =
-        AppPictures.read(this, app.pkg, banner = false) ?: customIcon(app.pkg) ?: app.icon
+    /** App glyphs are never reconstructed from anonymous tinted vector substitutes. */
+    private fun vDesignAppIcon(app: App,
+        originalColor: Boolean = prefs.getBoolean("sidebar_color_icons", true)): Drawable =
+        if (originalColor) app.icon else
+            AppPictures.read(this, app.pkg, banner = false) ?: customIcon(app.pkg) ?: app.icon
 
     private fun refreshVDesignNavigation() {
         if (!::vDesign.isInitialized) return
         val installed = sortedApps()
-        val nuvio = installed.firstOrNull { AndroidTvMediaSource.isNuvioPackage(it.pkg) }
+        val nuvioVariants = installed.filter { AndroidTvMediaSource.isNuvioPackage(it.pkg) }
+        val owners = (nuvioProviderFeeds.inProgress + nuvioProviderFeeds.available +
+            nuvioProviderFeeds.upcoming).map { it.program.item.sourcePackage }.distinct()
+        val matchingOwner = owners.singleOrNull()
+        val selectedNuvio = NuvioInstallationPolicy.preferredPackage(
+            nuvioVariants.map { it.pkg }, matchingOwner)
+        val nuvio = nuvioVariants.firstOrNull { it.pkg == selectedNuvio }
+            ?: nuvioVariants.firstOrNull()
         val smartTube = installed.firstOrNull { YouTubeSubscriptions.isSmartTube(it.pkg) }
-        val spotify = installed.firstOrNull { it.pkg == "com.spotify.tv.android" || it.pkg == "com.spotify.music" }
+        val spotify = installed.firstOrNull {
+            it.pkg == "com.spotify.tv.android" || it.pkg == "com.spotify.music"
+        }
         val vpn = ComponentName(packageName, "net.mullvad.mullvadvpn.app.VpnActivity")
         val vpnAvailable = try {
             packageManager.getActivityInfo(vpn, 0)
             true
         } catch (_: PackageManager.NameNotFoundException) { false }
+
         val items = buildList {
-            add(VDesignHomeView.Navigation(VDesignHomeView.OVERVIEW, "Übersicht", getDrawable(R.drawable.ic_home)))
-            nuvio?.let { add(VDesignHomeView.Navigation(VDesignHomeView.NUVIO, "Nuvio TV", vDesignAppIcon(it))) }
-            smartTube?.let { add(VDesignHomeView.Navigation(VDesignHomeView.SMARTTUBE, "SmartTube", vDesignAppIcon(it))) }
-            spotify?.let { add(VDesignHomeView.Navigation(VDesignHomeView.SPOTIFY, "Spotify", vDesignAppIcon(it))) }
-            add(VDesignHomeView.Navigation(VDesignHomeView.ALL_APPS, "Alle Apps", getDrawable(R.drawable.ic_apps)))
-            if (vpnAvailable) add(VDesignHomeView.Navigation(VDesignHomeView.VPN, "Mullvad VPN", getDrawable(R.drawable.ic_vpn)))
-            add(VDesignHomeView.Navigation(VDesignHomeView.SETTINGS, "Einstellungen", getDrawable(R.drawable.ic_settings)))
+            add(VDesignHomeView.Navigation(VDesignHomeView.OVERVIEW, "Übersicht",
+                getDrawable(R.drawable.ms_home)))
+            nuvio?.let { add(VDesignHomeView.Navigation(
+                VDesignHomeView.NUVIO, "Nuvio TV", vDesignAppIcon(it), appIcon = true)) }
+            smartTube?.let { add(VDesignHomeView.Navigation(
+                VDesignHomeView.SMARTTUBE, "SmartTube", vDesignAppIcon(it), appIcon = true)) }
+            spotify?.let { add(VDesignHomeView.Navigation(
+                VDesignHomeView.SPOTIFY, "Spotify", vDesignAppIcon(it), appIcon = true)) }
+            add(VDesignHomeView.Navigation(VDesignHomeView.ALL_APPS, "Alle Apps",
+                getDrawable(R.drawable.ms_apps)))
+            if (vpnAvailable) add(VDesignHomeView.Navigation(VDesignHomeView.VPN, "Mullvad VPN",
+                getDrawable(R.drawable.ic_vpn)))
+            add(VDesignHomeView.Navigation(VDesignHomeView.SETTINGS, "Einstellungen",
+                getDrawable(R.drawable.ic_settings)))
         }
-        vDesign.bindNavigation(items, onOpen = { key ->
-            when (key) {
-                VDesignHomeView.OVERVIEW -> vDesign.focusOverview()
-                VDesignHomeView.NUVIO -> nuvio?.let { launch(it) }
-                VDesignHomeView.SMARTTUBE -> smartTube?.let { launch(it) }
-                VDesignHomeView.SPOTIFY -> spotify?.let { launch(it) }
-                VDesignHomeView.ALL_APPS -> openAllApps()
-                VDesignHomeView.SETTINGS -> openLauncherSettings()
-                VDesignHomeView.VPN -> {
-                    returnFocusFromVpn = true
-                    try { startActivity(Intent().setComponent(vpn)) }
-                    catch (_: ActivityNotFoundException) {
-                        returnFocusFromVpn = false
-                        toast("VPN nicht verfügbar")
+        vDesign.bindNavigation(items,
+            showFullColorAppIcons = prefs.getBoolean("sidebar_color_icons", true),
+            onPreview = { key ->
+                when (key) {
+                    VDesignHomeView.ALL_APPS -> renderAllAppsPane()
+                    VDesignHomeView.SETTINGS -> previewLauncherSettings()
+                    VDesignHomeView.NUVIO -> showAppPreview("Nuvio TV", key)
+                    VDesignHomeView.SMARTTUBE -> showAppPreview("SmartTube", key)
+                    VDesignHomeView.SPOTIFY -> showAppPreview("Spotify", key)
+                    VDesignHomeView.VPN -> showVpnPreview()
+                }
+            },
+            onOpen = { key ->
+                when (key) {
+                    VDesignHomeView.OVERVIEW, VDesignHomeView.ALL_APPS,
+                    VDesignHomeView.SETTINGS, VDesignHomeView.VPN ->
+                        vDesign.focusWorkspaceContent()
+                    VDesignHomeView.NUVIO -> {
+                        if (selectedNuvio != null) {
+                            nuvioVariants.firstOrNull { it.pkg == selectedNuvio }?.let { launch(it) }
+                        } else if (nuvioVariants.size > 1) {
+                            android.app.AlertDialog.Builder(this)
+                                .setTitle("Welche Nuvio-Installation öffnen?")
+                                .setItems(nuvioVariants.map { it.label + " (" + it.pkg + ")" }
+                                    .toTypedArray()) { _, index -> launch(nuvioVariants[index]) }
+                                .setNegativeButton(android.R.string.cancel, null).show()
+                        } else nuvioVariants.singleOrNull()?.let { launch(it) }
                     }
+                    VDesignHomeView.SMARTTUBE -> smartTube?.let { launch(it) }
+                    VDesignHomeView.SPOTIFY -> spotify?.let { launch(it) }
+                }
+            },
+            onAllApps = {
+                if (!holdFired) { holdFired = true; openAllApps() }
+            },
+            onSystemActions = { anchor ->
+                if (!holdFired) { holdFired = true; showVDesignSystemActions(anchor) }
+            })
+    }
+
+    /** The right pane is populated on focus. Nothing launches until OK. */
+    /**
+     * One complete right-pane renderer: adapt tile width and column count to the
+     * actual content viewport, not to the full display's width or density.
+     * Preserve focused package on data/geometry refresh.
+     */
+    private fun renderAllAppsPane(force: Boolean = false) {
+        val visibleApps = sortedApps()
+        val density = resources.displayMetrics.density
+        val viewportPx = allApps.width.takeIf { it > 0 }
+            ?: (vDesign.width * (1433f / 1536f)).toInt().takeIf { it > 0 }
+            ?: (resources.displayMetrics.widthPixels * (1433f / 1536f)).toInt()
+        val geometry = WorkspaceGridPolicy.calculate((viewportPx / density).toInt())
+        val signature = visibleApps.joinToString("|") { it.pkg + ":" + it.label } +
+            ":" + iconStyle() + ":" + geometry.columns + ":" + geometry.tileWidth
+        if (!force && signature == appsPaneSignature) return
+        appsPaneSignature = signature
+        val remembered = if (vDesign.isContentFocused(currentFocus))
+            currentFocus?.tag as? String else null
+        allAppsGrid.removeAllViews()
+        allAppsGrid.columnCount = geometry.columns
+        val gap = dp(geometry.gap)
+        for (app in visibleApps) {
+            val tile = WorkspaceAppTileView(this, app.pkg, app.label,
+                vDesignAppIcon(app, originalColor = colourIcons()),
+                originalColors = colourIcons(),
+                launch = { launch(app) },
+                longPress = { if (!holdFired) fireHold(it) })
+            allAppsGrid.addView(tile, GridLayout.LayoutParams().apply {
+                width = dp(geometry.tileWidth)
+                height = dp(135)
+                setMargins(0, 0, gap, gap)
+            })
+        }
+        findViewById<TextView>(R.id.allAppsTitle).text =
+            getString(R.string.all_apps) + "  ·  " + visibleApps.size
+        if (remembered != null) {
+            (0 until allAppsGrid.childCount).map { allAppsGrid.getChildAt(it) }
+                .firstOrNull { it.tag == remembered }?.requestFocus()
+        }
+    }
+
+    private fun previewLauncherSettings() {
+        if (settingsPanePrepared) return
+        settingsPanePrepared = true
+        settingsPreviewRendering = true
+        try {
+            showPanel()
+            renderSettings(0)
+        } finally {
+            settingsPreviewRendering = false
+        }
+    }
+
+    /** Source-backed previews from Nuvio's typed channels and the shared TV media feed. */
+    private fun showAppPreview(name: String, key: String) {
+        if (key == VDesignHomeView.NUVIO) {
+            val current = workspaceAppPreviews.getOrPut(key) {
+                WorkspaceMediaPane(this, name,
+                    loadArtwork = { view, uri -> loadPoster(view, uri) },
+                    onSelect = { item -> openVDesignMedia(item) }).also {
+                    vDesign.installWorkspacePane(key, it)
                 }
             }
-        }, onAllApps = {
-            if (!holdFired) { holdFired = true; openAllApps() }
-        }, onSystemActions = { anchor ->
-            if (!holdFired) { holdFired = true; showVDesignSystemActions(anchor) }
-        })
+            current.bind(nuvioDashboardFeed)
+            return
+        }
+        val app = sortedApps().firstOrNull {
+            when (key) {
+                VDesignHomeView.SMARTTUBE -> YouTubeSubscriptions.isSmartTube(it.pkg)
+                VDesignHomeView.SPOTIFY ->
+                    it.pkg == "com.spotify.tv.android" || it.pkg == "com.spotify.music"
+                else -> false
+            }
+        }
+        val pane = workspaceOtherPreviews.getOrPut(key) {
+            WorkspaceGenericMediaPane(this, name,
+                loadArtwork = { view, uri -> loadPoster(view, uri) },
+                open = { item -> openWorkspaceMediaItem(item) }).also {
+                vDesign.installWorkspacePane(key, it)
+            }
+        }
+        pane.bind(app?.let { mediaFeed.snapshot(packageName = it.pkg) } ?: emptyList())
     }
+
+    private val workspaceAppPreviews = mutableMapOf<String, WorkspaceMediaPane>()
+    private val workspaceOtherPreviews = mutableMapOf<String, WorkspaceGenericMediaPane>()
+
+    /**
+     * Only open a provider media link inside its own installed application.
+     * No arbitrary Intent selectors, URI grants or cross-app components.
+     */
+    private fun openWorkspaceMediaItem(item: MediaItem) {
+        val owner = item.sourcePackage ?: return
+        if (sortedApps().none { it.pkg == owner }) return toast("App nicht installiert")
+        val raw = try {
+            item.intentUri?.let { Intent.parseUri(it, Intent.URI_INTENT_SCHEME) }
+        } catch (_: Exception) { null } ?: return toast("Medienlink nicht verfügbar")
+        if (!WorkspaceMediaLaunchPolicy.valid(owner, raw.component?.packageName,
+                raw.`package`, raw.selector != null, raw.data?.scheme))
+            return toast("Medienlink nicht verfügbar")
+        raw.setPackage(owner)
+        raw.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        raw.clipData = null
+        try {
+            startApp(raw, currentFocus)
+        } catch (error: Exception) {
+            android.util.Log.w("Plume", "App media link failed: $owner", error)
+            toast("Medienlink nicht verfügbar")
+        }
+    }
+
+    private var embeddedVpnView: View? = null
+
+    /**
+     * Original Mullvad controllers are compiled only into the combined APK.
+     * Reflection allows standalone Plume to ship without its whole dependency graph.
+     * Creation takes place during onCreate, not on first rail focus: the upstream
+     * ActivityResultRegistry requires registration before STARTED.
+     */
+    private fun installEmbeddedVpnPane() {
+        val activity = ComponentName(packageName, "net.mullvad.mullvadvpn.app.VpnActivity")
+        val present = try {
+            packageManager.getActivityInfo(activity, 0)
+            true
+        } catch (_: PackageManager.NameNotFoundException) { false }
+        if (!present) return
+        val embedded = try {
+            val bridge = Class.forName("net.mullvad.mullvadvpn.app.MullvadEmbeddedPanel")
+            bridge.getMethod("create", ComponentActivity::class.java)
+                .invoke(null, this) as? View
+        } catch (error: Exception) {
+            android.util.Log.e("Plume", "Embedded Mullvad initialization failed", error)
+            null
+        }
+        embeddedVpnView = embedded
+        val content = embedded ?: TextView(this).apply {
+            text = "Mullvad konnte nicht in die Launcher-Oberfläche eingebunden werden. " +
+                "Bitte den kombinierten APK-Build prüfen."
+            textSize = 18f
+            setTextColor(0xFFF7F7F8.toInt())
+            setBackgroundColor(0xFF16171C.toInt())
+            setPadding(dp(30), dp(32), dp(30), dp(24))
+        }
+        vDesign.installWorkspacePane(VDesignHomeView.VPN, content)
+    }
+
+    /** The embedded Mullvad view is constructed once during onCreate. */
+    private fun showVpnPreview() = Unit
 
     /** Long OK on Settings retains the old invisible top bar's system entry points. */
     private fun showVDesignSystemActions(anchor: View) {
@@ -3839,7 +4073,8 @@ class MainActivity : Activity() {
             add("Power" to { powerDialog(anchor) })
             add("Home-Einrichtung" to { startHomeSetup() })
         }
-        holdMenu(anchor, shortcuts, below = true)
+        // Settings is near the bottom of the rail: open the action menu above it.
+        holdMenu(anchor, shortcuts, below = false)
     }
 
     /** One local civil-day timer only while foreground; M04 can rebind dates without polling. */
@@ -3978,6 +4213,11 @@ class MainActivity : Activity() {
                 YouTubeSubscriptions.media(videos, null, age).map { item ->
                     item.copy(packageAliases = smartTube?.let { setOf(it) } ?: emptySet())
                 })
+            ui.post {
+                if (!isDestroyed && ::vDesign.isInitialized &&
+                    vDesign.selectedWorkspace() == VDesignHomeView.SMARTTUBE)
+                    showAppPreview("SmartTube", VDesignHomeView.SMARTTUBE)
+            }
         }
     }
 
@@ -3985,8 +4225,9 @@ class MainActivity : Activity() {
     private fun homeFocusable(on: Boolean) {
         findViewById<ViewGroup>(R.id.content).descendantFocusability =
             if (on) ViewGroup.FOCUS_AFTER_DESCENDANTS else ViewGroup.FOCUS_BLOCK_DESCENDANTS
+        // The rail and its in-pane views are always focusable, even when Settings is selected.
         if (::vDesign.isInitialized) vDesign.descendantFocusability =
-            if (on) ViewGroup.FOCUS_AFTER_DESCENDANTS else ViewGroup.FOCUS_BLOCK_DESCENDANTS
+            ViewGroup.FOCUS_AFTER_DESCENDANTS
     }
 
     private fun fireHold(v: View) {
@@ -3996,29 +4237,33 @@ class MainActivity : Activity() {
         onHold(v)
     }
 
-    /** What holding OK does depends on what's focused. */
+    /** Long-OK is tied to a real rail item or a visible All Apps tile, never overlay visibility. */
     private fun onHold(v: View) {
-        val tag = v.tag as? String
+        val key = v.tag as? String
         when {
-            tag == VDesignHomeView.OVERVIEW && allApps.visibility != View.VISIBLE &&
-                settingsScrim.visibility != View.VISIBLE -> openAllApps()
-            tag == VDesignHomeView.SETTINGS && allApps.visibility != View.VISIBLE &&
-                settingsScrim.visibility != View.VISIBLE -> showVDesignSystemActions(v)
-            allApps.visibility == View.VISIBLE && tag != null -> {
-                val app = sortedApps().firstOrNull { it.pkg == tag }
+            ::vDesign.isInitialized && vDesign.isRailFocused(v) &&
+                key == VDesignHomeView.OVERVIEW -> openAllApps()
+            ::vDesign.isInitialized && vDesign.isRailFocused(v) &&
+                key == VDesignHomeView.SETTINGS -> showVDesignSystemActions(v)
+            ::vDesign.isInitialized && vDesign.isContentFocused(v) &&
+                vDesign.selectedWorkspace() == VDesignHomeView.ALL_APPS && key != null -> {
+                val app = sortedApps().firstOrNull { it.pkg == key }
                 if (app != null) {
-                    // The historical PIN contract allowed launching while locked, never editing or uninstalling.
-                    val actions = if (locked()) listOf(getString(R.string.open) to { launch(app) })
+                    val actions = if (locked())
+                        listOf(getString(R.string.open) to { launch(app) })
                     else listOfNotNull(
                         getString(R.string.open) to { launch(app) },
-                        if (app.pkg.startsWith(HDMI)) null else getString(R.string.change_app_picture) to {
+                        if (app.pkg.startsWith(HDMI)) null
+                        else getString(R.string.change_app_picture) to {
                             appPictures(app.pkg, app.label)
                         },
-                        if (app.pkg.startsWith(HDMI)) null else getString(R.string.app_info) to {
+                        if (app.pkg.startsWith(HDMI)) null
+                        else getString(R.string.app_info) to {
                             openSettings(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
                                 Uri.fromParts("package", app.pkg, null))
                         },
-                        if (canUninstall(app.pkg)) getString(R.string.uninstall) to { uninstall(app.pkg) } else null,
+                        if (canUninstall(app.pkg))
+                            getString(R.string.uninstall) to { uninstall(app.pkg) } else null,
                     )
                     holdMenu(v, actions)
                 }
@@ -4420,42 +4665,22 @@ class MainActivity : Activity() {
         returnTo = focusKey(from)
     }
 
-    /** What Home goes back to: the pressed tile's package or the pressed card's [cardKey], and null for an app that Plume did not start. */
+    /** Stable focus key of the launching tile; not a navigation destination. */
     private var returnTo: String? = null
 
     private fun cardKey(p: Prog) = "card|${p.title}|${p.pkg}|${p.intent}"
-
     private fun focusKey(v: View?): String? = v?.tag as? String
 
-    /** The tile or card that [key] names, with the cards built up to it; null when it left the rows (uninstalled, hidden, off the list). */
+    /** Called by All Apps hotkeys; the permanent rail never disappears. */
     private fun openAllApps() {
-        allAppsGrid.removeAllViews()
-        val gap = dp(10)
-        val width = (resources.displayMetrics.widthPixels - dp(96) - gap * 5) / 6
-        for (a in sortedApps()) {
-            val t = appTile(a) // holding OK here pins it to the row (see onHold)
-            allAppsGrid.addView(t, GridLayout.LayoutParams().apply {
-                this.width = width
-                height = dp(76)
-                setMargins(0, 0, gap, gap)
-            })
-        }
-        allApps.visibility = View.VISIBLE
-        if (::vDesign.isInitialized) vDesign.visibility = View.INVISIBLE
-        // Glass shows the wallpaper here, so the home screen under the grid has to go; without glass the opaque
-        // background covers it anyway.
-        findViewById<View>(R.id.content).visibility = if (::vDesign.isInitialized || glassActive()) View.INVISIBLE else View.VISIBLE
-        homeFocusable(false)
-        allAppsGrid.getChildAt(0)?.requestFocus()
+        if (!::vDesign.isInitialized) return
+        vDesign.focusAllApps()
+        renderAllAppsPane()
+        vDesign.focusWorkspaceContent()
     }
 
     private fun closeAllApps() {
-        allApps.visibility = View.GONE
-        findViewById<View>(R.id.content).visibility = if (::vDesign.isInitialized) View.INVISIBLE else View.VISIBLE
-        if (::vDesign.isInitialized) vDesign.visibility = View.VISIBLE
-        homeFocusable(true)
-        if (::vDesign.isInitialized) vDesign.restoreFocus()
-        else findViewById<View>(R.id.allAppsButton).requestFocus() // back where it was opened from
+        if (::vDesign.isInitialized) vDesign.focusRememberedSidebar()
     }
 
     // ---------- screensaver ----------
@@ -5183,8 +5408,20 @@ class MainActivity : Activity() {
             }
             ui.post {
                 if (!isDestroyed) {
-                    if (::vDesign.isInitialized) vDesign.bindFeed(nuvioDashboardFeed)
+                    if (::vDesign.isInitialized) {
+                        vDesign.bindFeed(nuvioDashboardFeed)
+                        // The publishing Nuvio package can resolve an ambiguous install.
+                        refreshVDesignNavigation()
+                        when (vDesign.selectedWorkspace()) {
+                            VDesignHomeView.NUVIO ->
+                                showAppPreview("Nuvio TV", VDesignHomeView.NUVIO)
+                            VDesignHomeView.SMARTTUBE ->
+                                showAppPreview("SmartTube", VDesignHomeView.SMARTTUBE)
+                            VDesignHomeView.SPOTIFY ->
+                                showAppPreview("Spotify", VDesignHomeView.SPOTIFY)
+                        }
                     }
+                }
             }
         }
     }
@@ -5546,6 +5783,8 @@ class MainActivity : Activity() {
                     // Another mounted card may have requested the same URL while its download was in flight.
                     // Fill only this URI: unrelated failed posters wait for the ordinary online retry.
                     if (::vDesign.isInitialized) vDesign.artworkReady(uri, bmp)
+                    workspaceAppPreviews.values.forEach { it.artworkReady(uri, bmp) }
+                    workspaceOtherPreviews.values.forEach { it.artworkReady(uri, bmp) }
                 }
             }
         }

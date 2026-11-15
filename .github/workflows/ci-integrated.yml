@@ -63,9 +63,10 @@ jobs:
           path: app/build/reports/lint-results-debug.html
           if-no-files-found: ignore
 
-      - name: Test source staging generator and APK validator
+      - name: Test Mullvad staging, embedded-controller contracts and APK validator
         run: |
           python3 -m unittest discover -s tools -p test_mullvad_prepare.py -v
+          python3 -m unittest discover -s tools -p test_embedded_mullvad_consolidation.py -v
           python3 -m unittest discover -s tools -p test_mullvad_apk.py -v
 
       - name: Pull Mullvad's pinned Android toolchain image

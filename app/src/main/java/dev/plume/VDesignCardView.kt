@@ -73,7 +73,7 @@ internal class VDesignCardView(
         importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
     }
     private val title = label(
-        when (kind) { Kind.HERO -> 51; Kind.STANDARD -> 25; Kind.AVAILABLE -> 25; Kind.COMPACT -> 22 },
+        when (kind) { Kind.HERO -> 42; Kind.STANDARD -> 25; Kind.AVAILABLE -> 25; Kind.COMPACT -> 22 },
         bold = true, darkInk = kind == Kind.HERO)
     private val episode = label(
         when (kind) { Kind.HERO -> 23; Kind.STANDARD -> 19; Kind.AVAILABLE -> 19; Kind.COMPACT -> 17 },
@@ -154,8 +154,10 @@ internal class VDesignCardView(
                         val h = height.toFloat()
                         path.reset()
                         path.moveTo(0f, 0f)
-                        path.lineTo(w * .62f, 0f)
-                        path.cubicTo(w * .45f, h * .27f, w * .45f, h * .70f, w * .70f, h)
+                        // The left overlay occupies roughly 44% of the frame rather than
+                        // the previous 60–70%, so the actual episode image remains visible.
+                        path.lineTo(w * .50f, 0f)
+                        path.cubicTo(w * .33f, h * .25f, w * .38f, h * .70f, w * .52f, h)
                         path.lineTo(0f, h)
                         path.close()
                         canvas.drawPath(path, paint)
@@ -170,7 +172,7 @@ internal class VDesignCardView(
                     addView(heroButton, LinearLayout.LayoutParams(-2, -2).apply { topMargin = px(27) })
                     addView(playback, LinearLayout.LayoutParams(-1, -2).apply { topMargin = px(22) })
                 }
-                addView(content, LayoutParams(px(414), -1, Gravity.START))
+                addView(content, LayoutParams(px(352), -1, Gravity.START))
             }
             Kind.STANDARD -> {
                 roundImage(this, 22)
@@ -270,7 +272,7 @@ internal class VDesignCardView(
         fun adjust(view: TextView, sourcePx: Int) =
             view.setTextSize(TypedValue.COMPLEX_UNIT_PX, sourcePx * viewportScale * fontScale)
         adjust(title, when (kind) {
-            Kind.HERO -> 51; Kind.STANDARD -> 25; Kind.AVAILABLE -> 25; Kind.COMPACT -> 22
+            Kind.HERO -> 42; Kind.STANDARD -> 25; Kind.AVAILABLE -> 25; Kind.COMPACT -> 22
         })
         adjust(episode, when (kind) {
             Kind.HERO -> 23; Kind.STANDARD -> 19; Kind.AVAILABLE -> 19; Kind.COMPACT -> 17

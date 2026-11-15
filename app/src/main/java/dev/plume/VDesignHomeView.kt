@@ -22,6 +22,7 @@ import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.time.ZoneId
 import java.util.Locale
+import java.lang.ref.WeakReference
 
 /** Reference-anchored sole productive V-Design home host; no Classic/Overview layout switch. */
 internal class VDesignHomeView(context: Context) : FrameLayout(context) {
@@ -35,7 +36,7 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
         const val ALL_APPS = "vdesign:allapps"
     }
 
-    data class Navigation(val key: String, val label: String, val icon: Drawable?)
+    data class Navigation(val key: String, val label: String, val icon: Drawable?, val appIcon: Boolean = false)
 
     private object Palette {
         const val INK = 0xFFF7F7F8.toInt()
@@ -47,6 +48,30 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
 
     private val anchored = mutableListOf<Pair<View, VDesignCanvas.Box>>()
     private val menu = mutableListOf<View>()
+    private val homeContent = mutableListOf<View>()
+    private val workspacePanels = linkedMapOf<String, View>()
+    private var navigation = LauncherWorkspaceNavigation.State()
+    private fun destination(key: String): LauncherWorkspaceNavigation.Destination = when (key) {
+        NUVIO -> LauncherWorkspaceNavigation.Destination.NUVIO
+        SMARTTUBE -> LauncherWorkspaceNavigation.Destination.SMARTTUBE
+        SPOTIFY -> LauncherWorkspaceNavigation.Destination.SPOTIFY
+        ALL_APPS -> LauncherWorkspaceNavigation.Destination.ALL_APPS
+        SETTINGS -> LauncherWorkspaceNavigation.Destination.SETTINGS
+        VPN -> LauncherWorkspaceNavigation.Destination.VPN
+        else -> LauncherWorkspaceNavigation.Destination.HOME
+    }
+    private val currentWorkspace: String get() = when (navigation.destination) {
+        LauncherWorkspaceNavigation.Destination.HOME -> OVERVIEW
+        LauncherWorkspaceNavigation.Destination.NUVIO -> NUVIO
+        LauncherWorkspaceNavigation.Destination.SMARTTUBE -> SMARTTUBE
+        LauncherWorkspaceNavigation.Destination.SPOTIFY -> SPOTIFY
+        LauncherWorkspaceNavigation.Destination.ALL_APPS -> ALL_APPS
+        LauncherWorkspaceNavigation.Destination.SETTINGS -> SETTINGS
+        LauncherWorkspaceNavigation.Destination.VPN -> VPN
+    }
+    private var preview: (String) -> Unit = {}
+    private var lastContentFocus: WeakReference<View>? = null
+    private var lastContentDestination: String? = null
     private val cardBoxes = mutableMapOf<VDesignCardView, VDesignCanvas.Box>()
     private var lastSidebarKey = OVERVIEW
     private var lastSection: NuvioSection? = null
@@ -126,6 +151,75 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
             842 to 213, 1074 to 211, 1306 to 205
         )) card(VDesignCanvas.Box(x, 605, width, 218), VDesignCardView.Kind.COMPACT, upcomingCards)
         refreshHeader()
+        // Home-only views are captured before adding the persistent rail or other panes.
+        homeContent += (0 until childCount).map { getChildAt(it) }
+    }
+
+    /** Replace the former full-screen overlays with children of the right-hand viewport. */
+    fun installWorkspacePane(key: String, content: View) {
+        if (key == OVERVIEW) return
+        workspacePanels.remove(key)?.let { old ->
+            removeView(old)
+            anchored.removeAll { it.first === old }
+        }
+        (content.parent as? ViewGroup)?.removeView(content)
+        content.visibility = View.GONE
+        workspacePanels[key] = content
+        // The right pane uses the full height; its content owns internal padding.
+        mount(content, VDesignCanvas.Box(103, 0, 1433, 864))
+        menu.forEach { bringChildToFront(it) }
+        if (currentWorkspace == key) showWorkspace(key, force = true)
+    }
+
+    fun showWorkspace(key: String, force: Boolean = false) {
+        val alreadyVisible = !force && key == currentWorkspace &&
+            (key == OVERVIEW || workspacePanels[key]?.visibility == View.VISIBLE)
+        navigation = LauncherWorkspaceNavigation.focusRail(navigation, destination(key))
+        if (alreadyVisible) return
+        homeContent.forEach { it.visibility = if (key == OVERVIEW) View.VISIBLE else View.GONE }
+        workspacePanels.forEach { (destination, view) ->
+            val selected = destination == key
+            view.animate().cancel()
+            view.alpha = 1f
+            view.translationX = 0f
+            view.visibility = if (selected) View.VISIBLE else View.GONE
+            if (selected && android.animation.ValueAnimator.areAnimatorsEnabled()) {
+                view.alpha = 0f
+                view.translationX = 10f * scale()
+                view.animate().alpha(1f).translationX(0f).setDuration(165L).start()
+            }
+        }
+    }
+
+    fun selectedWorkspace(): String = currentWorkspace
+
+    private fun containsChild(root: View, child: View?): Boolean {
+        var node = child
+        while (node != null) {
+            if (node === root) return true
+            node = node.parent as? View
+        }
+        return false
+    }
+
+    fun isContentFocused(focused: View?): Boolean =
+        focused != null && workspacePanels[currentWorkspace]?.let { containsChild(it, focused) } == true
+
+    fun isRailFocused(focused: View?): Boolean = focused != null && menu.any { it === focused }
+
+    fun focusWorkspaceContent(): Boolean {
+        if (currentWorkspace == OVERVIEW) return rememberedCard()?.requestFocus() == true
+        val content = workspacePanels[currentWorkspace] ?: return false
+        fun findFirst(v: View): View? {
+            if (!v.isShown) return null
+            if (v is ViewGroup) for (i in 0 until v.childCount) {
+                findFirst(v.getChildAt(i))?.let { return it }
+            }
+            return if (v.isFocusable && v.isEnabled) v else null
+        }
+        val moved = findFirst(content)?.requestFocus() == true
+        if (moved) navigation = LauncherWorkspaceNavigation.right(navigation, true)
+        return moved
     }
 
     private fun header(value: String, size: Int) = TextView(context).apply {
@@ -328,19 +422,22 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
         upcomingCards.forEach { it.retryMissingArtwork() }
     }
 
-    fun bindNavigation(items: List<Navigation>, onOpen: (String) -> Unit, onAllApps: () -> Unit,
-        onSystemActions: (View) -> Unit) {
+    /** The rail remains visible. Focus selects content, OK activates the target. */
+    fun bindNavigation(items: List<Navigation>, onOpen: (String) -> Unit,
+        onPreview: (String) -> Unit = {}, showFullColorAppIcons: Boolean = true,
+        onAllApps: () -> Unit, onSystemActions: (View) -> Unit) {
         open = onOpen
+        preview = onPreview
         allApps = onAllApps
         systemActions = onSystemActions
-        val focusedKey = menu.firstOrNull { it.isFocused }?.tag as? String
-        if (focusedKey != null) lastSidebarKey = focusedKey
-        for (view in menu) {
-            removeView(view)
-            anchored.removeAll { it.first === view }
+        val previousFocus = menu.firstOrNull { it.isFocused }?.tag as? String
+        if (previousFocus != null) lastSidebarKey = previousFocus
+        for (old in menu) {
+            removeView(old)
+            anchored.removeAll { it.first === old }
         }
         menu.clear()
-        var appShortcuts = 0
+        var shortcuts = 0
         for (item in items) {
             val bar = FrameLayout(context).apply {
                 tag = item.key
@@ -349,27 +446,32 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
                     SETTINGS -> item.label + ". Langes OK: System, HDMI und Power"
                     else -> item.label
                 }
-                isClickable = true
                 isFocusable = true
+                isClickable = true
             }
             val mark = ImageView(context).apply {
                 setImageDrawable(item.icon?.constantState?.newDrawable(resources)?.mutate() ?: item.icon)
                 scaleType = ImageView.ScaleType.FIT_CENTER
                 importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
-                setColorFilter(Color.WHITE)
             }
-            bar.addView(mark, FrameLayout.LayoutParams((34 * scale()).toInt().coerceAtLeast(1),
-                (34 * scale()).toInt().coerceAtLeast(1), Gravity.CENTER))
+            bar.addView(mark, FrameLayout.LayoutParams(
+                (36 * scale()).toInt().coerceAtLeast(1),
+                (36 * scale()).toInt().coerceAtLeast(1), Gravity.CENTER))
+            val originalColors = item.appIcon && showFullColorAppIcons
             fun style(focused: Boolean) {
-                mark.setColorFilter(if (focused) 0xFF121317.toInt() else Palette.INK)
+                if (originalColors) mark.clearColorFilter()
+                else mark.setColorFilter(if (focused) 0xFF121317.toInt() else Palette.INK)
                 bar.background = GradientDrawable().apply {
-                    cornerRadius = 40 * scale()
-                    setColor(if (focused) Palette.LIME else Color.TRANSPARENT)
+                    cornerRadius = 18f * scale()
+                    setColor(if (focused && !originalColors) Palette.LIME
+                        else if (focused) 0xFF282B2D.toInt() else Color.TRANSPARENT)
+                    if (focused && originalColors)
+                        setStroke((2 * scale()).toInt().coerceAtLeast(1), Palette.LIME)
                 }
                 bar.animate().cancel()
                 if (android.animation.ValueAnimator.areAnimatorsEnabled()) {
-                    bar.animate().scaleX(if (focused) 1.04f else 1f)
-                        .scaleY(if (focused) 1.04f else 1f).setDuration(145).start()
+                    bar.animate().scaleX(if (focused) 1.045f else 1f)
+                        .scaleY(if (focused) 1.045f else 1f).setDuration(150L).start()
                 } else {
                     bar.scaleX = 1f
                     bar.scaleY = 1f
@@ -381,6 +483,8 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
                 if (focused) {
                     lastSidebarKey = item.key
                     preferMediaOnReturn = false
+                    showWorkspace(item.key)
+                    preview(item.key)
                 }
             }
             bar.setOnClickListener { open(item.key) }
@@ -388,18 +492,18 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
             if (item.key == SETTINGS) bar.setOnLongClickListener { systemActions(bar); true }
             menu += bar
             val y = when (item.key) {
-                OVERVIEW -> 111
-                NUVIO, SMARTTUBE, SPOTIFY -> 197 + 83 * appShortcuts++
-                ALL_APPS -> 197 + 83 * appShortcuts
-                VPN -> 527
-                SETTINGS -> 608
-                else -> 197
+                OVERVIEW -> 88
+                NUVIO, SMARTTUBE, SPOTIFY -> 170 + 81 * shortcuts++
+                ALL_APPS -> 170 + 81 * shortcuts
+                VPN -> 674
+                SETTINGS -> 761
+                else -> 170
             }
-            mount(bar, VDesignCanvas.Box(18, y, 68, 68))
+            mount(bar, VDesignCanvas.Box(17, y, 66, 66))
         }
-        if (focusedKey != null && isShown) {
-            (menu.firstOrNull { it.tag == focusedKey } ?: menu.firstOrNull())?.requestFocus()
-        }
+        menu.forEach { bringChildToFront(it) }
+        if (previousFocus != null && isShown)
+            (menu.firstOrNull { it.tag == previousFocus } ?: menu.firstOrNull())?.requestFocus()
     }
 
     private fun cards(): List<VDesignCardView> = progressCards + availableCards + upcomingCards
@@ -414,6 +518,7 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
 
     fun focusRememberedSidebar(): Boolean = focusSidebar(lastSidebarKey)
     fun focusOverview(): Boolean = focusSidebar(OVERVIEW)
+    fun focusAllApps(): Boolean = focusSidebar(ALL_APPS)
     fun focusVpn(): Boolean = focusSidebar(VPN)
 
     private fun rememberedCard(): VDesignCardView? {
@@ -433,9 +538,33 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
             ?: live.firstOrNull()
     }
 
-    /** Never persist a View reference; restore only real, attached, currently bound cells. */
+    /**
+     * Preserve an existing in-pane focus target when another Activity opens.
+     * Weak references cannot keep detached app tiles/settings rows alive after a rebind.
+     */
+    fun rememberWorkspaceFocus(view: View?) {
+        when {
+            isContentFocused(view) -> {
+                lastContentFocus = WeakReference(view)
+                lastContentDestination = currentWorkspace
+            }
+            isRailFocused(view) -> {
+                lastContentFocus = null
+                lastContentDestination = null
+            }
+        }
+    }
+
+    /** Restore only visible, attached targets; stale views always fall back to the rail. */
     fun restoreFocus(): Boolean {
         if (!isShown) return false
+        if (currentWorkspace != OVERVIEW) {
+            val target = lastContentFocus?.get()
+            if (lastContentDestination == currentWorkspace && target != null &&
+                target.isAttachedToWindow && target.isShown && target.isFocusable &&
+                target.requestFocus()) return true
+            return focusRememberedSidebar()
+        }
         if (preferMediaOnReturn && rememberedCard()?.requestFocus() == true) return true
         return focusRememberedSidebar() || rememberedCard()?.requestFocus() == true
     }
@@ -443,6 +572,16 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
     /** Called before legacy homeNav: all visible V-Design D-pad moves are explicit. */
     fun handleDpad(focused: View?, keyCode: Int): Boolean {
         if (!isShown || focused == null) return false
+        if (isContentFocused(focused)) {
+            if (keyCode != KeyEvent.KEYCODE_DPAD_LEFT) return false
+            // Let Android move between grid columns and settings controls first.
+            // Only the actual left edge returns focus to the persistent rail.
+            val next = focused.focusSearch(View.FOCUS_LEFT)
+            return if (next != null && next !== focused && isContentFocused(next))
+                false else focusRememberedSidebar()
+        }
+        if (isRailFocused(focused) && currentWorkspace != OVERVIEW &&
+            keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) return focusWorkspaceContent()
         val direction = when (keyCode) {
             KeyEvent.KEYCODE_DPAD_UP -> VDesignFocusNavigator.Direction.UP
             KeyEvent.KEYCODE_DPAD_DOWN -> VDesignFocusNavigator.Direction.DOWN
@@ -450,7 +589,7 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
             KeyEvent.KEYCODE_DPAD_RIGHT -> VDesignFocusNavigator.Direction.RIGHT
             else -> return false
         }
-        val liveCards = focusableCards()
+        val liveCards = if (currentWorkspace == OVERVIEW) focusableCards() else emptyList()
         val cells = liveCards.mapNotNull { card ->
             cardBoxes[card]?.let { box ->
                 card.media?.let { VDesignFocusNavigator.Cell(it.section, cardsForSectionSlot(card), box) }

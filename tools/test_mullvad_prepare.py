@@ -310,6 +310,27 @@ class PreparationTests(unittest.TestCase):
             upstream = root / "upstream"
             (upstream / "android/app").mkdir(parents=True)
             (upstream / "android/settings.gradle.kts").write_text('include(":app")\n')
+            # Mirror the pinned source's verification metadata in this isolated
+            # disposable-upstream fixture. The preparation generator intentionally
+            # refuses staging when this security file is absent or unfamiliar.
+            verification = upstream / "android/gradle/verification-metadata.xml"
+            verification.parent.mkdir(parents=True)
+            components = []
+            for group, name, version, module_sha, _ in prepare.staged_verification_artifacts():
+                components.append(
+                    f'      <component group="{group}" name="{name}" version="{version}">\n'
+                    f'         <artifact name="{name}-{version}.module">\n'
+                    f'            <sha256 value="{module_sha}" origin="Pinned upstream"/>\n'
+                    '         </artifact>\n'
+                    '      </component>\n'
+                )
+            verification.write_text(
+                '<?xml version="1.0" encoding="UTF-8"?>\n'
+                '<verification-metadata><components>\n'
+                + ''.join(components) +
+                '</components></verification-metadata>\n'
+            )
+
             (upstream / "android/build.gradle.kts").write_text(
                 'this.skipDirtyCheck.set(preflightSkipDirtyCheck)\n'
             )
@@ -352,6 +373,12 @@ class PreparationTests(unittest.TestCase):
                     (upstream / "android/build.gradle.kts").read_text()
                 )
                 self.assertIn('implementation(project(":plume-ui"))', host)
+                staged_lock = (generated / "gradle/verification-metadata.xml").read_text()
+                for _, name, version, _, jar_sha in prepare.staged_verification_artifacts():
+                    self.assertIn(f'{name}-{version}.jar', staged_lock)
+                    self.assertIn(jar_sha, staged_lock)
+                    self.assertNotIn(f'{name}-{version}.jar', verification.read_text())
+
                 self.assertIn('net.mullvad.mullvadvpn', (upstream / "android/app/build.gradle.kts").read_text())
                 self.assertIn('val version = "1.7.1"',
                               (generated / "plume-ui/build.gradle.kts").read_text())

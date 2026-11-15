@@ -28,6 +28,7 @@ android {
     defaultConfig {
         minSdk = 28
         testInstrumentationRunner = "dev.plume.ActivityTest"
+        consumerProguardFiles("consumer-rules.pro")
 
         // Preserve the original Plume generated resource without modifying its Kotlin.
         val changelog = file("CHANGELOG.md").readText().replace("\r", "")
@@ -48,6 +49,10 @@ android {
 }
 
 dependencies {
+    implementation("androidx.activity:activity:1.10.1")
+    // Pinned Mullvad verification-metadata already trusts the 1.16.0 AAR.
+    // Activity pulls 1.13.0, whose AAR is not in the upstream lockfile.
+    implementation("androidx.core:core-ktx:1.16.0")
     testImplementation(libs.junit)
 }
 '''
@@ -55,6 +60,90 @@ dependencies {
 ALIASES = (
     "Default", "Game", "Weather", "Notes", "Ninja", "Browser"
 )
+
+
+
+# The pinned upstream verification file already authenticates these module
+# metadata artifacts, but the combined Plume/Mullvad dependency graph also
+# resolves their JAR counterparts. These exact JAR SHA-256 values are cross-
+# checked against independent Gradle/Nix lockfiles:
+#   - org.jetbrains.kotlinx ... 1.6.4: Briar witness.gradle and rules_kotlin lock
+#   - collection-jvm 1.4.2: tuist/tuist and RunanywhereAI Gradle lockfiles
+#   - coroutines-android 1.7.3: nyblnet/bento and expo/exact Gradle lockfiles
+# Never disable verification or write unreviewed downloaded hashes to a lock.
+# Only the temporary generated host changes; the pinned submodule stays intact.
+WITNESSED_COMPILER_JARS = (
+    ("kotlinx-coroutines-android",
+     "68516559e6f84a621b9783cd892a64630ccd7875843588ddb3f0501425e33f15",
+     "3fdc0eed5bc4b83ee9622774520a2db25470370eacd1581cac1e37704f095b00"),
+    ("kotlinx-coroutines-core-jvm",
+     "0d94c8a41483e7c2707ebd693e1b1357a84152998ce85550ebbc54ca4321a3a7",
+     "c24c8bb27bb320c4a93871501a7e5e0c61607638907b197aef675513d4c820be"),
+)
+
+# (group, name, version, pinned upstream module SHA-256, independently witnessed JAR SHA-256)
+WITNESSED_RUNTIME_JARS = (
+    ("androidx.collection", "collection-jvm", "1.4.2",
+     "aad6b3536c0f0e570aa733d5141d70fa6b9b3add370f73a311ca4ca5dee25448",
+     "984ce9bd780055eafb8a105aca3f514686bf7b1b6272ec7c645a98ce40fc7db4"),
+    ("org.jetbrains.kotlinx", "kotlinx-coroutines-android", "1.7.3",
+     "48dfd8139edee5481bcc8b25e24d7586aca615f0d1ed2beb242dc7478ed4cee0",
+     "59fffb26bee12c32dadcfa5d420c2a7db85d3253518128b170efda726613256d"),
+)
+
+
+def staged_verification_artifacts():
+    """Explicit set of artifacts the generated single-APK host adds."""
+    for name, module_sha, jar_sha in WITNESSED_COMPILER_JARS:
+        yield ("org.jetbrains.kotlinx", name, "1.6.4", module_sha, jar_sha)
+    yield from WITNESSED_RUNTIME_JARS
+
+
+def stage_witnessed_compiler_checksums(path: Path) -> None:
+    """Prepare a disposable lockfile with independently witnessed JAR hashes.
+
+    Verify the exact pinned upstream .module SHA-256 before adding its matching
+    JAR SHA-256. A missing/changed component or duplicate entry fails closed.
+    All checks happen before writing the complete replacement file.
+    """
+    original = path.read_text(encoding="utf-8")
+    updated = original
+    for group, name, version, module_sha, jar_sha in staged_verification_artifacts():
+        opening = (
+            f'      <component group="{group}" name="{name}" version="{version}">\n'
+        )
+        if updated.count(opening) != 1:
+            raise RuntimeError(
+                f"Unexpected pinned Gradle metadata for {group}:{name}:{version}"
+            )
+        begin = updated.index(opening)
+        end = updated.find("      </component>", begin)
+        if end < 0:
+            raise RuntimeError(
+                f"Incomplete Gradle verification component: {group}:{name}:{version}"
+            )
+        block = updated[begin:end]
+        module = (
+            f'         <artifact name="{name}-{version}.module">\n'
+            f'            <sha256 value="{module_sha}"'
+        )
+        if module not in block:
+            raise RuntimeError(
+                f"Unrecognized upstream module SHA256 for {group}:{name}:{version}"
+            )
+        if f'<artifact name="{name}-{version}.jar">' in block:
+            raise RuntimeError(f"JAR is already pinned: {group}:{name}:{version}")
+        addition = (
+            f'         <artifact name="{name}-{version}.jar">\n'
+            f'            <sha256 value="{jar_sha}" origin="Independent lockfile witness"/>\n'
+            f'         </artifact>\n'
+        )
+        updated = (
+            updated[:begin]
+            + block.replace(module, addition + module, 1)
+            + updated[end:]
+        )
+    path.write_text(updated, encoding="utf-8")
 
 
 def verify_upstream() -> None:
@@ -204,6 +293,7 @@ def prepare(output: Path) -> Path:
     output.joinpath(MARKER).write_text(PIN + "\n", encoding="utf-8")
 
     android = staged / "android"
+    stage_witnessed_compiler_checksums(android / "gradle/verification-metadata.xml")
     settings = android / "settings.gradle.kts"
     if 'include(":plume-ui")' in settings.read_text(encoding="utf-8"):
         raise RuntimeError("Unexpected upstream settings: plume-ui already exists")
@@ -255,6 +345,14 @@ def prepare(output: Path) -> Path:
     )
     shutil.copy2(ROOT / "CHANGELOG.md", library / "CHANGELOG.md")
     (library / "build.gradle.kts").write_text(plume_library_build(), encoding="utf-8")
+    # The standalone Launcher uses reflection only to avoid loading Mullvad in the
+    # standalone APK. Preserve the bridge's stable JVM entry points in R8 releases.
+    (library / "consumer-rules.pro").write_text(
+        "-keep class net.mullvad.mullvadvpn.app.MullvadEmbeddedPanel { " +
+        "public static android.view.View create(androidx.activity.ComponentActivity); " +
+        "public boolean handleBack(); }\n",
+        encoding="utf-8",
+    )
 
     overlay = android / "app/src/ossProd/AndroidManifest.xml"
     overlay.parent.mkdir(parents=True, exist_ok=True)
@@ -275,6 +373,7 @@ def prepare(output: Path) -> Path:
     shutil.copy2(Path(__file__).with_name("VpnNetworkUi.kt"), vpn_activity.with_name("VpnNetworkUi.kt"))
     shutil.copy2(Path(__file__).with_name("VpnDiagnosticsUi.kt"), vpn_activity.with_name("VpnDiagnosticsUi.kt"))
     shutil.copy2(Path(__file__).with_name("VpnTvStyle.kt"), vpn_activity.with_name("VpnTvStyle.kt"))
+    shutil.copy2(Path(__file__).with_name("MullvadEmbeddedPanel.kt"), vpn_activity.with_name("MullvadEmbeddedPanel.kt"))
     # The original QS tile + account/tunnel notifications use this one constant
     # for their launch PendingIntent. Route them to the native TV Activity in the
     # *disposable staging tree only*, never edit the pinned original submodule.

@@ -39,43 +39,51 @@ This is a **personal hobby fork**, not a promise of commercial-grade integration
 
 ## Where things stand
 
-The active design work is tracked in [draft PR #46](https://github.com/Justify87/Plume_Launcher/pull/46).
-The single V-Design Home has existed on `main` since PR #39, but **its old
-appearance is no longer normative**. The screenshot supplied on 15 November
-2026 is the exclusive visual reference for the redesign.
+The previous expressive redesign is on `main` following merged
+[PR #46](https://github.com/Justify87/Plume_Launcher/pull/46).
+The follow-up **persistent-workspace redesign** is under construction in
+[draft PR #48](https://github.com/Justify87/Plume_Launcher/pull/48).
 
-- **Home:** slim icon-only rail; 1 featured Nuvio Continue card + 2 secondary
-  cards; three available-episode entries at right; six upcoming episodes in
-  a single horizontal strip; real date, time, and a conservatively verified
-  Android VPN-transport indicator.
-- **Apps and settings:** installed Nuvio, SmartTube and Spotify shortcuts,
-  All Apps, integrated Mullvad and compact native Launcher Settings.
-- **Mullvad:** original tunnel/account/server repositories, VpnService,
-  Rust/JNI and routing remain unchanged; the TV shell and subpages share
-  the new dark expressive styling.
+The user's latest navigation specification supersedes the former standalone
+Home/All Apps/Settings/ VPN-screen model. It requires a permanently visible,
+small icon rail. Focusing an icon immediately changes the right-hand content,
+while OK on an app icon launches the specific installed application.
 
-**Do not treat the older V-Design screenshots, 14-slot grid, five-tab
-sidebar, M00–M08 milestones or original Plume contribution restrictions
-as active product/design requirements.** The current contract is
-[Design Contract](docs/v-design/DESIGN_CONTRACT.md) and
-[Contributing](CONTRIBUTING.md).
+- **Home:** Nuvio editorial composition with a smaller lime mask so more
+  of the real episode artwork is visible. No invented availability/VPN claims.
+- **App icons:** actual installed-app artwork, with a new independent
+  color/monochrome sidebar setting.
+- **All Apps:** a new, compact in-workspace app grid, never a full-screen drawer.
+- **Launcher Settings:** a full-width in-workspace list, not a dimming overlay.
+  Existing settings, system actions and PIN workflows are preserved pending
+  regression verification.
+- **App previews:** source-backed Nuvio cards and SmartTube/Spotify entries
+  where the respective media source really exposes them. No fabricated cards.
+- **Mullvad:** the original backend, account/repositories and VpnService
+  remain authoritative. All eight original TV management sections are now
+  hosted directly in the workspace's right pane through the native
+  `MullvadEmbeddedPanel` consolidated from retired PR #47. The old separate
+  VPN Activity remains only for system/notification compatibility intents.
+  This integration has **not** passed its complete combined Debug/Release-R8
+  and physical Shield validation yet; do not merge the draft prematurely.
 
-The new visual design still needs green integrated CI and physical Shield
-TV visual/interaction checks. Screenshots, pixel-match and device validation
-are not implied by source edits.
+The active technical and visual requirements are the
+[Workspace Design Contract](docs/v-design/DESIGN_CONTRACT.md).
+Old V-Design reference grids, no-library policies and overlay navigation
+requirements are historical, not binding.
 
-## Design and navigation
+### Navigation goal
 
-The target is the image-based **1536×864 editorial layout**: matte charcoal,
-lime active focus/progress, lavender/peach pills, asymmetrical cards and
-compact settings menus. Image assets displayed inside media cards are dynamic
-Nuvio media, not hardcoded illustrations or titles.
+At any point on the Home launcher, the same small left rail selects Home,
+available app previews, All Apps, Settings and Mullvad. Left/Back from pane
+content returns to the rail; Home selects Home. OK on a source-app icon
+launches it. Long-OK on Home and Settings retains All Apps and system/HDMI/
+power shortcuts. The rail remains visible while browsing in-launcher content.
 
-Use the D-Pad to select a rail icon, then Right to enter content. The
-sidebar includes a visible All Apps entry, plus long-OK on Home (All Apps)
-and on Settings (System/HDMI/Power actions). Back/Home and focus restore
-remain supported. If the data source is empty, no demonstration content
-is inserted.
+**The draft PR is not complete or approved for merging** until combined CI,
+the embedded Mullvad controls, Android-TV D-Pad checks and real Shield
+screenshot comparison have been performed. A code diff is not proof of
+pixel-perfect fidelity.
 
 **UI technology is intentionally open.** The existing Kotlin/Android
 Views/XML implementation is currently convenient, but well-maintained

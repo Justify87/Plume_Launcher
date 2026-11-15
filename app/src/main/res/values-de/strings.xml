@@ -44,4 +44,5 @@
     <string name="youtube_ids_invalid">Ungültige Kanal-ID oder mehr als 12 Kanäle</string>
     <string name="section_applications">Apps</string>
     <string name="section_tv_media">TV-Medienquellen</string>
+    <string name="sidebar_color_icons">Original-App-Symbole in der Seitenleiste</string>
 </resources>
