@@ -1,5 +1,6 @@
 package dev.plume
 
+import androidx.activity.ComponentActivity
 import android.animation.ObjectAnimator
 import android.animation.ValueAnimator
 import android.app.Activity
@@ -283,7 +284,7 @@ internal fun dropSessions(c: Context) {
 
 internal fun <T> preferTvApps(tv: List<T>, other: List<T>, pkg: (T) -> String) = (tv + other).distinctBy(pkg)
 
-class MainActivity : Activity() {
+class MainActivity : ComponentActivity() {
 
     /**
      * An app's icon is loaded once, but not held: the mono mark and the accent colour are made from it and kept, and a
@@ -1049,13 +1050,24 @@ class MainActivity : Activity() {
         vDesign.restoreFocus()
     }
 
-    @Deprecated("Home screen: Back only closes overlays")
+    @Deprecated("Back moves within the active launcher shell; Home selects the starting page")
     override fun onBackPressed() {
         if (!ready) return
         when {
             settingsScrim.visibility == View.VISIBLE -> pageBack?.invoke() ?: closeLauncherSettings()
             allApps.visibility == View.VISIBLE -> closeAllApps()
-            ::vDesign.isInitialized && vDesign.hasFocus() -> vDesign.focusRememberedSidebar()
+            ::vDesign.isInitialized && vDesign.selectedSection() == VDesignHomeView.VPN &&
+                embeddedVpnView != null -> {
+                val controller = embeddedVpnView?.tag
+                val handled = runCatching {
+                    controller?.javaClass?.getMethod("handleBack")?.invoke(controller) as? Boolean
+                }.getOrNull() == true
+                if (!handled) vDesign.focusActiveRail()
+            }
+            ::vDesign.isInitialized && vDesign.selectedSection() != VDesignHomeView.OVERVIEW -> {
+                vDesign.focusOverview()
+            }
+            ::vDesign.isInitialized -> vDesign.focusActiveRail()
         }
     }
 
@@ -3775,6 +3787,8 @@ class MainActivity : Activity() {
      * The root is now one shell: the rail never goes away. Every local page is reparented
      * into the right-hand content pane; system apps remain external intents as intended.
      */
+    private var embeddedVpnView: View? = null
+
     private fun setupVDesign() {
         val root = findViewById<FrameLayout>(R.id.root)
         vDesign = VDesignHomeView(this)
@@ -3786,6 +3800,18 @@ class MainActivity : Activity() {
         root.addView(vDesign, root.indexOfChild(allApps),
             FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT))
         findViewById<View>(R.id.content).visibility = View.INVISIBLE
+        // Register ActivityResultContracts before STARTED, not on first VPN focus.
+        // The combined Mullvad host supplies this class; standalone Plume does not.
+        embeddedVpnView = try {
+            val bridge = Class.forName("net.mullvad.mullvadvpn.app.MullvadEmbeddedPanel")
+            bridge.getMethod("create", ComponentActivity::class.java)
+                .invoke(null, this) as? View
+        } catch (_: ClassNotFoundException) {
+            null
+        } catch (e: Exception) {
+            android.util.Log.w("Plume", "Mullvad in-place UI could not initialize", e)
+            null
+        }
         refreshVDesignNavigation()
         vDesign.bindFeed(nuvioDashboardFeed)
         vDesign.post { if (ready) vDesign.restoreFocus() }
@@ -3829,7 +3855,7 @@ class MainActivity : Activity() {
         when (key) {
             VDesignHomeView.OVERVIEW -> vDesign.showSection(key)
             VDesignHomeView.ALL_APPS -> openAllApps()
-            VDesignHomeView.VPN -> vDesign.showSection(key, vpnShellPreview())
+            VDesignHomeView.VPN -> vDesign.showSection(key, embeddedVpnView ?: vpnShellPreview())
             else -> {
                 val apps = sortedApps()
                 val app = when (key) {
@@ -3942,7 +3968,7 @@ class MainActivity : Activity() {
                 VDesignHomeView.SPOTIFY -> spotify?.let { launch(it) }
                 VDesignHomeView.ALL_APPS, VDesignHomeView.SETTINGS ->
                     vDesign.focusFirstSectionAction()
-                VDesignHomeView.VPN -> launchIntegratedVpn()
+                VDesignHomeView.VPN -> if (!vDesign.focusFirstSectionAction()) launchIntegratedVpn()
             }
         }, onAllApps = { vDesign.focusActiveRail() },
            onSystemActions = { anchor -> showVDesignSystemActions(anchor) },
