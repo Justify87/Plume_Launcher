@@ -63,11 +63,15 @@ ALIASES = (
 
 
 
-# This disposable host needs the original Kotlin plugin/tooling coroutines 1.6.4
-# jars in detached Gradle configurations. Mullvad's upstream lockfile already
-# verifies their .module metadata but does not include the .jar hashes.
-# Artifact SHA256s independently agree between Briar witness.gradle and
-# bazelbuild/rules_kotlin's Maven lockfile. Never waive Gradle verification.
+# The pinned upstream verification file already authenticates these module
+# metadata artifacts, but the combined Plume/Mullvad dependency graph also
+# resolves their JAR counterparts. These exact JAR SHA-256 values are cross-
+# checked against independent Gradle/Nix lockfiles:
+#   - org.jetbrains.kotlinx ... 1.6.4: Briar witness.gradle and rules_kotlin lock
+#   - collection-jvm 1.4.2: tuist/tuist and RunanywhereAI Gradle lockfiles
+#   - coroutines-android 1.7.3: nyblnet/bento and expo/exact Gradle lockfiles
+# Never disable verification or write unreviewed downloaded hashes to a lock.
+# Only the temporary generated host changes; the pinned submodule stays intact.
 WITNESSED_COMPILER_JARS = (
     ("kotlinx-coroutines-android",
      "68516559e6f84a621b9783cd892a64630ccd7875843588ddb3f0501425e33f15",
@@ -77,39 +81,59 @@ WITNESSED_COMPILER_JARS = (
      "c24c8bb27bb320c4a93871501a7e5e0c61607638907b197aef675513d4c820be"),
 )
 
+# (group, name, version, pinned upstream module SHA-256, independently witnessed JAR SHA-256)
+WITNESSED_RUNTIME_JARS = (
+    ("androidx.collection", "collection-jvm", "1.4.2",
+     "aad6b3536c0f0e570aa733d5141d70fa6b9b3add370f73a311ca4ca5dee25448",
+     "984ce9bd780055eafb8a105aca3f514686bf7b1b6272ec7c645a98ce40fc7db4"),
+    ("org.jetbrains.kotlinx", "kotlinx-coroutines-android", "1.7.3",
+     "48dfd8139edee5481bcc8b25e24d7586aca615f0d1ed2beb242dc7478ed4cee0",
+     "59fffb26bee12c32dadcfa5d420c2a7db85d3253518128b170efda726613256d"),
+)
+
+
+def staged_verification_artifacts():
+    """Explicit set of artifacts the generated single-APK host adds."""
+    for name, module_sha, jar_sha in WITNESSED_COMPILER_JARS:
+        yield ("org.jetbrains.kotlinx", name, "1.6.4", module_sha, jar_sha)
+    yield from WITNESSED_RUNTIME_JARS
+
 
 def stage_witnessed_compiler_checksums(path: Path) -> None:
-    """Extend only the disposable Gradle lock with two cross-checked JAR hashes.
+    """Prepare the disposable lockfile from exactly four independently verified JARs.
 
-    Require the exact upstream metadata hashes first; refuse unexpected
-    artifacts instead of disabling checksum/signature verification.
+    Require matching upstream metadata hash and a missing JAR entry. An unknown
+    version, changed pinned hash or duplicate must fail closed. Build one full
+    replacement in memory; write only after all entries pass validation.
     """
     xml = path.read_text(encoding="utf-8")
-    for name, module_sha, jar_sha in WITNESSED_COMPILER_JARS:
-        opening = f'      <component group="org.jetbrains.kotlinx" name="{name}" version="1.6.4">\n'
-        if xml.count(opening) != 1:
-            raise RuntimeError(f"Unexpected pinned Gradle metadata for {name} 1.6.4")
-        begin = xml.index(opening)
-        end = xml.find("      </component>", begin)
+    updated = xml
+    for group, name, version, module_sha, jar_sha in staged_verification_artifacts():
+        opening = (
+            f'      <component group="{group}" name="{name}" version="{version}">\\n'
+        ).replace('\\\\n', '\\n')
+        if updated.count(opening) != 1:
+            raise RuntimeError(f"Unexpected pinned Gradle metadata for {group}:{name}:{version}")
+        begin = updated.index(opening)
+        end = updated.find("      </component>", begin)
         if end < 0:
-            raise RuntimeError(f"Incomplete Gradle verification component: {name}")
-        block = xml[begin:end]
+            raise RuntimeError(f"Incomplete Gradle verification component: {group}:{name}:{version}")
+        block = updated[begin:end]
         module = (
-            f'         <artifact name="{name}-1.6.4.module">\n'
+            f'         <artifact name="{name}-{version}.module">\\n'
             f'            <sha256 value="{module_sha}"'
-        )
+        ).replace('\\\\n', '\\n')
         if module not in block:
-            raise RuntimeError(f"Unrecognized upstream module SHA256 for {name}")
-        if f'<artifact name="{name}-1.6.4.jar">' in block:
-            raise RuntimeError(f"Compiler JAR is already pinned: {name}")
+            raise RuntimeError(f"Unrecognized upstream module SHA256 for {group}:{name}:{version}")
+        if f'<artifact name="{name}-{version}.jar">' in block:
+            raise RuntimeError(f"JAR is already pinned: {group}:{name}:{version}")
         addition = (
-            f'         <artifact name="{name}-1.6.4.jar">\n'
-            f'            <sha256 value="{jar_sha}" origin="Independent witness verification"/>\n'
-            f'         </artifact>\n'
-        )
-        block = block.replace(module, addition + module, 1)
-        xml = xml[:begin] + block + xml[end:]
-    path.write_text(xml, encoding="utf-8")
+            f'         <artifact name="{name}-{version}.jar">\\n'
+            f'            <sha256 value="{jar_sha}" origin="Independent lockfile witness"/>\\n'
+            f'         </artifact>\\n'
+        ).replace('\\\\n', '\\n')
+        updated = updated[:begin] + block.replace(module, addition + module, 1) + updated[end:]
+    path.write_text(updated, encoding="utf-8")
 
 
 def verify_upstream() -> None:
