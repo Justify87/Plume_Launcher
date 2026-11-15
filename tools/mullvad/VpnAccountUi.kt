@@ -467,7 +467,7 @@ internal class VpnAccountUi(
 
     private fun column() = LinearLayout(activity).apply {
         orientation = LinearLayout.VERTICAL
-        setPadding(dp(0), dp(8), dp(0), dp(9))
+        setPadding(0, dp(3), 0, dp(5))
     }
 
     private fun label(value: String, size: Float, strong: Boolean = false) =
@@ -477,7 +477,7 @@ internal class VpnAccountUi(
             setTextColor(if (strong) ink else secondary)
             gravity = Gravity.CENTER_VERTICAL
             if (strong) setTypeface(typeface, Typeface.BOLD)
-            setPadding(0, dp(7), 0, dp(7))
+            setPadding(0, dp(4), 0, dp(4))
         }
 
     private fun edit(hintText: String, numeric: Boolean) = EditText(activity).apply {
@@ -491,7 +491,7 @@ internal class VpnAccountUi(
         textSize = 18f
         setTextColor(ink)
         setHintTextColor(secondary)
-        setBackgroundColor(if (dark) 0xFF314257.toInt() else Color.WHITE)
+        background = VpnTvStyle.background(activity, false)
         setPadding(dp(14), dp(7), dp(14), dp(7))
         setOnKeyListener { _, keyCode, event ->
             if (event.action == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
@@ -507,16 +507,8 @@ internal class VpnAccountUi(
         textSize = 16f
         isFocusable = true
         setTextColor(ink)
-        setPadding(dp(10), dp(5), dp(10), dp(5))
-        val repaint: (Boolean) -> Unit = { focused ->
-            setTextColor(if (focused) Color.WHITE else ink)
-            background = GradientDrawable().apply {
-                cornerRadius = dp(12).toFloat()
-                setColor(if (focused) accent else surface)
-                setStroke(dp(if (focused) 3 else 1),
-                    if (focused) Color.WHITE else secondary)
-            }
-        }
+        setPadding(dp(13), dp(3), dp(13), dp(3))
+        val repaint: (Boolean) -> Unit = { focused -> VpnTvStyle.paint(this, focused) }
         repaint(false)
         setOnFocusChangeListener { _, focused -> repaint(focused) }
         setOnClickListener { onClick() }
