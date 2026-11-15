@@ -42,9 +42,11 @@ This document records what was actually verified during repository maintenance. 
 
 **Review:** Reconciled Nuvio provider keys/package variants with `AndroidTvMediaSource.kt` and `LauncherWorkspaceNavigation.kt`; kept device tests unclaimed and Mullvad source pin unchanged. Current visual reference *cannot* be reconstructed from the old binary or substituted. Obsolete milestone-specific status assertions were deliberately excluded from new active docs. **Pass for documentation consolidation; screenshot artifact remains an explicit follow-up.**
 
-## M03 — retired docs and screenshots
+## M03 — retired docs and screenshots (review)
 
-**Status:** pending.
+**Removed from the current Git tree:** 16 archived feature documents under `docs/archive/legacy-features/`, 8 old `docs/v-design/` milestone markdown files, two old reference image/checksum files, six old `docs/readme/` images and three unreferenced historical Home screenshots. **Total 35 tracked files, 11,495,343 bytes.** Historical copies remain in Git commit history, not in a replacement archive directory.
+
+**Review and dependency checks:** Up-to-date `README.md`, `CONTRIBUTING.md`, `CHANGELOG.md` and `docs/RELEASING.md` were updated first, and the valid source/package/CI contracts were consolidated into `docs/architecture/ACTIVE_INTEGRATIONS.md`. We intentionally did not remove the old site's `home-dark.jpg`/`home-light.jpg`, site code, ten downloadable wallpapers, gallery paintings, live VDesign-named UI classes, or `VISUAL_REVIEW_2026-11.md`. The latest user screenshot is still **not** in Git, and a device screenshot comparison is **not** asserted. **Source-level deletion review: pass; CI pending until PR.**
 
 ## M04 — unused code and resources
 
