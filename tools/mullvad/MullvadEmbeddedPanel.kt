@@ -47,7 +47,7 @@ import org.koin.core.context.loadKoinModules
  * pages as VpnActivity, but hosted by Plume's existing Activity and permanent sidebar.
  * Unlike Activity embedding, it does not create a second window or a fake VPN state.
  */
-internal class MullvadEmbeddedPanel private constructor(private val host: ComponentActivity) {
+class MullvadEmbeddedPanel private constructor(private val host: ComponentActivity) {
     companion object {
         /** Called reflectively by standalone Plume; must be created in onCreate, before STARTED. */
         @JvmStatic fun create(host: ComponentActivity): View {
@@ -217,7 +217,14 @@ internal class MullvadEmbeddedPanel private constructor(private val host: Compon
     }
 
     private fun build(): View {
-        root = LinearLayout(host).apply {
+        root = object : LinearLayout(host) {
+            override fun onVisibilityAggregated(isVisible: Boolean) {
+                super.onVisibilityAggregated(isVisible)
+                // The Launcher starts on Home; do not initialize Mullvad's heavy
+                // UI repositories until the VPN pane really becomes visible.
+                if (isVisible) activate()
+            }
+        }.apply {
             orientation = LinearLayout.VERTICAL
             setBackgroundColor(VpnTvStyle.BACKGROUND)
             setPadding(dp(5), 0, dp(5), dp(5))
@@ -329,10 +336,6 @@ internal class MullvadEmbeddedPanel private constructor(private val host: Compon
         }
         showPage(0)
         root.tag = this
-        root.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
-            override fun onViewAttachedToWindow(v: View) { activate() }
-            override fun onViewDetachedFromWindow(v: View) {}
-        })
         host.lifecycle.addObserver(object : DefaultLifecycleObserver {
             override fun onResume(owner: LifecycleOwner) {
                 if (activated) {
