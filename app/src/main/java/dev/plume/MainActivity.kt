@@ -3825,7 +3825,7 @@ class MainActivity : Activity() {
 
         val items = buildList {
             add(VDesignHomeView.Navigation(VDesignHomeView.OVERVIEW, "Übersicht",
-                getDrawable(R.drawable.ic_home)))
+                getDrawable(R.drawable.ms_home)))
             nuvio?.let { add(VDesignHomeView.Navigation(
                 VDesignHomeView.NUVIO, "Nuvio TV", vDesignAppIcon(it), appIcon = true)) }
             smartTube?.let { add(VDesignHomeView.Navigation(
@@ -3833,7 +3833,7 @@ class MainActivity : Activity() {
             spotify?.let { add(VDesignHomeView.Navigation(
                 VDesignHomeView.SPOTIFY, "Spotify", vDesignAppIcon(it), appIcon = true)) }
             add(VDesignHomeView.Navigation(VDesignHomeView.ALL_APPS, "Alle Apps",
-                getDrawable(R.drawable.ic_apps)))
+                getDrawable(R.drawable.ms_apps)))
             if (vpnAvailable) add(VDesignHomeView.Navigation(VDesignHomeView.VPN, "Mullvad VPN",
                 getDrawable(R.drawable.ic_vpn)))
             add(VDesignHomeView.Navigation(VDesignHomeView.SETTINGS, "Einstellungen",
