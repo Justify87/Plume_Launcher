@@ -100,39 +100,49 @@ def staged_verification_artifacts():
 
 
 def stage_witnessed_compiler_checksums(path: Path) -> None:
-    """Prepare the disposable lockfile from exactly four independently verified JARs.
+    """Prepare a disposable lockfile with independently witnessed JAR hashes.
 
-    Require matching upstream metadata hash and a missing JAR entry. An unknown
-    version, changed pinned hash or duplicate must fail closed. Build one full
-    replacement in memory; write only after all entries pass validation.
+    Verify the exact pinned upstream .module SHA-256 before adding its matching
+    JAR SHA-256. A missing/changed component or duplicate entry fails closed.
+    All checks happen before writing the complete replacement file.
     """
-    xml = path.read_text(encoding="utf-8")
-    updated = xml
+    original = path.read_text(encoding="utf-8")
+    updated = original
     for group, name, version, module_sha, jar_sha in staged_verification_artifacts():
         opening = (
-            f'      <component group="{group}" name="{name}" version="{version}">\\n'
-        ).replace('\\\\n', '\\n')
+            f'      <component group="{group}" name="{name}" version="{version}">\n'
+        )
         if updated.count(opening) != 1:
-            raise RuntimeError(f"Unexpected pinned Gradle metadata for {group}:{name}:{version}")
+            raise RuntimeError(
+                f"Unexpected pinned Gradle metadata for {group}:{name}:{version}"
+            )
         begin = updated.index(opening)
         end = updated.find("      </component>", begin)
         if end < 0:
-            raise RuntimeError(f"Incomplete Gradle verification component: {group}:{name}:{version}")
+            raise RuntimeError(
+                f"Incomplete Gradle verification component: {group}:{name}:{version}"
+            )
         block = updated[begin:end]
         module = (
-            f'         <artifact name="{name}-{version}.module">\\n'
+            f'         <artifact name="{name}-{version}.module">\n'
             f'            <sha256 value="{module_sha}"'
-        ).replace('\\\\n', '\\n')
+        )
         if module not in block:
-            raise RuntimeError(f"Unrecognized upstream module SHA256 for {group}:{name}:{version}")
+            raise RuntimeError(
+                f"Unrecognized upstream module SHA256 for {group}:{name}:{version}"
+            )
         if f'<artifact name="{name}-{version}.jar">' in block:
             raise RuntimeError(f"JAR is already pinned: {group}:{name}:{version}")
         addition = (
-            f'         <artifact name="{name}-{version}.jar">\\n'
-            f'            <sha256 value="{jar_sha}" origin="Independent lockfile witness"/>\\n'
-            f'         </artifact>\\n'
-        ).replace('\\\\n', '\\n')
-        updated = updated[:begin] + block.replace(module, addition + module, 1) + updated[end:]
+            f'         <artifact name="{name}-{version}.jar">\n'
+            f'            <sha256 value="{jar_sha}" origin="Independent lockfile witness"/>\n'
+            f'         </artifact>\n'
+        )
+        updated = (
+            updated[:begin]
+            + block.replace(module, addition + module, 1)
+            + updated[end:]
+        )
     path.write_text(updated, encoding="utf-8")
 
 
