@@ -136,7 +136,7 @@ internal class VpnLocationUi(
     private fun hopType() = if (isEntry()) RelayHopType.ENTRY else RelayHopType.EXIT
 
     fun build(): LinearLayout = column().apply {
-        setPadding(dp(22), dp(13), dp(22), dp(14))
+        setPadding(dp(12), dp(8), dp(12), dp(10))
         title = label("Serverstandorte · Singlehop-Ausgang", 24f, true)
         addView(title)
         status = label("Mullvad-Relayliste wird geladen …", 14f)
@@ -152,8 +152,7 @@ internal class VpnLocationUi(
             textSize = 16f
             setTextColor(ink)
             setHintTextColor(secondary)
-            setBackgroundColor(if (dark) 0xFF314257.toInt() else Color.WHITE)
-            setPadding(dp(13), dp(6), dp(13), dp(6))
+            VpnTvStyle.field(this)
             addTextChangedListener(object : TextWatcher {
                 override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
                 override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
@@ -507,7 +506,7 @@ internal class VpnLocationUi(
             Constraint.Only(Ownership.MullvadOwned) -> 1
             else -> 2
         }
-        AlertDialog.Builder(activity).setTitle("Eigentümerfilter (" + (if (isEntry()) "Eingang" else "Ausgang") + ")")
+        VpnTvStyle.dialog(activity).setTitle("Eigentümerfilter (" + (if (isEntry()) "Eingang" else "Ausgang") + ")")
             .setSingleChoiceItems(choices, current) { dialog, index ->
                 val value: Constraint<Ownership> = when (index) {
                     1 -> Constraint.Only(Ownership.MullvadOwned)
@@ -534,7 +533,7 @@ internal class VpnLocationUi(
         val chosen = BooleanArray(names.size) {
             selectedSet == null || availableProviders[it] in selectedSet
         }
-        AlertDialog.Builder(activity).setTitle("Anbieterfilter (" + (if (isEntry()) "Eingang" else "Ausgang") + ")")
+        VpnTvStyle.dialog(activity).setTitle("Anbieterfilter (" + (if (isEntry()) "Eingang" else "Ausgang") + ")")
             .setMultiChoiceItems(names, chosen) { _, index, checked ->
                 chosen[index] = checked
             }
@@ -568,8 +567,9 @@ internal class VpnLocationUi(
             setText(old?.name?.value.orEmpty())
             hint = "Listenname"
             setSelectAllOnFocus(true)
+            VpnTvStyle.field(this)
         }
-        AlertDialog.Builder(activity)
+        VpnTvStyle.dialog(activity)
             .setTitle(if (old == null) "Mullvad-Liste erstellen" else "Liste umbenennen")
             .setView(edit)
             .setNegativeButton("Abbrechen", null)
@@ -593,7 +593,7 @@ internal class VpnLocationUi(
     }
 
     private fun confirmDelete(item: CustomList) {
-        AlertDialog.Builder(activity).setTitle("Liste löschen?")
+        VpnTvStyle.dialog(activity).setTitle("Liste löschen?")
             .setMessage(item.name.value + " wird aus dem Mullvad-Konto entfernt.")
             .setNegativeButton("Abbrechen", null)
             .setPositiveButton("Löschen") { _, _ ->
@@ -615,7 +615,7 @@ internal class VpnLocationUi(
             notice("Zuerst über \"+ Liste\" eine Mullvad-Liste erstellen.")
             return
         }
-        AlertDialog.Builder(activity).setTitle(location.name + " – Liste auswählen")
+        VpnTvStyle.dialog(activity).setTitle(location.name + " – Liste auswählen")
             .setItems(options.map { it.name.value }.toTypedArray()) { _, index ->
                 val list = options[index]
                 val exists = location.id in list.locations
@@ -670,15 +670,7 @@ internal class VpnLocationUi(
         gravity = Gravity.CENTER_VERTICAL or Gravity.START
         setPadding(dp(12), dp(3), dp(12), dp(3))
         setTextColor(ink)
-        val paint: (Boolean) -> Unit = { focused ->
-            setTextColor(if (focused) Color.WHITE else ink)
-            background = GradientDrawable().apply {
-                cornerRadius = dp(9).toFloat()
-                setColor(if (focused) accent else surface)
-                setStroke(dp(if (focused) 3 else 1),
-                    if (focused) Color.WHITE else secondary)
-            }
-        }
+        val paint: (Boolean) -> Unit = { focused -> VpnTvStyle.paint(this, focused) }
         paint(false)
         setOnFocusChangeListener { _, focused ->
             paint(focused)
@@ -697,8 +689,8 @@ internal class VpnLocationUi(
             } else false
         }
     }.also {
-        it.layoutParams = LinearLayout.LayoutParams(-1, dp(48)).apply {
-            bottomMargin = dp(5)
+        it.layoutParams = LinearLayout.LayoutParams(-1, dp(44)).apply {
+            bottomMargin = dp(3)
         }
     }
 

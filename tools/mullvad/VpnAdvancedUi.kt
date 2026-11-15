@@ -255,14 +255,7 @@ internal class VpnAdvancedUi(
             gravity = Gravity.CENTER_VERTICAL or Gravity.START
             setTextColor(ink)
             setPadding(dp(14), dp(3), dp(14), dp(3))
-            val paint: (Boolean) -> Unit = { focused ->
-                setTextColor(if (focused) Color.WHITE else ink)
-                background = GradientDrawable().apply {
-                    cornerRadius = dp(10).toFloat()
-                    setColor(if (focused) accent else surface)
-                    setStroke(dp(if (focused) 3 else 1), if (focused) Color.WHITE else secondary)
-                }
-            }
+            val paint: (Boolean) -> Unit = { focused -> VpnTvStyle.paint(this, focused) }
             paint(false)
             setOnFocusChangeListener { _, focused -> paint(focused) }
             setOnClickListener { onClick() }
@@ -274,8 +267,8 @@ internal class VpnAdvancedUi(
             }
         }
 
-    private fun rowParams() = LinearLayout.LayoutParams(-1, dp(53)).apply {
-        bottomMargin = dp(7)
+    private fun rowParams() = LinearLayout.LayoutParams(-1, dp(46)).apply {
+        bottomMargin = dp(4)
     }
     private fun column() = LinearLayout(activity).apply { orientation = LinearLayout.VERTICAL }
     private fun label(value: String, size: Float, bold: Boolean = false) =
@@ -284,7 +277,7 @@ internal class VpnAdvancedUi(
             textSize = size
             gravity = Gravity.CENTER_VERTICAL
             setTextColor(if (bold) ink else secondary)
-            setPadding(dp(3), dp(7), dp(3), dp(7))
+            setPadding(dp(3), dp(4), dp(3), dp(4))
             if (bold) setTypeface(typeface, Typeface.BOLD)
         }
     private fun dp(value: Int) = (value * activity.resources.displayMetrics.density).toInt()

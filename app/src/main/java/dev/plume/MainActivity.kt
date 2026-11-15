@@ -558,6 +558,7 @@ class MainActivity : Activity() {
         if (appsDirty) refreshApps()
         refreshVDesignNavigation()
         vDesign.bindFeed(nuvioDashboardFeed)
+        vDesign.refreshStatus()
         // Returning from another app must also retry artwork that failed while offline.
         vDesign.retryMissingArtwork()
         scheduleVDesignMidnight()
@@ -2457,30 +2458,21 @@ class MainActivity : Activity() {
         showPanelGlass()
         findViewById<TextView>(R.id.settingsTitle).apply { setTextColor(focusInk()); panelShadow() }
         for (id in listOf(R.id.settingsCrumb, R.id.settingsHelp)) findViewById<TextView>(id).apply { setTextColor(valueInk()); panelShadow() }
-        settingsScrim.background = spotlight.apply { reset() }
+        settingsScrim.background = ColorDrawable(0xDC090A0D.toInt())
         pages.clear()
         settingsScrim.visibility = View.VISIBLE
         homeFocusable(false)
     }
 
-    /** The panel is frosted glass over the wallpaper when Glass is on, and the plain surface otherwise. */
+    /** One stable dark surface: never let wallpaper glass obscure settings text or focus. */
     private fun showPanelGlass() {
         val panel = findViewById<GlassBox>(R.id.settingsPanel)
-        if (glassActive()) {
-            panel.background = null
-            panel.setWillNotDraw(false)
-            styleGlass(panel.glass, dp(22).toFloat(), flatRight = true)
-        } else {
-            panel.setWillNotDraw(true)
-            panel.background = if (!dark) ColorDrawable(0xFFF7F8FA.toInt())
-                else LayerDrawable(arrayOf(ColorDrawable(DARK_BG), ColorDrawable(PANEL_EDGE))).apply {
-                    setLayerGravity(1, Gravity.START or Gravity.FILL_VERTICAL)
-                    setLayerWidth(1, 1)
-                }
+        panel.setWillNotDraw(true)
+        panel.background = GradientDrawable().apply {
+            setColor(0xFF1B1C21.toInt())
+            setStroke(dp(1), 0xFF35363E.toInt())
         }
         panel.invalidate()
-        if (settingsScrim.background === spotlight) spotlight.invalidateSelf()
-        settingsScrim.invalidate()
     }
 
     private fun closeLauncherSettings() {
@@ -2739,10 +2731,16 @@ class MainActivity : Activity() {
             key in pages -> -1.also { while (pages.last() != key) pages.removeAt(pages.size - 1) }
             else -> (if (pages.isEmpty()) 0 else 1).also { pages.add(key) }
         }
-        if (dir != 0) for (v in listOf<View>(settingsList, findViewById(R.id.settingsTitle), findViewById(R.id.settingsCrumb))) {
-            v.translationX = dp(32) * dir.toFloat()
-            v.alpha = 0f
-            v.animate().translationX(0f).alpha(1f).setDuration(200).setInterpolator(DECELERATE).start()
+        for (v in listOf<View>(settingsList, findViewById(R.id.settingsTitle), findViewById(R.id.settingsCrumb))) {
+            v.animate().cancel()
+            v.translationX = 0f
+            v.alpha = 1f
+            if (dir != 0 && ValueAnimator.areAnimatorsEnabled()) {
+                v.translationX = dp(18) * dir.toFloat()
+                v.alpha = 0f
+                v.animate().translationX(0f).alpha(1f)
+                    .setDuration(165).setInterpolator(DECELERATE).start()
+            }
         }
         findViewById<TextView>(R.id.settingsTitle).text = title
         findViewById<TextView>(R.id.settingsCrumb).apply {
@@ -2756,7 +2754,7 @@ class MainActivity : Activity() {
         rows.forEachIndexed { i, (name, value, action) ->
             val style = styles.getOrNull(i)
             settingsList.addView(settingsRow(name, value, steps.getOrNull(i), style, action),
-                LinearLayout.LayoutParams(MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { if (style?.header != true) topMargin = dp(4) })
+                LinearLayout.LayoutParams(MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { if (style?.header != true) topMargin = dp(2) })
         }
         // Focus wraps: Up from the first row goes to the last, Down from the last to the first. Group titles are skipped.
         (settingsList.parent as View).scrollTo(0, 0)
@@ -2994,24 +2992,23 @@ class MainActivity : Activity() {
                            val art: String? = null, val ext: Boolean = false, val header: Boolean = false, val hero: Boolean = false,
                            val dim: String? = null)
 
-    // Settings colours, one set for each surface (dark or light, solid or glass). Over glass the text is a little
-    // stronger and has a soft shadow, as the wallpaper's colour shows through the panel. Focus is always the brightest.
-    private fun ink(a: Float) = (fg and 0xFFFFFF) or ((a * 255).toInt() shl 24)
-    private fun restInk() = ink(if (dark) (if (glassActive()) .9f else .82f) else (if (glassActive()) .86f else .8f))
+    // Settings share the same matte, high-contrast palette as the TV home and VPN.
+    private fun ink(a: Float) = ((a * 255).toInt() shl 24) or 0x00F7F7F8
+    private fun restInk() = 0xFFF3F3F5.toInt()
     private fun valueInk(focused: Boolean = false) =
-        if (focused) ink(if (dark) .85f else .8f) else ink(if (glassActive()) (if (dark) .68f else .64f) else .56f)
-    private fun focusInk() = if (dark) Color.WHITE else fg
-    private fun iconInk(focused: Boolean) = if (focused) focusInk() else ink(if (dark) (if (glassActive()) .8f else .7f) else .65f)
+        if (focused) 0xFF272A21.toInt() else 0xFFB5B6BE.toInt()
+    private fun focusInk() = Color.WHITE
+    private fun iconInk(focused: Boolean) =
+        if (focused) 0xFF121317.toInt() else 0xFFC7C9D0.toInt()
 
-    /** The plate under the focused row: a white veil in dark, a white card in light (its shadow is the view's elevation). */
-    private fun plate(radius: Int) = GradientDrawable().apply {
+    private fun plate(radius: Int, focused: Boolean = true) = GradientDrawable().apply {
         cornerRadius = dp(radius).toFloat()
-        setColor(if (dark) (if (glassActive()) 0x2EFFFFFF else 0x1FFFFFFF) else if (glassActive()) 0xC7FFFFFF.toInt() else Color.WHITE)
-        if (dark) setStroke(1, 0x14FFFFFF) // 1px, a hairline that catches the light
+        setColor(if (focused) 0xFFE7FF80.toInt() else 0xFF27282E.toInt())
+        if (!focused) setStroke(dp(1), 0xFF383940.toInt())
     }
 
     private fun TextView.panelShadow() {
-        if (glassActive()) setShadowLayer(dp(3).toFloat(), 0f, dp(1).toFloat(), if (dark) 0x73000000 else 0x59FFFFFF)
+        setShadowLayer(0f, 0f, 0f, Color.TRANSPARENT)
     }
 
     /** The filled twin of an outlined Material Symbols icon (ms_x has ms_x_fill), or the icon itself. */
@@ -3029,31 +3026,20 @@ class MainActivity : Activity() {
         typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
         setTextColor(valueInk())
         panelShadow()
-        setPadding(dp(16), dp(18), dp(16), dp(4))
+        setPadding(dp(13), dp(11), dp(13), dp(3))
     }
 
     /** Focus fades the plate in and lights the row; the row's own parts restyle themselves in [onFocus]. */
     private fun panelFocus(v: View, radius: Int, help: String?, area: Int?, onFocus: (Boolean) -> Unit) {
         val lit = plate(radius)
+        val rest = plate(radius, focused = false)
+        v.background = rest
         v.isFocusable = true
         v.isClickable = true
         v.setOnFocusChangeListener { _, focused ->
-            v.background = if (focused) lit else null
-            if (focused) ValueAnimator.ofInt(0, 255).apply {
-                duration = 140
-                interpolator = DECELERATE
-                addUpdateListener { lit.alpha = it.animatedValue as Int }
-            }.start()
-            if (!dark) { // the white card needs a shadow to stand off the near-white panel
-                v.outlineProvider = ViewOutlineProvider.BACKGROUND
-                v.elevation = if (focused) dp(3).toFloat() else 0f
-            }
+            v.background = if (focused) lit else rest
+            if (focused) showHelp(help)
             onFocus(focused)
-            if (focused) {
-                showHelp(help)
-                // Posted: when the panel first opens, the scrim has no size yet in this frame.
-                settingsScrim.post { if (v.hasFocus()) spotlight.show(areaBounds(area)) }
-            }
         }
     }
 
@@ -3121,14 +3107,14 @@ class MainActivity : Activity() {
             id = View.generateViewId()
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(16), dp(if (stacked) 12 else 6), dp(16), dp(if (stacked) 14 else 6))
-            minimumHeight = dp(if (sub != null) 68 else 56)
+            setPadding(dp(12), dp(if (stacked) 9 else 4), dp(12), dp(if (stacked) 10 else 4))
+            minimumHeight = dp(if (sub != null) 57 else 46)
             addView(line, LinearLayout.LayoutParams(MATCH_PARENT, wrap))
             below?.let { addView(it, LinearLayout.LayoutParams(MATCH_PARENT, wrap).apply { topMargin = dp(10); marginStart = if (iconView != null) dp(40) else 0 }) }
             setOnClickListener { action() }
-            panelFocus(this, 12, style?.help, style?.area) { focused ->
+            panelFocus(this, 11, style?.help, style?.area) { focused ->
                 // The title glides to bright rather than snapping, so moving through the list feels smooth.
-                ValueAnimator.ofArgb(name.currentTextColor, if (focused) focusInk() else restInk()).apply {
+                ValueAnimator.ofArgb(name.currentTextColor, if (focused) 0xFF121317.toInt() else restInk()).apply {
                     duration = 160
                     interpolator = DECELERATE
                     addUpdateListener { a -> name.setTextColor(a.animatedValue as Int) }
@@ -3166,7 +3152,7 @@ class MainActivity : Activity() {
             }, LinearLayout.LayoutParams(MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
             setOnClickListener { action() }
             panelFocus(this, 18, style.help, style.area) { f ->
-                t.setTextColor(if (f) focusInk() else restInk())
+                t.setTextColor(if (f) 0xFF121317.toInt() else restInk())
                 n.setTextColor(valueInk(f))
                 chevron.setColorFilter(valueInk(f))
             }
@@ -3204,14 +3190,13 @@ class MainActivity : Activity() {
         val paint = { focused: Boolean ->
             pills.forEachIndexed { i, p ->
                 val on = options[i].first == picked
-                val c = if (on) (if (focused) focusInk() else restInk()) else valueInk(focused)
+                val c = if (on) (if (focused) 0xFF121317.toInt() else restInk()) else valueInk(focused)
                 p.setTextColor(c)
                 p.compoundDrawablesRelative.filterNotNull().forEach { it.setTint(c) }
-                val accent = glassLook().accent()
                 p.background = if (!on) null else GradientDrawable().apply {
                     cornerRadius = dp(9).toFloat()
-                    setColor(accent?.let { it and 0xFFFFFF or ((if (focused) 0x4D else 0x33) shl 24) } ?: ink(if (focused) .16f else .09f))
-                    setStroke(line, accent ?: ink(if (focused) .85f else .45f))
+                    setColor(if (focused) 0xFFB3CB54.toInt() else 0xFF343C28.toInt())
+                    setStroke(line, 0xFFE7FF80.toInt())
                 }
             }
         }
@@ -3238,7 +3223,7 @@ class MainActivity : Activity() {
                 art.on = on
                 art.focused = focused
                 art.invalidateSelf()
-                name.setTextColor(if (on) (if (focused) focusInk() else restInk()) else valueInk(focused))
+                name.setTextColor(if (on) (if (focused) 0xFF121317.toInt() else restInk()) else valueInk(focused))
                 name.typeface = Typeface.create(if (on) "sans-serif-medium" else "sans-serif", Typeface.NORMAL)
             }
         }
@@ -3324,11 +3309,11 @@ class MainActivity : Activity() {
             val c = if (on) (if (focused) focusInk() else restInk()) else valueInk(focused)
             track.background = GradientDrawable().apply {
                 cornerRadius = dp(12).toFloat()
-                if (on) setColor(glassLook().accent() ?: c) else setStroke(dp(2), c)
+                if (on) setColor(0xFFE7FF80.toInt()) else setStroke(dp(2), c)
             }
             knob.background = GradientDrawable().apply {
                 shape = GradientDrawable.OVAL
-                setColor(if (!on) c else if (dark) Color.BLACK else Color.WHITE)
+                setColor(if (!on) c else 0xFF121317.toInt())
             }
         }
         paint(false)
@@ -3617,14 +3602,22 @@ class MainActivity : Activity() {
                 setPadding(dp(6), dp(7), dp(6), 0)
             }
         }
-        // Same card as light mode; in dark the marks rest slightly dimmed and brighten with focus.
-        val restLogo = if (dark) 0.8f else 1f
-        val restText = if (dark) 0.65f else 1f
+        // All Apps is always a dark surface, independent of wallpaper/theme settings.
+        if (label != null) {
+            text?.setTextColor(0xFFF7F7F8.toInt())
+            if (mono) img.setColorFilter(tint ?: 0xFFF7F7F8.toInt())
+        }
+        val restLogo = if (label != null) .86f else if (dark) .8f else 1f
+        val restText = if (label != null) .88f else if (dark) .65f else 1f
         img.alpha = restLogo
         text?.alpha = restText
-        style(col, dp(8), card = true) { focused ->
-            text?.setActive(focused) // a name too wide for the tile scrolls while it is selected
-            if (!dark) return@style
+        style(col, dp(12), card = true, lift = 1.015f, frost = false, expressive = label != null) { focused ->
+            text?.setActive(focused) // a name too wide for the tile scrolls while selected
+            if (label != null) {
+                text?.setTextColor(if (focused) 0xFF121317.toInt() else 0xFFF7F7F8.toInt())
+                if (mono) img.setColorFilter(if (focused) 0xFF121317.toInt() else tint ?: 0xFFF7F7F8.toInt())
+            }
+            if (!dark && label == null) return@style
             img.animate().alpha(if (focused) 1f else restLogo).setDuration(160).start()
             text?.animate()?.alpha(if (focused) 1f else restText)?.setDuration(160)?.start()
         }
@@ -3798,6 +3791,7 @@ class MainActivity : Activity() {
         val installed = sortedApps()
         val nuvio = installed.firstOrNull { AndroidTvMediaSource.isNuvioPackage(it.pkg) }
         val smartTube = installed.firstOrNull { YouTubeSubscriptions.isSmartTube(it.pkg) }
+        val spotify = installed.firstOrNull { it.pkg == "com.spotify.tv.android" || it.pkg == "com.spotify.music" }
         val vpn = ComponentName(packageName, "net.mullvad.mullvadvpn.app.VpnActivity")
         val vpnAvailable = try {
             packageManager.getActivityInfo(vpn, 0)
@@ -3807,14 +3801,18 @@ class MainActivity : Activity() {
             add(VDesignHomeView.Navigation(VDesignHomeView.OVERVIEW, "Übersicht", getDrawable(R.drawable.ic_home)))
             nuvio?.let { add(VDesignHomeView.Navigation(VDesignHomeView.NUVIO, "Nuvio TV", vDesignAppIcon(it))) }
             smartTube?.let { add(VDesignHomeView.Navigation(VDesignHomeView.SMARTTUBE, "SmartTube", vDesignAppIcon(it))) }
+            spotify?.let { add(VDesignHomeView.Navigation(VDesignHomeView.SPOTIFY, "Spotify", vDesignAppIcon(it))) }
+            add(VDesignHomeView.Navigation(VDesignHomeView.ALL_APPS, "Alle Apps", getDrawable(R.drawable.ic_apps)))
+            if (vpnAvailable) add(VDesignHomeView.Navigation(VDesignHomeView.VPN, "Mullvad VPN", getDrawable(R.drawable.ic_vpn)))
             add(VDesignHomeView.Navigation(VDesignHomeView.SETTINGS, "Einstellungen", getDrawable(R.drawable.ic_settings)))
-            if (vpnAvailable) add(VDesignHomeView.Navigation(VDesignHomeView.VPN, "VPN", getDrawable(R.drawable.ic_vpn)))
         }
         vDesign.bindNavigation(items, onOpen = { key ->
             when (key) {
                 VDesignHomeView.OVERVIEW -> vDesign.focusOverview()
                 VDesignHomeView.NUVIO -> nuvio?.let { launch(it) }
                 VDesignHomeView.SMARTTUBE -> smartTube?.let { launch(it) }
+                VDesignHomeView.SPOTIFY -> spotify?.let { launch(it) }
+                VDesignHomeView.ALL_APPS -> openAllApps()
                 VDesignHomeView.SETTINGS -> openLauncherSettings()
                 VDesignHomeView.VPN -> {
                     returnFocusFromVpn = true
@@ -4105,12 +4103,13 @@ class MainActivity : Activity() {
 
     /** Hold OK on a Continue Watching card: hide the show, or open its app rather than the episode. */
     private fun popupMenu(anchor: View, below: Boolean = false, rows: (dismiss: () -> Unit) -> List<View>) {
-        val list: LinearLayout = if (glassActive()) glassSurface(dp(14).toFloat()) else LinearLayout(this).apply {
-            background = if (dark) rimCard(dp(12), false, solid = true) else GradientDrawable().apply {
+        val list = LinearLayout(this).apply {
+            background = GradientDrawable().apply {
                 cornerRadius = dp(12).toFloat()
-                setColor(0xFFF7F8FA.toInt())
+                setColor(0xFF202126.toInt())
+                setStroke(dp(1), 0xFF45464D.toInt())
             }
-            elevation = if (dark) 0f else dp(8).toFloat()
+            elevation = 0f
         }
         list.orientation = LinearLayout.VERTICAL
         list.setPadding(dp(6), dp(6), dp(6), dp(6))
@@ -4127,7 +4126,7 @@ class MainActivity : Activity() {
         menu.width = list.measuredWidth.coerceIn(anchor.width, maxOf(anchor.width, dp(360)))
         list.measure(View.MeasureSpec.makeMeasureSpec(menu.width, View.MeasureSpec.EXACTLY), View.MeasureSpec.UNSPECIFIED)
         val at = IntArray(2).also { anchor.getLocationInWindow(it) }
-        menu.elevation = if (dark) 0f else dp(8).toFloat()
+        menu.elevation = 0f
         // Over the anchor's left edge, but kept inside the row's 48 dp side margin near the right of the screen.
         val x = minOf(at[0], resources.displayMetrics.widthPixels - dp(48) - menu.width)
         val y = if (below) at[1] + anchor.height + dp(8) else maxOf(dp(8), at[1] - list.measuredHeight - dp(8))
@@ -5602,7 +5601,8 @@ class MainActivity : Activity() {
      * top sheen; dark mode brightens the glass gradient instead (a white sheen would haze it grey).
      * Only transform/alpha/colour change, so it stays on the GPU and costs no re-layout.
      */
-    private fun style(v: View, radius: Int, card: Boolean, lift: Float = 1.08f, frost: Boolean = true, onFocus: ((Boolean) -> Unit)? = null) {
+    private fun style(v: View, radius: Int, card: Boolean, lift: Float = 1.08f,
+        frost: Boolean = true, expressive: Boolean = false, onFocus: ((Boolean) -> Unit)? = null) {
         fun gradient(colors: IntArray) = GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, colors).apply {
             cornerRadius = radius.toFloat()
             setDither(true)
@@ -5611,10 +5611,14 @@ class MainActivity : Activity() {
         val sheen = Baked("sheen $radius", gradient(sheenColors)).apply { alpha = 0 }
         val rest = if (card) Baked("card $radius ${cardRest.contentToString()}", gradient(cardRest)) else null
         val lit = if (card) Baked("card $radius ${cardLit.contentToString()}", gradient(cardLit)) else null
-        val frosted = frost && card && glassActive()
+        val frosted = !expressive && frost && card && glassActive()
         if (frosted) glass.add(v, radius.toFloat())
-        v.background = if (dark && card) rimCard(radius, false, frosted = frosted) else rest ?: GradientDrawable().apply { cornerRadius = radius.toFloat() }
-        if (!dark) v.foreground = sheen
+        v.background = if (expressive) GradientDrawable().apply {
+            cornerRadius = radius.toFloat()
+            setColor(0xFF24252A.toInt())
+            setStroke(dp(1), 0xFF383940.toInt())
+        } else if (dark && card) rimCard(radius, false, frosted = frosted) else rest ?: GradientDrawable().apply { cornerRadius = radius.toFloat() }
+        if (!dark && !expressive) v.foreground = sheen
         v.clipToOutline = true
         v.elevation = if (card) dp(2).toFloat() else 0f
         v.isFocusable = true
@@ -5622,7 +5626,12 @@ class MainActivity : Activity() {
         v.setOnLongClickListener { if (!holdFired) fireHold(v); true }
         v.setOnFocusChangeListener { _, focused ->
             sheen.alpha = if (focused) 255 else 0
-            if (card && dark) v.background = rimCard(radius, focused, frosted = frosted)
+            if (expressive) v.background = GradientDrawable().apply {
+                cornerRadius = radius.toFloat()
+                setColor(if (focused) 0xFFE7FF80.toInt() else 0xFF24252A.toInt())
+                if (!focused) setStroke(dp(1), 0xFF383940.toInt())
+            }
+            else if (card && dark) v.background = rimCard(radius, focused, frosted = frosted)
             else if (card) v.background = if (focused) lit else rest
             if (frosted) glass.kick(260) // the lift moves the tile: its blur follows
             // The selected tile rises out of the row's line. Its growth stops short of the gap, so at the
@@ -5630,7 +5639,7 @@ class MainActivity : Activity() {
             val grow = if (focused && v.width > 0) minOf(lift, 1 + dp(GRID_GAP) * 1.2f / v.width) else 1f
             v.animate()
                 .scaleX(grow).scaleY(grow)
-                .translationY(if (focused) -maxOf(v.height * 0.06f, dp(4).toFloat()) else 0f)
+                .translationY(if (focused && !expressive) -maxOf(v.height * 0.06f, dp(4).toFloat()) else 0f)
                 .translationZ(if (focused) dp(14).toFloat() else 0f)
                 .setDuration(160).setInterpolator(DECELERATE).start()
             onFocus?.invoke(focused)

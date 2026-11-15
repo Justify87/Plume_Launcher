@@ -90,7 +90,7 @@ internal class VpnAccountUi(
             addView(loginInput, LinearLayout.LayoutParams(dp(420), dp(58)))
             addView(action("Anmelden") { login() })
             addView(action("Neues Mullvad-Konto erstellen") {
-                AlertDialog.Builder(activity)
+                VpnTvStyle.dialog(activity)
                     .setTitle("Neues Konto erstellen?")
                     .setMessage("Mullvad erstellt eine neue Kontonummer. Notiere sie, bevor du fortfährst. Ein bestehendes Konto wird dadurch nicht übernommen.")
                     .setNegativeButton("Abbrechen", null)
@@ -208,7 +208,7 @@ internal class VpnAccountUi(
             { notice(createError(it)) },
             { number ->
                 // The account number is deliberately never written to preferences or logs.
-                AlertDialog.Builder(activity)
+                VpnTvStyle.dialog(activity)
                     .setTitle("Neue Mullvad-Kontonummer")
                     .setMessage("Diese Nummer jetzt sicher notieren:\n\n" +
                         number.value.chunked(4).joinToString(" ") +
@@ -224,7 +224,7 @@ internal class VpnAccountUi(
     }
 
     private fun confirmLogout() {
-        AlertDialog.Builder(activity)
+        VpnTvStyle.dialog(activity)
             .setTitle("Bei Mullvad abmelden?")
             .setMessage("Dieses Gerät wird abgemeldet. Eine laufende VPN-Verbindung kann dadurch beendet werden.")
             .setNegativeButton("Abbrechen", null)
@@ -248,7 +248,7 @@ internal class VpnAccountUi(
         val remainingTime = if (expiry != null && expiry.isAfter(ZonedDateTime.now())) {
             "\nDas Konto besitzt noch bezahlte Restlaufzeit."
         } else ""
-        AlertDialog.Builder(activity)
+        VpnTvStyle.dialog(activity)
             .setTitle("Mullvad-Konto unwiderruflich löschen?")
             .setMessage("Alle Geräte und verbleibende Kontolaufzeit gehen verloren." +
                 remainingTime + "\nZum Bestätigen die vollständige Kontonummer eingeben.")
@@ -344,7 +344,7 @@ internal class VpnAccountUi(
         val number = (deviceState as? DeviceState.LoggedIn)?.accountNumber ?: limitAccount ?: return
         if (listedAccount != number || device !in listedDevices) return
         val ownDevice = (deviceState as? DeviceState.LoggedIn)?.device?.id == device.id
-        AlertDialog.Builder(activity)
+        VpnTvStyle.dialog(activity)
             .setTitle("Gerät entfernen?")
             .setMessage(device.displayName() +
                 if (ownDevice) "\nDas ist dieses Gerät. Die VPN-Anmeldung wird dadurch ungültig."
@@ -467,7 +467,7 @@ internal class VpnAccountUi(
 
     private fun column() = LinearLayout(activity).apply {
         orientation = LinearLayout.VERTICAL
-        setPadding(dp(0), dp(8), dp(0), dp(9))
+        setPadding(0, dp(3), 0, dp(5))
     }
 
     private fun label(value: String, size: Float, strong: Boolean = false) =
@@ -477,7 +477,7 @@ internal class VpnAccountUi(
             setTextColor(if (strong) ink else secondary)
             gravity = Gravity.CENTER_VERTICAL
             if (strong) setTypeface(typeface, Typeface.BOLD)
-            setPadding(0, dp(7), 0, dp(7))
+            setPadding(0, dp(4), 0, dp(4))
         }
 
     private fun edit(hintText: String, numeric: Boolean) = EditText(activity).apply {
@@ -491,8 +491,7 @@ internal class VpnAccountUi(
         textSize = 18f
         setTextColor(ink)
         setHintTextColor(secondary)
-        setBackgroundColor(if (dark) 0xFF314257.toInt() else Color.WHITE)
-        setPadding(dp(14), dp(7), dp(14), dp(7))
+        VpnTvStyle.field(this)
         setOnKeyListener { _, keyCode, event ->
             if (event.action == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
                 focusRail()
@@ -507,16 +506,8 @@ internal class VpnAccountUi(
         textSize = 16f
         isFocusable = true
         setTextColor(ink)
-        setPadding(dp(10), dp(5), dp(10), dp(5))
-        val repaint: (Boolean) -> Unit = { focused ->
-            setTextColor(if (focused) Color.WHITE else ink)
-            background = GradientDrawable().apply {
-                cornerRadius = dp(12).toFloat()
-                setColor(if (focused) accent else surface)
-                setStroke(dp(if (focused) 3 else 1),
-                    if (focused) Color.WHITE else secondary)
-            }
-        }
+        setPadding(dp(13), dp(3), dp(13), dp(3))
+        val repaint: (Boolean) -> Unit = { focused -> VpnTvStyle.paint(this, focused) }
         repaint(false)
         setOnFocusChangeListener { _, focused -> repaint(focused) }
         setOnClickListener { onClick() }

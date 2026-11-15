@@ -175,9 +175,10 @@
         android:clipChildren="false"
         android:clipToPadding="false"
         android:paddingStart="48dp"
-        android:paddingTop="28dp"
+        android:background="#121317"
+        android:paddingTop="20dp"
         android:paddingEnd="48dp"
-        android:paddingBottom="28dp"
+        android:paddingBottom="18dp"
         android:scrollbars="none"
         android:visibility="gone">
 
@@ -191,10 +192,12 @@
                 android:id="@+id/allAppsTitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp"
-                android:fontFamily="sans-serif"
+                android:layout_marginBottom="14dp"
+                android:fontFamily="sans-serif-medium"
                 android:text="@string/all_apps"
-                android:textSize="20sp" />
+                android:letterSpacing="0.12"
+                android:textColor="#F7F7F8"
+                android:textSize="22sp" />
 
             <GridLayout
                 android:id="@+id/allAppsGrid"
@@ -216,14 +219,14 @@
 
         <dev.plume.GlassBox
             android:id="@+id/settingsPanel"
-            android:layout_width="440dp"
+            android:layout_width="600dp"
             android:layout_height="match_parent"
             android:layout_gravity="end"
             android:orientation="vertical"
-            android:paddingStart="28dp"
-            android:paddingTop="40dp"
-            android:paddingEnd="40dp"
-            android:paddingBottom="27dp">
+            android:paddingStart="20dp"
+            android:paddingTop="19dp"
+            android:paddingEnd="20dp"
+            android:paddingBottom="15dp">
 
             <!-- "Plume settings ›" above a section's title, so you know where Back goes. -->
             <TextView
@@ -241,13 +244,13 @@
                 android:fontFamily="sans-serif-medium"
                 android:paddingStart="14dp"
                 android:text="@string/plume_settings"
-                android:textSize="24sp" />
+                android:textSize="23sp" />
 
             <!-- Scrolls once the rows outgrow the screen; focus moving down scrolls it along. -->
             <ScrollView
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
-                android:layout_marginTop="16dp"
+                android:layout_marginTop="8dp"
                 android:layout_weight="1"
                 android:scrollbars="none">
 
@@ -263,14 +266,14 @@
                 android:id="@+id/settingsHelp"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
+                android:layout_marginTop="6dp"
                 android:lineSpacingMultiplier="1.15"
                 android:ellipsize="end"
-                android:maxLines="3"
-                android:minLines="3"
+                android:maxLines="2"
+                android:minLines="1"
                 android:paddingStart="14dp"
                 android:paddingEnd="14dp"
-                android:textSize="14sp" />
+                android:textSize="13sp" />
         </dev.plume.GlassBox>
     </FrameLayout>
 </FrameLayout>

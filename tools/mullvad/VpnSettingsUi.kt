@@ -99,17 +99,17 @@ internal class VpnSettingsUi(
     }
 
     fun build(): LinearLayout = column().apply {
-        setPadding(dp(25), dp(15), dp(25), dp(25))
-        addView(label("VPN-Einstellungen · Original Mullvad", 25f, true))
-        stateLine = label("Einstellungen werden geladen …", 14f)
-        feedback = label("Alle Änderungen werden vom Mullvad-Dienst gespeichert.", 14f)
+        setPadding(dp(12), dp(7), dp(12), dp(10))
+        addView(label("VPN-EINSTELLUNGEN", 23f, true))
+        stateLine = label("Originale Mullvad-Werte werden geladen …", 13f)
+        feedback = label("", 13f)
         addView(stateLine)
         addView(feedback)
 
         general = column()
         generalFirst = action("DNS-Einstellungen öffnen") { showDns(true); dnsFirst.requestFocus() }
         general.addView(generalFirst, rowParams())
-        general.addView(label("Mullvad DNS: Inhaltsfilter und eigene DNS-Server", 14f))
+        general.addView(label("Filter · Eigene DNS-Server", 13f))
         lanButton = action("LAN-Freigabe") { toggleLan() }
         general.addView(lanButton, rowParams())
         ipv6Button = action("IPv6") { toggleIpv6() }
@@ -120,18 +120,13 @@ internal class VpnSettingsUi(
         general.addView(ipVersionButton, rowParams())
         mtuButton = action("WireGuard MTU") { editMtu() }
         general.addView(mtuButton, rowParams())
-        general.addView(label("Port-Obfuskation und Anti-Zensur folgen unter Erweitert (M10).", 13f))
+        general.addView(label("Weitere Verbindungsoptionen unter Netzwerk", 12f))
         bootButton = action("Bei Geräte-Neustart verbinden") { toggleBoot() }
         general.addView(bootButton, rowParams())
-        general.addView(label(
-            "Mullvads Boot-Empfänger startet den VPN-Dienst nur bei erteilter Android-VPN-Freigabe. " +
-                "Ein App-Start allein löst hier keinen zusätzlichen Autoconnect aus.", 13f))
+        general.addView(label("Autostart benötigt die Android-VPN-Freigabe.", 12f))
         general.addView(action("Android Always-on / VPN-Sperrmodus öffnen") { openSystemVpnSettings() },
             rowParams())
-        general.addView(label(
-            "Always-on und ‚Verbindungen ohne VPN blockieren‘ gehören Android. " +
-                "Ihr tatsächlicher Schalterstatus wird in den Systemeinstellungen angezeigt, " +
-                "nicht von Plume erfunden. Die Verfügbarkeit hängt vom TV-Gerät ab.", 13f))
+        general.addView(label("Always-on und Sperrmodus verwaltet Android.", 12f))
         addView(general)
 
         dns = column()
@@ -141,9 +136,7 @@ internal class VpnSettingsUi(
         dns.addView(label("DNS und Inhaltsfilter", 23f, true))
         dnsModeButton = action("Eigene DNS-Server") { toggleCustomDns() }
         dns.addView(dnsModeButton, rowParams())
-        dns.addView(label(
-            "Im Standard-DNS-Modus können Inhaltsfilter aktiv sein. " +
-                "Bei eigenen DNS-Servern sind Mullvads Inhaltsfilter nicht aktiv.", 14f))
+        dns.addView(label("Eigener DNS deaktiviert die Mullvad-Inhaltsfilter.", 13f))
         addFilter("Werbung", { it.blockAds }, { it.copy(blockAds = !it.blockAds) })
         addFilter("Tracker", { it.blockTrackers }, { it.copy(blockTrackers = !it.blockTrackers) })
         addFilter("Schadsoftware", { it.blockMalware }, { it.copy(blockMalware = !it.blockMalware) })
@@ -300,7 +293,7 @@ internal class VpnSettingsUi(
             Constraint.Only(IpVersion.IPV6) -> 2
             else -> 0
         }
-        AlertDialog.Builder(activity).setTitle("WireGuard IP-Version")
+        VpnTvStyle.dialog(activity).setTitle("WireGuard IP-Version")
             .setSingleChoiceItems(choices, selected) { dialog, position ->
                 dialog.dismiss()
                 val choice: Constraint<IpVersion> = when (position) {
@@ -317,7 +310,7 @@ internal class VpnSettingsUi(
 
     private fun editMtu() {
         val input = input(latest?.tunnelOptions?.mtu?.value?.toString().orEmpty())
-        AlertDialog.Builder(activity).setTitle("WireGuard MTU (1280–1420)")
+        VpnTvStyle.dialog(activity).setTitle("WireGuard MTU (1280–1420)")
             .setMessage("Leeres Feld bedeutet nicht automatisch. Für Standard explizit zurücksetzen.")
             .setView(input)
             .setPositiveButton("Speichern", null)
@@ -417,7 +410,7 @@ internal class VpnSettingsUi(
         val addresses = latest?.tunnelOptions?.dnsOptions?.customOptions?.addresses ?: return
         val value = index?.let { addresses.getOrNull(it)?.hostAddress }.orEmpty()
         val edit = input(value)
-        val dialog = AlertDialog.Builder(activity)
+        val dialog = VpnTvStyle.dialog(activity)
             .setTitle(if (index == null) "DNS-Server hinzufügen" else "DNS-Server bearbeiten")
             .setMessage("Nur numerische IPv4-/IPv6-Adressen; keine Hostnamen.")
             .setView(edit)
@@ -502,12 +495,12 @@ internal class VpnSettingsUi(
         setSingleLine(true)
         inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI
         setSelectAllOnFocus(true)
-        setPadding(dp(18), dp(12), dp(18), dp(12))
+        VpnTvStyle.field(this)
     }
 
     private fun column() = LinearLayout(activity).apply { orientation = LinearLayout.VERTICAL }
-    private fun rowParams() = LinearLayout.LayoutParams(-1, dp(52)).apply {
-        bottomMargin = dp(7)
+    private fun rowParams() = LinearLayout.LayoutParams(-1, dp(46)).apply {
+        bottomMargin = dp(4)
     }
     private fun label(value: String, size: Float, strong: Boolean = false) =
         TextView(activity).apply {
@@ -516,20 +509,17 @@ internal class VpnSettingsUi(
             setTextColor(if (strong) ink else secondary)
             if (strong) setTypeface(typeface, Typeface.BOLD)
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(4), dp(8), dp(4), dp(8))
+            setPadding(dp(4), dp(4), dp(4), dp(4))
         }
 
     private fun action(value: String, click: () -> Unit) = Button(activity).apply {
         text = value
-        textSize = 16f
-        isAllCaps = false
+        textSize = 15f
         isFocusable = true
-        setTextColor(ink)
-        background = buttonBackground(false)
-        setOnFocusChangeListener { view, focused ->
-            (view as Button).setTextColor(if (focused) Color.WHITE else ink)
-            view.background = buttonBackground(focused)
-        }
+        gravity = Gravity.CENTER_VERTICAL or Gravity.START
+        setPadding(dp(13), dp(2), dp(13), dp(2))
+        VpnTvStyle.paint(this, false)
+        setOnFocusChangeListener { view, focused -> VpnTvStyle.paint(view as Button, focused) }
         setOnKeyListener { _, key, event ->
             if (event.action == KeyEvent.ACTION_DOWN && key == KeyEvent.KEYCODE_DPAD_LEFT) {
                 focusRail()
@@ -537,13 +527,6 @@ internal class VpnSettingsUi(
             } else false
         }
         setOnClickListener { click() }
-    }
-
-    private fun buttonBackground(focused: Boolean) = GradientDrawable().apply {
-        cornerRadius = dp(10).toFloat()
-        setColor(if (focused) accent else surface)
-        setStroke(dp(if (focused) 3 else 1),
-            if (focused) Color.WHITE else if (dark) 0xFF63768C.toInt() else 0xFFABBCCB.toInt())
     }
 
     private fun dp(value: Int) = (value * activity.resources.displayMetrics.density).toInt()

@@ -1,11 +1,11 @@
 name: Bug report
-description: Something in Plume doesn't work as expected
+description: Something in Plume Launcher Advanced does not work as expected
 labels: [bug]
 body:
   - type: markdown
     attributes:
       value: |
-        Please check [Troubleshooting](https://github.com/aradhyas8/Plume_Launcher#troubleshooting) first. Many Home button problems are solved there.
+        Check the [Advanced fork README](https://github.com/Justify87/Plume_Launcher#readme) first. Include details of Home, Mullvad and D-Pad issues.
   - type: input
     id: device
     attributes:

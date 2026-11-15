@@ -1,53 +1,108 @@
-# V-Design — verbindlicher Designvertrag
+# Plume Launcher Advanced — Expressive TV Designvertrag
 
-**Stand 2026-11-13 (M00-Nachtrag, ursprüngliches ZIP und GitHub-Bytes geprüft):** Ein einziges V-Design ersetzt in M06 Classic und Overview. `docs/v-design/REFERENCE.png` ist die **normative, byteidentische Referenz** (1536×864, SHA-256 `95af66ad04f462867b5d52825c7e1946ac68b5e40bed52c07f4e74c085218f25`, 249663 Bytes). Die Dateiendung `.png` stammt aus dem Original, **der tatsächliche Dateicontainer ist JPEG/JFIF** (Magic `FF D8 FF E0`). Das Bild wird absichtlich nicht umkodiert, weil der Binär-SHA sonst nicht identisch wäre. Git-Blob `d1b14c00a6478cb3b49fcbbd637e0aa71db5df18` wurde über GitHub-Base64 geprüft und im Image-Commit `e1c13b2783aa632c2cbf391b10eb923426f8fc81` am kanonischen Pfad referenziert. M00 bleibt nur bis zu echten neuen PR-/CI-Nachweisen `partial_pending_pr_ci`.
+**Neuer verbindlicher Stand: 15.11.2026.** Das vom Nutzer in der Unterhaltung bereitgestellte
+Bild (1536 × 864) ersetzt alle bisherigen V-Design-Mockups als **einzige visuelle Referenz**.
+Die ältere Datei `docs/v-design/REFERENCE.png` bleibt ausschließlich als historischer
+M00–M07-Nachweis erhalten; sie **darf nicht** als Vorlage für neue UI-Arbeit verwendet werden.
+Die neue Nutzerbilddatei wurde nicht als Git-Binärdatei eingecheckt. Deshalb besteht **noch
+kein Pixelvergleichsnachweis** für einen echten TV-Screenshot. Änderungen dürfen nicht als
+„100 % pixelgenau“ deklariert werden, solange kein Referenzvergleich auf der Shield durchgeführt wurde.
 
-## Gemessene Layoutanker (Referenzpixel, linke obere Ecke = 0/0)
+## Home: exaktes Raster im Designraum
 
-| Fläche | x | y | Breite / Höhe | Verhalten |
-| --- | --- | --- | --- | --- |
-| Referenzcanvas | 0 | 0 | 1536 × 864 | 16:9, keine px-zu-dp-1:1-Annahme |
-| Sidebar + Trennkante | 0–218 | 0–864 | ~218 × 864 = 14,2 % | links, vertikale Aktionen |
-| Hauptfläche | 254–1510 | 0–864 | ~1256 × 864 | ohne Launcher-Logo/zweiten Header |
-| Weiterschauen-Titel | ~263 | ~29–54 | kompakt | Icon, Typografie ~23–25 Referenzpixel |
-| Hero, fokussiert | 255–906 | 74–336 | ~651 × 262 | ≈52 % der Kartenzeilenbreite, Fokus ohne Sprung |
-| Hero-Nachbar 1 | 919–1206 | 83–328 | ~287 × 245 | ≈23 % der Zeilenbreite |
-| Hero-Nachbar 2 | 1221–1508 | 83–328 | ~287 × 245 | ≈23 % der Zeilenbreite |
-| Neue-Folgen-Titel | ~263 | 355–387 | kompakt + Zähler | keine Beschreibung |
-| Neue-Folgen-Karten | ~258–1510 | 403–543 | drei ~400 × 140 | gleichbreit innerhalb dieser Reihe |
-| Demnächst-Titel | ~263 | 566–601 | kompakt + Zähler | keine Beschreibung |
-| Demnächst-Mini-Karten | ~258–1510 | 612–830 | vier Spalten × zwei sichtbare Reihen | Rest via Scroll |
+Koordinaten sind Referenzpixel für `VDesignCanvas` (1536 × 864), keine gerätespezifischen dp:
 
-**Hinweis zu Messwerten:** Kontrastkanten und anti-aliasingbedingte Ränder sind Näherungen; die realen Bildpixels sind maßgeblich. Die UI muss proportional in die tatsächlich nutzbare TV-Fläche übersetzt werden (Systemleisten, Overscan/Safe Insets, TV-Dichte, Font-Scale berücksichtigen). Relative Hierarchie ist wichtiger als exakte dp-Zahlen. Visueller Real-App-Screenshot und Referenz-Overlay erst in M07, jetzt `not_run`.
+| Element | x | y | w | h |
+|---|---:|---:|---:|---:|
+| Sidebar (nur Icons) | 0 | 0 | 98 | 864 |
+| Datumszeile | 1020 | 16 | 152 | 35 |
+| VPN-Statuspill | 1209 | 17 | 198 | 37 |
+| Uhr | 1429 | 11 | 87 | 46 |
+| „Weiterschauen“ Titel | 131 | 94 | 365 | 37 |
+| Hero | 108 | 145 | 655 | 365 |
+| Fortschritt 2 | 781 | 142 | 303 | 170 |
+| Fortschritt 3 | 781 | 330 | 303 | 177 |
+| Trenner zu „Neue Folgen“ | 1104 | 94 | 1 | 413 |
+| Neue-Folgen-Titel | 1132 | 94 | 365 | 37 |
+| Neue-Folgen-Pill | 1424 | 94 | 87 | 37 |
+| Neue Folge 1/2/3 | 1132 | 147/266/386 | 380 | 103 |
+| „Demnächst“ Titel | 133 | 547 | 365 | 37 |
+| Demnächst 1–6 | 133/379/611/842/1074/1306 | 605 | 228/214/212/213/211/205 | 218 |
 
-## Visuelles System
+## Verbindliche Bildsprache
 
-- Tiefer schiefer-/blauvioletter, sehr weichgezeichneter Hintergrund; keine überladene Topbar oder doppelte `Übersicht`-Überschrift.
-- Matte, gerundete Full-Bleed-Bildkarten (~16–20 Referenzpixel Radius), dunkler Gradientenfuß für weiße, abgestufte Overlayschrift; echte Poster/Backdrops, kein eingebautes Serienmaterial.
-- Fokussierter Hero: schmaler Lavendelring (Richtwert `#B18AFF`) plus zurückhaltendes Leuchten **ohne** Layoutverschiebung oder erhebliche Skalierung.
-- Sans-Serif aus Android-Systemschriften, keine neue Font-Bibliothek. Dezente Bereichsüberschriften; Counts aus **gefilterten wirklichen Daten**, nicht aus der Zahl montierter Karten.
-- `Neu` und Countdown nur bei belegter Datenlage. Unbekannte Metadaten werden weggelassen. Keine Mockup-Bilder/-Titel als programmatische Fallbacks.
+- **Hintergrund** tiefes Anthrazit `#121317`, keine dekorativen Gradienten oder
+  Frosting. Die **im Referenzbild sichtbare** sanfte Hero-Flächentönung ist eine
+  bewusste Ausnahme. Keine zusätzliche Launcher-Produktleiste.
+- **Akzent** sanftes Limettengelb `#E7FF80`, für aktiven D-Pad-Fokus und echten Fortschritt.
+  **Sekundär** Lavendel `#DCB7F7`; warme Pfirsichtöne für wechselnde Datums-Badges.
+- Großes **Hero-Bild** rechts unter geometrisch geschwungener, hellgrüner Fläche links,
+  schwarzer Titel und schwarze „Fortsetzen“-Pill. Die geschwungene Fläche wird als View
+  gezeichnet; sie ist nicht Teil des Serienartworks.
+- Nebenhelden: 2 kleine Full-Bleed-Bildkacheln übereinander mit dunkler Lesbarkeitsblende.
+  Neue Folgen: 3 horizontale Zeilen mit Bild links, Text + „Neu“ rechts. Unten genau
+  **eine Reihe aus 6** Bildkacheln mit Datums-Pill, Titel und Countdown darunter.
+- Die tatsächlichen Nuvio-Feeds melden `AVAILABLE`, aber derzeit kein belastbares
+  `isReleaseAlert`-Flag. Deshalb verwendet die Implementierung die sachliche
+  Rubrik **„Verfügbare Folgen“**, eine numerische Zähler-Pill und zeigt
+  „Neu“ erst bei einem vom Provider belegten Flag. Das weicht aus Gründen
+  der Datentreue bewusst vom beispielhaften Text der Referenz ab.
+- **Kein Demo-Inhalt**: nur reale Nuvio-TV-Kanäle. Titel, Artwork, Folgennummern, Prozentwerte,
+  Daten und Countdowns sind aus dem Provider abzuleiten. Fehlende Werte nicht erfinden.
+- Datum/Uhr müssen lokal und fortlaufend aktualisiert werden. VPN-Transport darf nur als
+  „VPN aktiv“ bezeichnet werden, wenn Android tatsächlich einen VPN-Netztransport bestätigt;
+  der Netztransport allein beweist **nicht** eindeutig den Mullvad-Status.
 
-## Sidebar / Navigation
+## Interaktion und Unterseiten
 
-Sichtbare Reihenfolge: `Übersicht` → `Nuvio TV` → `SmartTube` → `Einstellungen` → `VPN`; nur **installierte/tatsächlich verfügbare** Ziele fokussierbar. `VPN` muss die vorhandene integrierte Mullvad-Activity öffnen, kein Fake-Intent. `Alle Apps` und weitere Apps werden über einen nachweislich D-Pad-zugänglichen Mechanismus erreicht, **keine sechste feste Position im Referenzbild erzwingen**. Option für M05: Long-OK auf Übersicht → Alle Apps, wenn konfliktfrei.
+Die Sidebar ist ausschließlich Icon-basiert. Reihenfolge: Home, Nuvio (wenn installiert),
+SmartTube (wenn installiert), Spotify (wenn installiert), Alle Apps, Mullvad (wenn vorhanden),
+Einstellungen. Long-OK auf Home bietet weiterhin Alle Apps und Long-OK auf Einstellungen
+die System-/HDMI-/Power-Aktionen. Unsichtbare Ziele sind nicht fokussierbar.
 
-D-Pad rechts/links pro Zeile, oben/unten mit horizontal sinnvoller Zuordnung; links am Zeilenbeginn zur Sidebar, rechts der Sidebar zum Inhalt. Fokus und Scroll bleiben bei Refresh und Rückkehr erhalten. Home/Back, System-/Launcher-Einstellungen, HDMI-Quellen, Wallpaper, Setup, Direct Boot, Launcher-Rolle, Long-OK und Mullvad müssen nach Migration weiterhin erreichbar sein (siehe `INVENTORY.md`). Uhr, Wetter, aktuelle Topbar und sekundäre Aktionen: in Settings/Overlay bzw. explizit dokumentierte Alternative, nicht unbemerkt entfernen.
+D-Pad-Ziele basieren auf den tatsächlichen Bildschirmkoordinaten. „Demnächst“ paginiert nur
+am linken bzw. rechten Ende des 6er-Streifens, ohne künstliche Einträge. Position und Medienfokus
+bleiben beim Datenrefresh und beim Zurückkehren erhalten.
 
-## Inhalt / Aktionen
+Launcher-Einstellungen und Mullvad-TV-Untermenüs teilen den matten Dunkelmodus:
+`#1B1C21` Fenster, `#202126` Zeilen, `#F7F7F8` Text, `#B8BAC1`
+Sekundärtext und `#E7FF80` Fokus. Kompakte Zeilen (ca. 44–46 dp),
+schmale Zwischenräume, Scroll nur bei Bedarf, klar lesbare Seitentitel. Kurze
+Animationsübergänge (ca. 145–165 ms) **ohne** Fokusversatz. Maintained UI-/Animationsbibliotheken sind zulässig, wenn sie tatsächlich helfen.
 
-| Reihenfolge | Kategorie | Exakte Nuvio-Channel-ID | Darstellung | Verhalten |
-| --- | --- | --- | --- | --- |
-| 1 | Weiterschauen | `<laufzeitpaket>:in-progress` | 1 Hero + 2 Neben-Karten, S/E, verlässlicher Progress, Restzeit nur bei realer Dauer | Continue oder geprüfter Details-Fallback |
-| 2 | Neue Folgen verfügbar | `<laufzeitpaket>:available` | 3 breite Kacheln, reale Staffeln/Episoden | Playback/Details je Original-Intent |
-| 3 | Demnächst | `<laufzeitpaket>:upcoming` | 4×2 Minis, Datum und nur belegter Countdown | **Immer Details** |
+Mullvads originaler Dienst, gRPC, Relaylisten, Konten, WireGuard, Rust/JNI, Split-Tunneling
+und VPN-Rechte sind weiterhin alleinige Autorität. Design-Umbau darf keine zweite
+„VPN-Implementierung“ installieren und niemals einen unbestätigten Status behaupten.
 
-Leere Kategorien erhalten zurückhaltenden Empty-State, keine Nachfüllung mit fremden Inhalten. Der klassische Nuvio-Kanal `CONTINUE` bleibt in Nuvio unverändert; in Plume nicht stillschweigend auf die drei Kategorien aufteilen. **SmartTube nur App-Shortcut** in der Sidebar.
+## Technologie- und Änderungsfreiheit
 
-### Konflikt in der Originalbildvorlage (explizit aufgelöst)
+Frühere Vorgaben „Framework Views only“, „keine AndroidX-Bibliotheken“, „keine
+Compose-UI“, „kleine PRs“, „keine zusätzlichen Designkomponenten“ und
+„ursprüngliches Plume-Layout erhalten“ sind für Plume Launcher Advanced
+**aufgehoben**. Der Nutzer kann die bestehende UI auch vollständig ersetzen
+lassen. Ziel ist die bestmögliche Referenztreue, nicht die Beibehaltung alter
+Technik.
 
-Das Originalmockup zeigt in den Medienreihen **SmartTube-Kacheln**, obwohl der normative schriftliche Nutzervertrag ausdrücklich **nur Nuvio-Medien** und SmartTube **nur als Sidebar-Verknüpfung** verlangt. **D-004:** Die **Geometrie und Hierarchie** des Bilds bleiben verbindlich; SmartTube-Beispielkarten werden niemals als echte Daten in die drei Nuvio-Reihen übernommen. Wenn Nuvio weniger Inhalte liefert, Slots leer lassen statt mit SmartTube zu füllen. Keine Ersetzung durch hardcodierte Serienbilder.
+Geeignete Material-Komponenten, AndroidX, ein Bildlader, Animationsbibliotheken,
+Custom Views oder selektive Compose-Module sind erlaubt. Vor Einführung prüfen:
+Maintainerstatus/Lizenz, sinnvolle Laufzeit-/RAM-/APK-Kosten, Android-TV-D-Pad,
+Barrierefreiheit, Android 8+, integrierten Mullvad-Gradle/Rust-Build und Wartbarkeit.
+**Keine Bibliothek nur der Mode wegen erzwingen.** Der vorhandene native View-Ansatz
+ist für diesen Entwurf weiterhin ein pragmatischer Ausgangspunkt.
 
-## Abnahmegrenzen
+Die komplette Startseite, Launcher-Settings und Mullvad-TV-Oberflächen dürfen
+in einem zusammenhängenden PR geändert werden. Keine alte visuelle Konvention
+stellt eine Architektur- oder Dateigrenze dar. Datenechtheit, VPN-Sicherheit,
+Privatsphäre und technische Regressionstests bleiben verbindlich.
 
-M00 implementiert **kein UI**. Der spätere Referenzvergleich braucht echte 16:9 Screenshots vom Emulator/Shield, Fokuszustände und dokumentierte sichtbare Abweichungen. Kein `pixel-perfect`, keine Hardwarebestätigung ohne echte Prüfung. Das byteidentische `REFERENCE.png` ist inzwischen unter dem kanonischen Pfad im Nachtragsbranch enthalten; vor `passed` sind noch die **echten** PR-/CI-Ergebnisse und das Abschlussreview nachzutragen. Das ist kein visueller Implementierungstest.
+## Abnahme
+
+1. `testDebugUnitTest`, `lintDebug`, kombinierter gepinnter Mullvad-Docker/ARM64-Build
+   einschließlich der vorhandenen Release/R8-Regressionsprüfungen.
+2. Shield-TV 2019 Pro: Fokus, Fernbedienung, 1080p und Overscan; Wallpaper-/Apps-/Settings-
+   Overlay, Back/Home, Unterseiten sowie reales Mullvad Verbinden/Trennen.
+3. Vergleich von **echtem** Launcher-Screenshot mit der **neuen** Nutzerbildvorlage
+   inklusive Typografie, Bildmasken, Abstände, Kartenanordnung und Animationen.
+
+Punkte 2 und 3 benötigen reale Gerätetests und dürfen nicht als bestanden bezeichnet werden,
+wenn lediglich JVM-Tests bzw. CI erfolgreich sind.

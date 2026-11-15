@@ -1,3 +1,12 @@
+> **ARCHIV / NICHT MEHR DESIGNVERBINDLICH (15.11.2026):** Dieses Dokument beschreibt
+> die historischen M00–M08-Implementierungsschritte und das **ersetzte** Raster
+> aus `docs/v-design/REFERENCE.png`. Die damaligen Sidebar-Maße,
+> 3+3+8-Karten, Farb-/Technologieverbote, Milestone-Gates und „nächster Schritt“-
+> Anweisungen dürfen **nicht** gegen das neue Expressive-Redesign ausgelegt
+> werden. Aktive Vorgaben: [DESIGN_CONTRACT.md](DESIGN_CONTRACT.md) und
+> [CONTRIBUTING.md](../../CONTRIBUTING.md). Historische Befunde zu
+> Datenherkunft, VPN-Sicherheit und Tests bleiben als Belege erhalten.
+
 # M07 → M08: aktueller operativer Handoff (2026-11-14)
 
 **Ausgangspunkt:** M06 [PR #39](https://github.com/Justify87/Plume_Launcher/pull/39) in `main@eac085e3a2e8e2380d3b113bffc38a2f6c13fd74` gemergt; Nuvio `dev@be4b84a84e004a2d36405601683df000d8dc446a` nur gelesen. **Branch** `feature/vdesign-m07-visual-qa-performance`, **Draft-PR [#40](https://github.com/Justify87/Plume_Launcher/pull/40)** ungemergt, Source-/Test-HEAD `8dce8de2a8bcf84ee2062157080b9029108c399e`. Kanonischer Status: [STATE.md](STATE.md).

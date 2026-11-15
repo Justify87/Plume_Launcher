@@ -1,3 +1,12 @@
+> **ARCHIV / NICHT MEHR DESIGNVERBINDLICH (15.11.2026):** Dieses Dokument beschreibt
+> die historischen M00–M08-Implementierungsschritte und das **ersetzte** Raster
+> aus `docs/v-design/REFERENCE.png`. Die damaligen Sidebar-Maße,
+> 3+3+8-Karten, Farb-/Technologieverbote, Milestone-Gates und „nächster Schritt“-
+> Anweisungen dürfen **nicht** gegen das neue Expressive-Redesign ausgelegt
+> werden. Aktive Vorgaben: [DESIGN_CONTRACT.md](DESIGN_CONTRACT.md) und
+> [CONTRIBUTING.md](../../CONTRIBUTING.md). Historische Befunde zu
+> Datenherkunft, VPN-Sicherheit und Tests bleiben als Belege erhalten.
+
 # V-Design — Legacy-Funktionsinventar und Migrationspflicht
 
 Quellenstand Plume `main@fbf2473711c50d03eb76afe8fd0a722af1faf136`: `MainActivity.kt` (6627 Zeilen), `activity_main.xml` (489 Zeilen), `HomeLayoutMode.kt`, `HomeSidebarView.kt`, `OverviewHomeView.kt`, `HomeFocusNavigator.kt`, `OverviewRowsNavigator.kt`, `AndroidTvMediaSource.kt`, `MediaItem.kt`, `MediaFeedRepository.kt`, Manifest, Gradle/Workflows. Dies ist eine **statische Inventur**, kein ausgeführter TV-Test.

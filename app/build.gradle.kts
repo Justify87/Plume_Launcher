@@ -4,7 +4,9 @@ plugins {
     id("com.android.application")
 }
 
-// No dependencies on purpose: framework Views only, to keep RAM and APK size minimal.
+// Dependency policy: use maintained, licensed UI/animation/image libraries when justified.
+// The existing framework View code is a starting point, not an architectural requirement.
+// Preserve integrated Mullvad compatibility, startup responsiveness and D-Pad accessibility.
 android {
     namespace = "dev.plume"
     compileSdk = 36

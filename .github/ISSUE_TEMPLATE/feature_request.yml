@@ -1,34 +1,37 @@
 name: Feature request
-description: Suggest an idea for Plume
+description: Suggest a feature or design improvement for Plume Launcher Advanced
 labels: [enhancement]
 body:
   - type: markdown
     attributes:
       value: |
-        Plume stays small on purpose. Please read [what's in and out of scope](https://github.com/aradhyas8/Plume_Launcher/blob/main/CONTRIBUTING.md#whats-out-of-scope) before suggesting something.
+        This is the independent Plume Launcher Advanced fork. Cohesive multi-screen
+        redesigns, modern UI components, and justified libraries are in scope.
+        See [current design rules](https://github.com/Justify87/Plume_Launcher/blob/main/docs/v-design/DESIGN_CONTRACT.md)
+        and [contribution guidance](https://github.com/Justify87/Plume_Launcher/blob/main/CONTRIBUTING.md).
   - type: textarea
     id: problem
     attributes:
       label: What problem would this solve?
-      description: Describe what you're trying to do and what gets in the way today.
+      description: Explain what gets in the way today.
     validations:
       required: true
   - type: textarea
     id: idea
     attributes:
-      label: Your idea
-      description: How you picture it working. Sketches, mockups or screenshots are welcome.
+      label: Proposal
+      description: UI mockups, photos, screenshots and broader refactoring ideas are welcome.
     validations:
       required: true
   - type: textarea
-    id: alternatives
+    id: impact
     attributes:
-      label: Anything you've tried instead?
+      label: Device, navigation and implementation impact
+      description: Which screens, D-Pad flows or libraries are involved (if known)?
   - type: checkboxes
-    id: scope
+    id: review
     attributes:
-      label: Fit with Plume
+      label: Privacy and regression considerations
       options:
-        - label: This doesn't add ads, tracking, an account, or a third-party library.
+        - label: I understand VPN functionality and privacy/security gates must remain intact.
           required: true
-        - label: I'd like to build this myself (please wait for a reply before starting).

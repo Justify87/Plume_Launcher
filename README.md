@@ -39,32 +39,49 @@ This is a **personal hobby fork**, not a promise of commercial-grade integration
 
 ## Where things stand
 
-**M06 is currently in [draft PR #39](https://github.com/Justify87/Plume_Launcher/pull/39), not merged into `main`.** The single V-Design Home surface replaces both old Plume home layouts on this feature branch. Real Shield TV behavior still requires device testing.
+The active design work is tracked in [draft PR #46](https://github.com/Justify87/Plume_Launcher/pull/46).
+The single V-Design Home has existed on `main` since PR #39, but **its old
+appearance is no longer normative**. The screenshot supplied on 15 November
+2026 is the exclusive visual reference for the redesign.
 
-| Area | State | Limit |
-| --- | --- | --- |
-| **V-Design home** | Sole Home layout on the M06 branch | Reference-based sidebar and Nuvio-specific content; Shield validation pending |
-| **Continue watching** | Nuvio `:in-progress` | Items require actual publishing and permission |
-| **New episodes available** | Nuvio `:available` | Only published episodes |
-| **Upcoming** | Nuvio `:upcoming` | Dates/countdowns from available metadata; detail launch, no premature playback |
-| **All Apps and HDMI/system access** | Reachable through V-Design sidebar and Settings long-press | Remote, TV vendor and Home permissions vary |
-| **SmartTube** | App shortcut in sidebar only | No SmartTube media cards on V-Design home |
-| **Mullvad VPN** | Embedded backend and VPN shortcut retained | JNI/tunnel runtime not revalidated by M06 |
-| **Spotify podcasts** | Separate feasibility research | No Spotify podcast cards or resume synchronization shipped |
+- **Home:** slim icon-only rail; 1 featured Nuvio Continue card + 2 secondary
+  cards; three available-episode entries at right; six upcoming episodes in
+  a single horizontal strip; real date, time, and a conservatively verified
+  Android VPN-transport indicator.
+- **Apps and settings:** installed Nuvio, SmartTube and Spotify shortcuts,
+  All Apps, integrated Mullvad and compact native Launcher Settings.
+- **Mullvad:** original tunnel/account/server repositories, VpnService,
+  Rust/JNI and routing remain unchanged; the TV shell and subpages share
+  the new dark expressive styling.
 
-### Using the single V-Design Home
+**Do not treat the older V-Design screenshots, 14-slot grid, five-tab
+sidebar, M00–M08 milestones or original Plume contribution restrictions
+as active product/design requirements.** The current contract is
+[Design Contract](docs/v-design/DESIGN_CONTRACT.md) and
+[Contributing](CONTRIBUTING.md).
 
-Use **Up / Down** in the sidebar, **Right** to enter available content, **Left** to return and **OK** to open a permitted item or application. **Hold OK on Übersicht** to open All Apps; **hold OK on Einstellungen** for HDMI sources, Android/WLAN Settings, power and Home setup. The three V sections draw only from typed Nuvio media; its older mixed `CONTINUE` channel is kept in Nuvio, never reclassified as these three categories.
+The new visual design still needs green integrated CI and physical Shield
+TV visual/interaction checks. Screenshots, pixel-match and device validation
+are not implied by source edits.
 
-The previous **Classic / Overview setting no longer exists** on the M06 branch. Older exports and installed preferences do not restore those removed layouts. Their currently relevant app order, wallpaper and TV-channel preferences remain preserved; retired layout-only keys are ignored.
+## Design and navigation
 
-If a source is missing, Android TV listings access is denied or a provider fails, the single Home shell remains navigable and shows empty content rather than demo data. Historical release-test evidence is archived under [legacy Overview documentation](docs/archive/legacy-features/overview-ui/m11-release-acceptance.md); a fresh Shield Pro 2019 run is still required.
+The target is the image-based **1536×864 editorial layout**: matte charcoal,
+lime active focus/progress, lavender/peach pills, asymmetrical cards and
+compact settings menus. Image assets displayed inside media cards are dynamic
+Nuvio media, not hardcoded illustrations or titles.
 
-## The intended Advanced experience
+Use the D-Pad to select a rail icon, then Right to enter content. The
+sidebar includes a visible All Apps entry, plus long-OK on Home (All Apps)
+and on Settings (System/HDMI/Power actions). Back/Home and focus restore
+remain supported. If the data source is empty, no demonstration content
+is inserted.
 
-A small, fixed remote-friendly layout: resume one of your real Nuvio shows, see actually available episodes, discover upcoming releases and launch a source app without a second Home page. No general cross-service private history or Spotify integration is implied.
-
-Development is tracked in [pull requests](https://github.com/Justify87/Plume_Launcher/pulls) and [V-Design milestones](docs/v-design/ROADMAP.md).
+**UI technology is intentionally open.** The existing Kotlin/Android
+Views/XML implementation is currently convenient, but well-maintained
+AndroidX/Material libraries, animation libraries or a selective Compose
+migration are acceptable when they measurably improve appearance and
+TV navigation at reasonable cost.
 
 ## Install a debug APK
 
@@ -123,7 +140,7 @@ The export covers supported display and layout preferences, **not** everything. 
 
 ## Build from source
 
-This fork deliberately keeps the same simple technology base as Plume: **Kotlin, ordinary Android Views/XML and Android TV framework APIs**, rather than migrating the launcher to Jetpack Compose.
+The current code uses **Kotlin, Android Views/XML and Android TV framework APIs**. This is not a ban on modern UI technology: a justified AndroidX/Material dependency, custom view system, or selective Compose migration is acceptable if it preserves TV performance and the integrated Mullvad build.
 
 Requirements: **JDK 17**, an installed Android SDK for the project's configured compile SDK, and a working Gradle wrapper.
 

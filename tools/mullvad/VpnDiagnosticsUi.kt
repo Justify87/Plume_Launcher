@@ -142,14 +142,16 @@ internal class VpnDiagnosticsUi(
         addView(label("Problem an Mullvad melden", 20f, true))
         addView(label("Der Versand erfolgt ausschließlich über Mullvads Original-Repository.", 14f))
         emailInput = EditText(activity).apply {
+            VpnTvStyle.field(this)
             hint = "E-Mail (optional)"
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
             setSingleLine(true)
             setTextColor(ink)
             setHintTextColor(secondary)
         }
-        addView(emailInput, LinearLayout.LayoutParams(-1, dp(55)))
+        addView(emailInput, LinearLayout.LayoutParams(-1, dp(49)))
         descriptionInput = EditText(activity).apply {
+            VpnTvStyle.field(this)
             hint = "Problembeschreibung (erforderlich)"
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE or
                 InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
@@ -159,7 +161,7 @@ internal class VpnDiagnosticsUi(
             setHintTextColor(secondary)
             gravity = Gravity.TOP
         }
-        addView(descriptionInput, LinearLayout.LayoutParams(-1, dp(130)))
+        addView(descriptionInput, LinearLayout.LayoutParams(-1, dp(112)))
         includeAccount = CheckBox(activity).apply {
             text = "Mullvad-Konto-ID im Bericht einschließen (optional)"
             isChecked = false
@@ -318,7 +320,7 @@ internal class VpnDiagnosticsUi(
                 locales.map { it.getDisplayName(it) }.toTypedArray()
             var chosen = (locales.indexOf(languageRepository.getAppLocale()) + 1)
                 .coerceAtLeast(0)
-            AlertDialog.Builder(activity)
+            VpnTvStyle.dialog(activity)
                 .setTitle("App-Sprache – betrifft auch Plume")
                 .setSingleChoiceItems(labels, chosen) { _, which -> chosen = which }
                 .setNegativeButton("Abbrechen", null)
@@ -336,7 +338,7 @@ internal class VpnDiagnosticsUi(
             val changes = changelog.getLastVersionChanges()
             val text = if (changes.isEmpty()) "Keine Versionshinweise in diesem Build."
                 else changes.joinToString("\n\n") { "• " + it }
-            AlertDialog.Builder(activity)
+            VpnTvStyle.dialog(activity)
                 .setTitle("Mullvad – Versionsänderungen")
                 .setMessage(text)
                 .setPositiveButton("Schließen") { _, _ ->
@@ -375,7 +377,7 @@ internal class VpnDiagnosticsUi(
         val description = descriptionInput.text.toString().trim()
         if (description.isBlank()) return notice("Bitte eine Problembeschreibung eingeben.")
         val email = emailInput.text.toString().trim().takeIf { it.isNotEmpty() }
-        AlertDialog.Builder(activity)
+        VpnTvStyle.dialog(activity)
             .setTitle("Problembericht versenden?")
             .setMessage(
                 "Mullvad erhält den Text und die von Mullvad gesammelten Logs." +
@@ -423,7 +425,7 @@ internal class VpnDiagnosticsUi(
 
     private fun column() = LinearLayout(activity).apply {
         orientation = LinearLayout.VERTICAL
-        setPadding(dp(28), dp(16), dp(28), dp(24))
+        setPadding(dp(12), dp(6), dp(12), dp(9))
     }
 
     private fun label(value: String, size: Float, bold: Boolean = false) =
@@ -432,7 +434,7 @@ internal class VpnDiagnosticsUi(
             textSize = size
             setTextColor(if (bold) ink else secondary)
             if (bold) setTypeface(typeface, Typeface.BOLD)
-            setPadding(0, dp(9), 0, dp(9))
+            setPadding(0, dp(4), 0, dp(4))
         }
 
     private fun action(title: String, click: () -> Unit) = Button(activity).apply {
@@ -442,19 +444,8 @@ internal class VpnDiagnosticsUi(
         setTextColor(ink)
         isFocusable = true
         setOnClickListener { click() }
-        setOnFocusChangeListener { _, hasFocus ->
-            setTextColor(if (hasFocus) Color.WHITE else ink)
-            background = GradientDrawable().apply {
-                cornerRadius = dp(10).toFloat()
-                setColor(if (hasFocus) accent else surface)
-                setStroke(dp(if (hasFocus) 3 else 1), if (hasFocus) Color.WHITE else secondary)
-            }
-        }
-        background = GradientDrawable().apply {
-            cornerRadius = dp(10).toFloat()
-            setColor(surface)
-            setStroke(dp(1), secondary)
-        }
+        VpnTvStyle.paint(this, false)
+        setOnFocusChangeListener { view, hasFocus -> VpnTvStyle.paint(view as Button, hasFocus) }
         setOnKeyListener { _, key, event ->
             if (event.action == KeyEvent.ACTION_DOWN && key == KeyEvent.KEYCODE_DPAD_LEFT) {
                 backToRail()
