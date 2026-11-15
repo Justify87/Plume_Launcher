@@ -202,24 +202,12 @@ class VpnActivity : ComponentActivity() {
     private var awaitingSystemPermission = false
     private var notificationPermissionRequest = false
 
-    private val dark by lazy {
-        val home = getSharedPreferences("home", MODE_PRIVATE)
-        when (home.getString("theme", "light")) {
-            "dark" -> true
-            "auto" -> resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK ==
-                Configuration.UI_MODE_NIGHT_YES
-            "wallpaper" -> {
-                val hue = home.getInt("glass_hue", 0xFF777777.toInt())
-                (hue shr 16 and 255) * 299 + (hue shr 8 and 255) * 587 +
-                    (hue and 255) * 114 < 128000
-            }
-            else -> false
-        }
-    }
-    private val ink get() = if (dark) Color.WHITE else 0xFF192535.toInt()
-    private val secondary get() = if (dark) 0xFFBCC9D8.toInt() else 0xFF536277.toInt()
-    private val surface get() = if (dark) 0xFF1B293B.toInt() else 0xFFE7EDF4.toInt()
-    private val accent = 0xFF247F98.toInt()
+    // The integrated TV shell is intentionally always dark, independent of phone appearance.
+    private val dark = true
+    private val ink get() = VpnTvStyle.INK
+    private val secondary get() = VpnTvStyle.MUTED
+    private val surface get() = VpnTvStyle.SURFACE
+    private val accent = VpnTvStyle.LIME
 
     private lateinit var grpcLine: TextView
     private lateinit var headline: TextView
@@ -444,19 +432,23 @@ class VpnActivity : ComponentActivity() {
     private fun buildScreen(): View {
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(36), dp(26), dp(36), dp(22))
-            setBackgroundColor(if (dark) 0xFF101B29.toInt() else 0xFFF5F8FB.toInt())
+            setPadding(dp(24), dp(12), dp(24), dp(12))
+            setBackgroundColor(VpnTvStyle.BACKGROUND)
         }
-        root.addView(text("Mullvad VPN", 31f, true), LinearLayout.LayoutParams(-1, dp(55)))
-        grpcLine = text("Mullvad-Dienst: initialisiert", 15f)
+        root.addView(text("MULLVAD VPN", 25f, true), LinearLayout.LayoutParams(-1, dp(40)))
+        grpcLine = text("Mullvad-Dienst: initialisiert", 13f)
         root.addView(grpcLine)
         val columns = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
         val rail = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(0, dp(18), dp(20), 0)
+            setPadding(0, dp(7), dp(13), 0)
         }
         val detail = FrameLayout(this).apply {
-            setBackgroundColor(surface)
+            background = GradientDrawable().apply {
+                cornerRadius = dp(18).toFloat()
+                setColor(VpnTvStyle.RAIL)
+                setStroke(dp(1), VpnTvStyle.EDGE)
+            }
             clipToPadding = false
             clipChildren = false
         }
@@ -468,10 +460,10 @@ class VpnActivity : ComponentActivity() {
             clipToPadding = false
             addView(rail, FrameLayout.LayoutParams(-1, -2))
         }
-        columns.addView(railScroll, LinearLayout.LayoutParams(dp(230), -1))
+        columns.addView(railScroll, LinearLayout.LayoutParams(dp(185), -1))
         columns.addView(detail, LinearLayout.LayoutParams(0, -1, 1f))
         root.addView(columns, LinearLayout.LayoutParams(-1, 0, 1f))
-        root.addView(text("D-Pad: auswählen · OK: öffnen · Back: zur Übersicht / Plume", 13f))
+        // No permanent help footer: retain vertical space for relay, DNS and account lists.
 
         val status = panel()
         headline = text("Warte auf Originaldienst", 26f, true)
@@ -592,7 +584,7 @@ class VpnActivity : ComponentActivity() {
                 } else false
             }
             tabs += tab
-            rail.addView(tab, LinearLayout.LayoutParams(-1, dp(60)).apply { bottomMargin = dp(9) })
+            rail.addView(tab, LinearLayout.LayoutParams(-1, dp(46)).apply { bottomMargin = dp(4) })
         }
         showPage(0)
         return root
@@ -617,12 +609,21 @@ class VpnActivity : ComponentActivity() {
 
     private fun panel() = LinearLayout(this).apply {
         orientation = LinearLayout.VERTICAL
-        setPadding(dp(28), dp(18), dp(28), dp(22))
+        setPadding(dp(15), dp(9), dp(15), dp(12))
     }
 
     private fun showPage(next: Int) {
+        val changed = page != next
         page = next
-        panels.forEachIndexed { i, view -> view.visibility = if (i == next) View.VISIBLE else View.GONE }
+        panels.forEachIndexed { i, view ->
+            view.animate().cancel()
+            view.visibility = if (i == next) View.VISIBLE else View.GONE
+            if (changed && i == next) {
+                view.alpha = 0f
+                view.translationX = dp(12).toFloat()
+                view.animate().alpha(1f).translationX(0f).setDuration(165L).start()
+            }
+        }
         tabs.forEachIndexed { i, button -> paint(button, button.isFocused, i == next) }
     }
 
@@ -643,14 +644,7 @@ class VpnActivity : ComponentActivity() {
     }
 
     private fun paint(view: Button, focused: Boolean, selected: Boolean = false) {
-        view.setTextColor(if (focused) Color.WHITE else ink)
-        view.background = GradientDrawable().apply {
-            cornerRadius = dp(12).toFloat()
-            setColor(if (focused) accent else if (selected) {
-                if (dark) 0xFF34495F.toInt() else 0xFFD6E4EF.toInt()
-            } else surface)
-            setStroke(dp(if (focused) 3 else 1), if (focused) Color.WHITE else secondary)
-        }
+        VpnTvStyle.paint(view, focused, selected)
     }
 
     private fun text(value: String, size: Float, strong: Boolean = false) = TextView(this).apply {
@@ -659,10 +653,10 @@ class VpnActivity : ComponentActivity() {
         setTextColor(if (strong) ink else secondary)
         if (strong) setTypeface(typeface, Typeface.BOLD)
         gravity = Gravity.CENTER_VERTICAL
-        setPadding(0, dp(7), 0, dp(7))
+        setPadding(0, dp(4), 0, dp(4))
     }
 
-    private fun actionParams() = LinearLayout.LayoutParams(0, dp(58), 1f).apply {
+    private fun actionParams() = LinearLayout.LayoutParams(0, dp(46), 1f).apply {
         marginEnd = dp(10)
     }
 
