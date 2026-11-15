@@ -1,3 +1,12 @@
+> **ARCHIV / NICHT MEHR DESIGNVERBINDLICH (15.11.2026):** Dieses Dokument beschreibt
+> die historischen M00–M08-Implementierungsschritte und das **ersetzte** Raster
+> aus `docs/v-design/REFERENCE.png`. Die damaligen Sidebar-Maße,
+> 3+3+8-Karten, Farb-/Technologieverbote, Milestone-Gates und „nächster Schritt“-
+> Anweisungen dürfen **nicht** gegen das neue Expressive-Redesign ausgelegt
+> werden. Aktive Vorgaben: [DESIGN_CONTRACT.md](DESIGN_CONTRACT.md) und
+> [CONTRIBUTING.md](../../CONTRIBUTING.md). Historische Befunde zu
+> Datenherkunft, VPN-Sicherheit und Tests bleiben als Belege erhalten.
+
 # V-Design — echte Milestone-Reviews
 
 > Der erste M00-Eintrag unten dokumentiert den historischen PR-#32-Prüfzeitpunkt **vor** dessen Merge. Der verifizierte Nachtrag danach ist maßgeblich für den aktuellen Stand; `STATE.md` ist kanonisch.
