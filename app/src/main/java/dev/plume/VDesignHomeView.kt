@@ -162,7 +162,8 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
         (content.parent as? ViewGroup)?.removeView(content)
         content.visibility = View.GONE
         workspacePanels[key] = content
-        mount(content, VDesignCanvas.Box(103, 60, 1416, 780))
+        // The right pane uses the full height; its content owns internal padding.
+        mount(content, VDesignCanvas.Box(103, 0, 1433, 864))
         menu.forEach { bringChildToFront(it) }
         if (currentWorkspace == key) showWorkspace(key, force = true)
     }
