@@ -56,4 +56,22 @@ class LauncherWorkspaceNavigationTest {
         assertEquals("com.nuvio.tv",
             NuvioInstallationPolicy.preferredPackage(listOf("com.nuvio.tv"), null))
     }
+    @Test fun appPreviewNeverTargetsASecondPackageOrUnsafeData() {
+        val policy = WorkspaceMediaLaunchPolicy
+        assertEquals(true, policy.valid("com.spotify.tv.android",
+            "com.spotify.tv.android", null, false, "https"))
+        assertEquals(true, policy.valid("com.spotify.tv.android",
+            null, "com.spotify.tv.android", false, null))
+        assertEquals(false, policy.valid("com.spotify.tv.android",
+            "com.nuvio.tv", null, false, null))
+        assertEquals(false, policy.valid("com.spotify.tv.android",
+            null, null, false, "https"))
+        assertEquals(false, policy.valid("com.spotify.tv.android",
+            "com.spotify.tv.android", null, true, null))
+        assertEquals(false, policy.valid("com.spotify.tv.android",
+            "com.spotify.tv.android", null, false, "file"))
+        assertEquals(false, policy.valid("com.spotify.tv.android",
+            "com.spotify.tv.android", null, false, "content"))
+    }
+
 }
