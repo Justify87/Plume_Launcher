@@ -250,9 +250,14 @@ internal class VDesignCardView(
                 setStroke(px(2), Colors.LIME)
             } else null
             animate().cancel()
-            animate().scaleX(if (focused) 1.015f else 1f)
-                .scaleY(if (focused) 1.015f else 1f)
-                .setDuration(155).start()
+            if (android.animation.ValueAnimator.areAnimatorsEnabled()) {
+                animate().scaleX(if (focused) 1.015f else 1f)
+                    .scaleY(if (focused) 1.015f else 1f)
+                    .setDuration(155).start()
+            } else {
+                scaleX = 1f
+                scaleY = 1f
+            }
             elevation = if (focused) px(5).toFloat() else 0f
         }
         setOnClickListener { media?.let { onSelect?.invoke(it) } }
