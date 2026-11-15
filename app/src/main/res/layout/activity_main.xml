@@ -175,9 +175,10 @@
         android:clipChildren="false"
         android:clipToPadding="false"
         android:paddingStart="48dp"
-        android:paddingTop="28dp"
+        android:background="#121317"
+        android:paddingTop="20dp"
         android:paddingEnd="48dp"
-        android:paddingBottom="28dp"
+        android:paddingBottom="18dp"
         android:scrollbars="none"
         android:visibility="gone">
 
@@ -191,10 +192,12 @@
                 android:id="@+id/allAppsTitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp"
-                android:fontFamily="sans-serif"
+                android:layout_marginBottom="14dp"
+                android:fontFamily="sans-serif-medium"
                 android:text="@string/all_apps"
-                android:textSize="20sp" />
+                android:letterSpacing="0.12"
+                android:textColor="#F7F7F8"
+                android:textSize="22sp" />
 
             <GridLayout
                 android:id="@+id/allAppsGrid"
