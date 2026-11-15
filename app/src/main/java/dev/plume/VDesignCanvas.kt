@@ -3,11 +3,11 @@ package dev.plume
 import kotlin.math.min
 import kotlin.math.roundToInt
 
-/** M03: reference coordinates are visual pixels in the immutable 1536x864 design, not Android dp. */
+/** Reference coordinates are visual pixels in the new 1536x864 editorial design, not Android dp. */
 internal object VDesignCanvas {
     const val WIDTH = 1536
     const val HEIGHT = 864
-    const val SIDEBAR_WIDTH = 218
+    const val SIDEBAR_WIDTH = 98
 
     data class Box(val x: Int, val y: Int, val width: Int, val height: Int)
     data class Placement(val x: Int, val y: Int, val width: Int, val height: Int)
