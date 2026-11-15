@@ -316,11 +316,10 @@ class PreparationTests(unittest.TestCase):
             verification = upstream / "android/gradle/verification-metadata.xml"
             verification.parent.mkdir(parents=True)
             components = []
-            for name, module_sha, _jar_sha in prepare.WITNESSED_COMPILER_JARS:
+            for group, name, version, module_sha, _ in prepare.staged_verification_artifacts():
                 components.append(
-                    '      <component group="org.jetbrains.kotlinx" '
-                    f'name="{name}" version="1.6.4">\n'
-                    f'         <artifact name="{name}-1.6.4.module">\n'
+                    f'      <component group="{group}" name="{name}" version="{version}">\n'
+                    f'         <artifact name="{name}-{version}.module">\n'
                     f'            <sha256 value="{module_sha}" origin="Pinned upstream"/>\n'
                     '         </artifact>\n'
                     '      </component>\n'
@@ -375,10 +374,10 @@ class PreparationTests(unittest.TestCase):
                 )
                 self.assertIn('implementation(project(":plume-ui"))', host)
                 staged_lock = (generated / "gradle/verification-metadata.xml").read_text()
-                for name, _module_sha, jar_sha in prepare.WITNESSED_COMPILER_JARS:
-                    self.assertIn(f'{name}-1.6.4.jar', staged_lock)
+                for _, name, version, _, jar_sha in prepare.staged_verification_artifacts():
+                    self.assertIn(f'{name}-{version}.jar', staged_lock)
                     self.assertIn(jar_sha, staged_lock)
-                    self.assertNotIn(f'{name}-1.6.4.jar', verification.read_text())
+                    self.assertNotIn(f'{name}-{version}.jar', verification.read_text())
 
                 self.assertIn('net.mullvad.mullvadvpn', (upstream / "android/app/build.gradle.kts").read_text())
                 self.assertIn('val version = "1.7.1"',
