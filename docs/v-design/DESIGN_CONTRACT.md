@@ -31,8 +31,9 @@ Koordinaten sind Referenzpixel für `VDesignCanvas` (1536 × 864), keine geräte
 
 ## Verbindliche Bildsprache
 
-- **Hintergrund** tiefes Anthrazit `#121317`, keine Gradienten, Frosting oder zusätzliche
-  Launcher-Produktleiste.
+- **Hintergrund** tiefes Anthrazit `#121317`, keine dekorativen Gradienten oder
+  Frosting. Die **im Referenzbild sichtbare** sanfte Hero-Flächentönung ist eine
+  bewusste Ausnahme. Keine zusätzliche Launcher-Produktleiste.
 - **Akzent** sanftes Limettengelb `#E7FF80`, für aktiven D-Pad-Fokus und echten Fortschritt.
   **Sekundär** Lavendel `#DCB7F7`; warme Pfirsichtöne für wechselnde Datums-Badges.
 - Großes **Hero-Bild** rechts unter geometrisch geschwungener, hellgrüner Fläche links,
@@ -41,6 +42,11 @@ Koordinaten sind Referenzpixel für `VDesignCanvas` (1536 × 864), keine geräte
 - Nebenhelden: 2 kleine Full-Bleed-Bildkacheln übereinander mit dunkler Lesbarkeitsblende.
   Neue Folgen: 3 horizontale Zeilen mit Bild links, Text + „Neu“ rechts. Unten genau
   **eine Reihe aus 6** Bildkacheln mit Datums-Pill, Titel und Countdown darunter.
+- Die tatsächlichen Nuvio-Feeds melden `AVAILABLE`, aber derzeit kein belastbares
+  `isReleaseAlert`-Flag. Deshalb verwendet die Implementierung die sachliche
+  Rubrik **„Verfügbare Folgen“**, eine numerische Zähler-Pill und zeigt
+  „Neu“ erst bei einem vom Provider belegten Flag. Das weicht aus Gründen
+  der Datentreue bewusst vom beispielhaften Text der Referenz ab.
 - **Kein Demo-Inhalt**: nur reale Nuvio-TV-Kanäle. Titel, Artwork, Folgennummern, Prozentwerte,
   Daten und Countdowns sind aus dem Provider abzuleiten. Fehlende Werte nicht erfinden.
 - Datum/Uhr müssen lokal und fortlaufend aktualisiert werden. VPN-Transport darf nur als
