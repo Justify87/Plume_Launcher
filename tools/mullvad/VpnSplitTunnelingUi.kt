@@ -94,11 +94,7 @@ internal class VpnSplitTunnelingUi(
             contentDescription = "Apps durchsuchen"
             setTextColor(ink)
             setHintTextColor(secondary)
-            setOnFocusChangeListener { _, focused ->
-                background = shape(surface, if (focused) accent else secondary, if (focused) 3 else 1)
-            }
-            setPadding(dp(12), 0, dp(12), 0)
-            background = shape(surface, secondary, 1)
+            VpnTvStyle.field(this)
             addTextChangedListener(object : TextWatcher {
                 override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
                 override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
@@ -108,11 +104,11 @@ internal class VpnSplitTunnelingUi(
                 override fun afterTextChanged(s: Editable?) = Unit
             })
         }
-        searchRow.addView(search, LinearLayout.LayoutParams(0, dp(52), 1f))
+        searchRow.addView(search, LinearLayout.LayoutParams(0, dp(46), 1f))
         searchRow.addView(button("Suche leeren") {
             search.setText("")
             search.requestFocus()
-        }, LinearLayout.LayoutParams(dp(165), dp(52)).apply { marginStart = dp(12) })
+        }, LinearLayout.LayoutParams(dp(145), dp(46)).apply { marginStart = dp(12) })
         addView(searchRow)
         count = label("App-Liste wird geladen", 14f)
         addView(count)
@@ -293,10 +289,10 @@ internal class VpnSplitTunnelingUi(
             val row = (convertView as? LinearLayout) ?: LinearLayout(activity).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER_VERTICAL
-                setPadding(dp(14), dp(7), dp(14), dp(7))
-                minimumHeight = dp(68)
+                setPadding(dp(11), dp(4), dp(11), dp(4))
+                minimumHeight = dp(56)
                 addView(ImageView(activity).apply { scaleType = ImageView.ScaleType.FIT_CENTER },
-                    LinearLayout.LayoutParams(dp(46), dp(46)).apply { marginEnd = dp(15) })
+                    LinearLayout.LayoutParams(dp(40), dp(40)).apply { marginEnd = dp(15) })
                 addView(LinearLayout(activity).apply {
                     orientation = LinearLayout.VERTICAL
                     addView(label("", 17f, true))
@@ -325,7 +321,7 @@ internal class VpnSplitTunnelingUi(
     }
 
     private fun selection() = StateListDrawable().apply {
-        val focused = shape(VpnTvStyle.LIME, VpnTvStyle.LIME, 1)
+        val focused = shape(0xFF31352B.toInt(), VpnTvStyle.LIME, 2)
         addState(intArrayOf(android.R.attr.state_pressed), focused)
         addState(intArrayOf(android.R.attr.state_selected), focused)
         addState(intArrayOf(android.R.attr.state_focused), focused)
