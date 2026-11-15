@@ -1,6 +1,8 @@
 package dev.plume
 
 import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.graphics.Color
 import android.graphics.Bitmap
 import android.graphics.Typeface
@@ -16,6 +18,8 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import java.time.Instant
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
 import java.time.ZoneId
 import java.util.Locale
 
@@ -27,15 +31,18 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
         const val SMARTTUBE = "vdesign:smarttube"
         const val SETTINGS = "vdesign:settings"
         const val VPN = "vdesign:vpn"
+        const val SPOTIFY = "vdesign:spotify"
+        const val ALL_APPS = "vdesign:allapps"
     }
 
     data class Navigation(val key: String, val label: String, val icon: Drawable?)
 
     private object Palette {
-        const val INK = 0xFFF5F1FF.toInt()
-        const val SOFT = 0xFFCBC5DF.toInt()
-        const val LAVENDER = 0xFFB18AFF.toInt()
-        const val EMPTY_EDGE = 0x334D5576
+        const val INK = 0xFFF7F7F8.toInt()
+        const val SOFT = 0xFFC6C7CB.toInt()
+        const val LIME = 0xFFE7FF80.toInt()
+        const val LAVENDER = 0xFFDCB7F7.toInt()
+        const val INACTIVE = 0xFF2B2D33.toInt()
     }
 
     private val anchored = mutableListOf<Pair<View, VDesignCanvas.Box>>()
@@ -45,7 +52,12 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
     private var lastSection: NuvioSection? = null
     private var preferMediaOnReturn = false
     private val lastMediaKey = mutableMapOf<NuvioSection, String>()
+    private val titleProgress: TextView
     private val titleAvailable: TextView
+    private val availableBadge: TextView
+    private val dateHeader: TextView
+    private val clockHeader: TextView
+    private val vpnHeader: TextView
     private val titleUpcoming: TextView
     private var open: (String) -> Unit = {}
     private var allApps: () -> Unit = {}
@@ -66,28 +78,97 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
         isFocusable = false
         clipChildren = false
         clipToPadding = false
-        background = GradientDrawable(GradientDrawable.Orientation.TL_BR,
-            intArrayOf(0xEE111321.toInt(), 0xF0121525.toInt(), 0xF21F1A34.toInt()))
-        val sidebarShade = View(context).apply {
-            background = GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT,
-                intArrayOf(0xF00D101D.toInt(), 0xEE171827.toInt()))
-            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+        setBackgroundColor(0xFF121317.toInt())
+        // The small icon rail has no permanent labels or decorative divider.
+        titleProgress = heading("WEITERSCHAUEN", 131, 94, 23)
+        titleAvailable = heading("NEUE FOLGEN", 1132, 94, 23)
+        titleUpcoming = heading("DEMNÄCHST", 133, 547, 23)
+        mount(View(context).apply { setBackgroundColor(0xFF45464B.toInt()) },
+            VDesignCanvas.Box(1104, 94, 1, 413))
+        availableBadge = TextView(context).apply {
+            setTextSize(TypedValue.COMPLEX_UNIT_PX, fontPixels(17))
+            setTextColor(0xFF121317.toInt())
+            typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
+            gravity = Gravity.CENTER
+            background = GradientDrawable().apply {
+                cornerRadius = 23 * scale()
+                setColor(Palette.LAVENDER)
+            }
         }
-        mount(sidebarShade, VDesignCanvas.Box(0, 0, VDesignCanvas.SIDEBAR_WIDTH, 864))
-        mount(View(context).apply { setBackgroundColor(0x55454866) },
-            VDesignCanvas.Box(217, 0, 1, 864))
+        mount(availableBadge, VDesignCanvas.Box(1424, 94, 87, 37))
+        dateHeader = header("Datum", 18)
+        clockHeader = header("00:00", 28).apply {
+            typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
+        }
+        vpnHeader = header("VPN prüfen", 17).apply {
+            gravity = Gravity.CENTER
+            setTextColor(0xFF101216.toInt())
+            background = GradientDrawable().apply {
+                cornerRadius = 22 * scale()
+                setColor(Palette.LIME)
+            }
+        }
+        mount(dateHeader, VDesignCanvas.Box(1020, 16, 152, 35))
+        mount(View(context).apply { setBackgroundColor(0xFF494A4F.toInt()) },
+            VDesignCanvas.Box(1181, 19, 1, 29))
+        mount(vpnHeader, VDesignCanvas.Box(1209, 17, 198, 37))
+        mount(clockHeader, VDesignCanvas.Box(1429, 11, 87, 46))
 
-        heading("Weiterschauen", 263, 27, 25, R.drawable.ic_playback)
-        titleAvailable = heading("Neue Folgen verfügbar", 263, 357, 23, R.drawable.vdesign_sparkle)
-        titleUpcoming = heading("Demnächst", 263, 564, 23, R.drawable.vdesign_calendar)
+        card(VDesignCanvas.Box(108, 145, 655, 365), VDesignCardView.Kind.HERO, progressCards)
+        card(VDesignCanvas.Box(781, 142, 303, 170), VDesignCardView.Kind.STANDARD, progressCards)
+        card(VDesignCanvas.Box(781, 330, 303, 177), VDesignCardView.Kind.STANDARD, progressCards)
+        for (y in listOf(147, 266, 386))
+            card(VDesignCanvas.Box(1132, y, 380, 103), VDesignCardView.Kind.AVAILABLE, availableCards)
+        for ((x, width) in listOf(
+            133 to 228, 379 to 214, 611 to 212,
+            842 to 213, 1074 to 211, 1306 to 205
+        )) card(VDesignCanvas.Box(x, 605, width, 218), VDesignCardView.Kind.COMPACT, upcomingCards)
+        refreshHeader()
+    }
 
-        card(VDesignCanvas.Box(255, 74, 651, 262), VDesignCardView.Kind.HERO, progressCards)
-        card(VDesignCanvas.Box(919, 83, 287, 245), VDesignCardView.Kind.STANDARD, progressCards)
-        card(VDesignCanvas.Box(1221, 83, 287, 245), VDesignCardView.Kind.STANDARD, progressCards)
-        for ((x, width) in listOf(258 to 402, 679 to 403, 1102 to 407))
-            card(VDesignCanvas.Box(x, 403, width, 140), VDesignCardView.Kind.AVAILABLE, availableCards)
-        for (y in listOf(612, 727)) for (x in listOf(258, 576, 893, 1210))
-            card(VDesignCanvas.Box(x, y, 302, 102), VDesignCardView.Kind.COMPACT, upcomingCards)
+    private fun header(value: String, size: Int) = TextView(context).apply {
+        text = value
+        setTextSize(TypedValue.COMPLEX_UNIT_PX, fontPixels(size))
+        setTextColor(Palette.INK)
+        gravity = Gravity.CENTER_VERTICAL
+        includeFontPadding = false
+        isFocusable = false
+        maxLines = 1
+    }
+
+    private val headerTicker = object : Runnable {
+        override fun run() {
+            refreshHeader()
+            if (isAttachedToWindow) postDelayed(this, 30_000L)
+        }
+    }
+
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        removeCallbacks(headerTicker)
+        headerTicker.run()
+    }
+
+    override fun onDetachedFromWindow() {
+        removeCallbacks(headerTicker)
+        super.onDetachedFromWindow()
+    }
+
+    private fun refreshHeader() {
+        if (!::dateHeader.isInitialized) return
+        val now = ZonedDateTime.now()
+        dateHeader.text = now.format(DateTimeFormatter.ofPattern("EEE, d. MMM yyyy", Locale.GERMAN))
+        clockHeader.text = now.format(DateTimeFormatter.ofPattern("HH:mm", Locale.GERMAN))
+        // Active VPN transport is verifiable. The mere presence of the Mullvad Activity is not.
+        val connectivity = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
+        val active = connectivity?.getNetworkCapabilities(connectivity.activeNetwork)
+        val vpn = active?.hasTransport(NetworkCapabilities.TRANSPORT_VPN) == true
+        vpnHeader.text = if (vpn) "●  VPN aktiv" else "●  VPN prüfen"
+        vpnHeader.background = GradientDrawable().apply {
+            cornerRadius = 22 * scale()
+            setColor(if (vpn) Palette.LIME else Palette.INACTIVE)
+        }
+        vpnHeader.setTextColor(if (vpn) 0xFF121317.toInt() else Palette.SOFT)
     }
 
     private fun scale(): Float = kotlin.math.min(
@@ -95,34 +176,19 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
     private fun fontPixels(reference: Int): Float =
         reference * scale() * resources.configuration.fontScale.coerceIn(0.85f, 1.35f)
 
-    private fun heading(label: String, x: Int, y: Int, textPx: Int, icon: Int): TextView {
-        val row = LinearLayout(context).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            isFocusable = false
-        }
-        val mark = ImageView(context).apply {
-            setImageResource(icon)
-            setColorFilter(Palette.SOFT)
-            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
-        }
-        row.addView(mark, LinearLayout.LayoutParams(
-            (22 * scale()).toInt().coerceAtLeast(1), (22 * scale()).toInt().coerceAtLeast(1)))
+    private fun heading(label: String, x: Int, y: Int, textPx: Int): TextView {
         val text = TextView(context).apply {
             this.text = label
             setTextColor(Palette.INK)
             setTextSize(TypedValue.COMPLEX_UNIT_PX, fontPixels(textPx))
-            typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+            typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
+            letterSpacing = .19f
             includeFontPadding = false
             gravity = Gravity.CENTER_VERTICAL
             isFocusable = false
             maxLines = 1
         }
-        row.addView(text, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
-            ViewGroup.LayoutParams.MATCH_PARENT).apply {
-                marginStart = (11 * scale()).toInt()
-            })
-        mount(row, VDesignCanvas.Box(x, y, 1190, 37))
+        mount(text, VDesignCanvas.Box(x, y, 365, 37))
         return text
     }
 
@@ -181,8 +247,10 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
         lastNow = Instant.now()
         lastZone = ZoneId.systemDefault()
         lastLocale = resources.configuration.locales[0] ?: Locale.getDefault()
-        titleAvailable.text = "Neue Folgen verfügbar  ·  ${feed.available.size}"
-        titleUpcoming.text = "Demnächst  ·  ${feed.upcoming.size}"
+        titleProgress.text = "WEITERSCHAUEN  ·  ${feed.inProgress.size.toString().padStart(2, '0')}"
+        titleAvailable.text = "NEUE FOLGEN"
+        availableBadge.text = "${feed.available.size} NEU"
+        titleUpcoming.text = "DEMNÄCHST"
         progressCards.forEachIndexed { index, card ->
             card.bind(VDesignCardSlots.media(feed, NuvioSection.IN_PROGRESS, index),
                 lastNow, lastZone, lastLocale)
@@ -196,10 +264,10 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
         // Retain the focused upcoming identity even if provider ordering changed.
         if (focusedId != null) {
             val index = feed.upcoming.indexOfFirst { it.stableId == focusedId }
-            if (index >= 0 && index !in upcomingOffset until upcomingOffset + 8)
-                upcomingOffset = (index / 4 * 4).coerceAtMost((feed.upcoming.size - 8).coerceAtLeast(0))
+            if (index >= 0 && index !in upcomingOffset until upcomingOffset + 6)
+                upcomingOffset = (index / 6 * 6).coerceAtMost((feed.upcoming.size - 6).coerceAtLeast(0))
         }
-        upcomingOffset = upcomingOffset.coerceAtMost((feed.upcoming.size - 8).coerceAtLeast(0))
+        upcomingOffset = upcomingOffset.coerceAtMost((feed.upcoming.size - 6).coerceAtLeast(0))
         bindUpcoming()
         if (focusedId != null && isShown) {
             val restored = cards().firstOrNull {
@@ -247,12 +315,8 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
             anchored.removeAll { it.first === view }
         }
         menu.clear()
-        // Actual reference row tops: 94, 161, 223, 285 and 347 at 1536x864.
         for (item in items) {
-            val bar = LinearLayout(context).apply {
-                orientation = LinearLayout.HORIZONTAL
-                gravity = Gravity.CENTER_VERTICAL
-                setPadding((12 * scale()).toInt(), 0, (8 * scale()).toInt(), 0)
+            val bar = FrameLayout(context).apply {
                 tag = item.key
                 contentDescription = when (item.key) {
                     OVERVIEW -> item.label + ". Langes OK: Alle Apps"
@@ -266,30 +330,19 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
                 setImageDrawable(item.icon?.constantState?.newDrawable(resources)?.mutate() ?: item.icon)
                 scaleType = ImageView.ScaleType.FIT_CENTER
                 importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+                setColorFilter(Color.WHITE)
             }
-            bar.addView(mark, LinearLayout.LayoutParams(
-                (27 * scale()).toInt().coerceAtLeast(1), (27 * scale()).toInt().coerceAtLeast(1)))
-            val label = TextView(context).apply {
-                text = item.label
-                setTextColor(Palette.SOFT)
-                setTextSize(TypedValue.COMPLEX_UNIT_PX, fontPixels(19))
-                typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
-                gravity = Gravity.CENTER_VERTICAL
-                isSingleLine = true
-            }
-            bar.addView(label, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f).apply {
-                marginStart = (12 * scale()).toInt()
-            })
+            bar.addView(mark, FrameLayout.LayoutParams((34 * scale()).toInt().coerceAtLeast(1),
+                (34 * scale()).toInt().coerceAtLeast(1), Gravity.CENTER))
             fun style(focused: Boolean) {
-                label.setTextColor(if (focused) Color.WHITE else Palette.SOFT)
-                bar.background = if (focused) GradientDrawable().apply {
-                    cornerRadius = 15 * scale()
-                    setColor(0x88505268.toInt())
-                    setStroke((1 * scale()).toInt().coerceAtLeast(1), 0xFF77718E.toInt())
-                } else GradientDrawable().apply {
-                    cornerRadius = 15 * scale()
-                    setColor(Color.TRANSPARENT)
+                mark.setColorFilter(if (focused) 0xFF121317.toInt() else Palette.INK)
+                bar.background = GradientDrawable().apply {
+                    cornerRadius = 40 * scale()
+                    setColor(if (focused) Palette.LIME else Color.TRANSPARENT)
                 }
+                bar.animate().cancel()
+                bar.animate().scaleX(if (focused) 1.04f else 1f)
+                    .scaleY(if (focused) 1.04f else 1f).setDuration(145).start()
             }
             style(false)
             bar.setOnFocusChangeListener { _, focused ->
@@ -303,16 +356,17 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
             if (item.key == OVERVIEW) bar.setOnLongClickListener { allApps(); true }
             if (item.key == SETTINGS) bar.setOnLongClickListener { systemActions(bar); true }
             menu += bar
-            // Slot indices preserve ordering if optional apps or VPN are unavailable.
             val y = when (item.key) {
-                OVERVIEW -> 94
-                NUVIO -> 161
-                SMARTTUBE -> 223
-                SETTINGS -> 285
-                VPN -> 347
-                else -> 94
+                OVERVIEW -> 111
+                NUVIO -> 197
+                SMARTTUBE -> 280
+                SPOTIFY -> 364
+                ALL_APPS -> 447
+                VPN -> 527
+                SETTINGS -> 608
+                else -> 197
             }
-            mount(bar, VDesignCanvas.Box(12, y, 194, 58))
+            mount(bar, VDesignCanvas.Box(18, y, 68, 68))
         }
         if (focusedKey != null && isShown) {
             (menu.firstOrNull { it.tag == focusedKey } ?: menu.firstOrNull())?.requestFocus()
@@ -338,9 +392,9 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
         val id = section?.let { lastMediaKey[it] }
         if (section == NuvioSection.UPCOMING && id != null) {
             val index = latestFeed.upcoming.indexOfFirst { it.stableId == id }
-            if (index >= 0 && index !in upcomingOffset until upcomingOffset + 8) {
-                upcomingOffset = (index / 4 * 4).coerceAtMost(
-                    (latestFeed.upcoming.size - 8).coerceAtLeast(0))
+            if (index >= 0 && index !in upcomingOffset until upcomingOffset + 6) {
+                upcomingOffset = (index / 6 * 6).coerceAtMost(
+                    (latestFeed.upcoming.size - 6).coerceAtLeast(0))
                 bindUpcoming()
             }
         }
@@ -388,9 +442,9 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
                 it.section == card.media?.section && it.slot == cardsForSectionSlot(card)
             } ?: return focusRememberedSidebar()
             if (current.section == NuvioSection.UPCOMING &&
-                (direction == VDesignFocusNavigator.Direction.UP ||
-                    direction == VDesignFocusNavigator.Direction.DOWN)) {
-                val delta = if (direction == VDesignFocusNavigator.Direction.DOWN) 1 else -1
+                (direction == VDesignFocusNavigator.Direction.LEFT ||
+                    direction == VDesignFocusNavigator.Direction.RIGHT)) {
+                val delta = if (direction == VDesignFocusNavigator.Direction.RIGHT) 1 else -1
                 val offset = VDesignCardSlots.nextUpcomingOffset(
                     latestFeed.upcoming.size, upcomingOffset, current.slot, delta)
                 if (offset != upcomingOffset) {
