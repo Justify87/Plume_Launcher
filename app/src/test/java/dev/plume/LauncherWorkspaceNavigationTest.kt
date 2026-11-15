@@ -5,40 +5,50 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 
 class LauncherWorkspaceNavigationTest {
-    private val nav = LauncherWorkspaceNavigation
-
-    @Test fun focusingRailChangesContentWithoutClick() {
-        val old = nav.State()
-        val selected = nav.focusRail(old, nav.Destination.ALL_APPS)
-        assertEquals(nav.Destination.ALL_APPS, selected.destination)
-        assertEquals(nav.Action.SHOW_CONTENT,
-            nav.focusAction(old, nav.Destination.ALL_APPS))
-        assertEquals(nav.Action.NO_OP,
-            nav.focusAction(selected, nav.Destination.ALL_APPS))
+    @Test fun railFocusImmediatelySelectsContentWithoutOk() {
+        val before = LauncherWorkspaceNavigation.State()
+        val selected = LauncherWorkspaceNavigation.focusRail(before,
+            LauncherWorkspaceNavigation.Destination.ALL_APPS)
+        assertEquals(LauncherWorkspaceNavigation.Destination.ALL_APPS, selected.destination)
+        assertEquals(LauncherWorkspaceNavigation.Action.SHOW_CONTENT,
+            LauncherWorkspaceNavigation.focusAction(before,
+                LauncherWorkspaceNavigation.Destination.ALL_APPS))
+        assertEquals(LauncherWorkspaceNavigation.Action.NO_OP,
+            LauncherWorkspaceNavigation.focusAction(selected,
+                LauncherWorkspaceNavigation.Destination.ALL_APPS))
     }
 
-    @Test fun okOnAppLaunchesButOkOnSettingsFocusesContent() {
-        assertEquals(nav.Action.LAUNCH_APP, nav.actionOnOk(nav.Destination.NUVIO))
-        assertEquals(nav.Action.LAUNCH_APP, nav.actionOnOk(nav.Destination.SMARTTUBE))
-        assertEquals(nav.Action.FOCUS_CONTENT, nav.actionOnOk(nav.Destination.SETTINGS))
-        assertEquals(nav.Action.FOCUS_CONTENT, nav.actionOnOk(nav.Destination.VPN))
-        assertEquals(nav.Action.FOCUS_CONTENT, nav.actionOnOk(nav.Destination.ALL_APPS))
+    @Test fun okLaunchesAppsButEntersSettingsAndVpnContent() {
+        val actions = LauncherWorkspaceNavigation
+        assertEquals(LauncherWorkspaceNavigation.Action.LAUNCH_APP,
+            actions.actionOnOk(LauncherWorkspaceNavigation.Destination.NUVIO))
+        assertEquals(LauncherWorkspaceNavigation.Action.LAUNCH_APP,
+            actions.actionOnOk(LauncherWorkspaceNavigation.Destination.SMARTTUBE))
+        assertEquals(LauncherWorkspaceNavigation.Action.FOCUS_CONTENT,
+            actions.actionOnOk(LauncherWorkspaceNavigation.Destination.SETTINGS))
+        assertEquals(LauncherWorkspaceNavigation.Action.FOCUS_CONTENT,
+            actions.actionOnOk(LauncherWorkspaceNavigation.Destination.VPN))
+        assertEquals(LauncherWorkspaceNavigation.Action.FOCUS_CONTENT,
+            actions.actionOnOk(LauncherWorkspaceNavigation.Destination.ALL_APPS))
     }
 
     @Test fun backFirstReturnsToRailThenHome() {
-        val selected = nav.focusRail(nav.State(), nav.Destination.VPN)
-        val inContent = nav.right(selected, true)
-        assertEquals(false, inContent.railFocused)
-        assertEquals(selected, nav.back(inContent))
-        assertEquals(nav.State(), nav.back(selected))
+        val selected = LauncherWorkspaceNavigation.focusRail(
+            LauncherWorkspaceNavigation.State(), LauncherWorkspaceNavigation.Destination.VPN)
+        val entered = LauncherWorkspaceNavigation.right(selected, true)
+        assertEquals(false, entered.railFocused)
+        assertEquals(selected, LauncherWorkspaceNavigation.back(entered))
+        assertEquals(LauncherWorkspaceNavigation.State(),
+            LauncherWorkspaceNavigation.back(selected))
     }
 
-    @Test fun noFocusableContentKeepsRailFocus() {
-        val selected = nav.focusRail(nav.State(), nav.Destination.ALL_APPS)
-        assertEquals(selected, nav.right(selected, false))
+    @Test fun emptyContentKeepsRailFocused() {
+        val selected = LauncherWorkspaceNavigation.focusRail(
+            LauncherWorkspaceNavigation.State(), LauncherWorkspaceNavigation.Destination.ALL_APPS)
+        assertEquals(selected, LauncherWorkspaceNavigation.right(selected, false))
     }
 
-    @Test fun nuvioPrefersActualFeedOwnerOverAlphabeticalInstalledApp() {
+    @Test fun realNuvioChannelOwnerWinsOverDifferentInstalledVersion() {
         val installed = listOf("com.nuvio.tv", "com.justify87.nuviotv.wireguard")
         assertEquals("com.justify87.nuviotv.wireguard",
             NuvioInstallationPolicy.preferredPackage(installed, "com.justify87.nuviotv.wireguard"))
