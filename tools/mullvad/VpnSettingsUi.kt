@@ -293,7 +293,7 @@ internal class VpnSettingsUi(
             Constraint.Only(IpVersion.IPV6) -> 2
             else -> 0
         }
-        AlertDialog.Builder(activity).setTitle("WireGuard IP-Version")
+        VpnTvStyle.dialog(activity).setTitle("WireGuard IP-Version")
             .setSingleChoiceItems(choices, selected) { dialog, position ->
                 dialog.dismiss()
                 val choice: Constraint<IpVersion> = when (position) {
@@ -310,7 +310,7 @@ internal class VpnSettingsUi(
 
     private fun editMtu() {
         val input = input(latest?.tunnelOptions?.mtu?.value?.toString().orEmpty())
-        AlertDialog.Builder(activity).setTitle("WireGuard MTU (1280–1420)")
+        VpnTvStyle.dialog(activity).setTitle("WireGuard MTU (1280–1420)")
             .setMessage("Leeres Feld bedeutet nicht automatisch. Für Standard explizit zurücksetzen.")
             .setView(input)
             .setPositiveButton("Speichern", null)
@@ -410,7 +410,7 @@ internal class VpnSettingsUi(
         val addresses = latest?.tunnelOptions?.dnsOptions?.customOptions?.addresses ?: return
         val value = index?.let { addresses.getOrNull(it)?.hostAddress }.orEmpty()
         val edit = input(value)
-        val dialog = AlertDialog.Builder(activity)
+        val dialog = VpnTvStyle.dialog(activity)
             .setTitle(if (index == null) "DNS-Server hinzufügen" else "DNS-Server bearbeiten")
             .setMessage("Nur numerische IPv4-/IPv6-Adressen; keine Hostnamen.")
             .setView(edit)
