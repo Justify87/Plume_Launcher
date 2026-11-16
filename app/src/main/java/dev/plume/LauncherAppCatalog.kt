@@ -32,15 +32,16 @@ internal object LauncherAppCatalog {
     }
 
     fun <T> sorted(entries: List<T>, pkg: (T) -> String, label: (T) -> String,
-                   sort: String?, order: List<String>, defaultOrder: List<String>,
+                   sort: String?, order: () -> List<String>, defaultOrder: List<String>,
                    hdmiPrefix: String, usage: (String) -> Int): List<T> {
         val byDefault = compareBy<T> { defaultOrder.indexOf(pkg(it)).let { i -> if (i < 0) Int.MAX_VALUE else i } }
             .thenBy { label(it).lowercase() }
         if (sort == "usage") {
             return entries.sortedWith(compareByDescending<T> { usage(pkg(it)) }.then(byDefault))
         }
+        val manualOrder = order()
         return entries.sortedWith(compareBy<T> {
-            order.indexOf(pkg(it)).let { i -> if (i >= 0) i else if (pkg(it).startsWith(hdmiPrefix)) -1 else Int.MAX_VALUE }
+            manualOrder.indexOf(pkg(it)).let { i -> if (i >= 0) i else if (pkg(it).startsWith(hdmiPrefix)) -1 else Int.MAX_VALUE }
         }.then(byDefault))
     }
 }
