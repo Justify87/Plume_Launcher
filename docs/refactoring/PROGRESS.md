@@ -1,6 +1,6 @@
 # Refactoring-Fortschritt – Plume Launcher Advanced
 
-**Arbeitsgrenze:** M0 allein, kein M1 ohne erfolgreiches Gate und anschließenden Merge. **Originalbasis:** `main` @ `e3c1a3eb78c85bb471d9012dd700b6efd81b44ce` (16.11.2026), Git-Tree 323 reguläre Dateien plus externes Mullvad-Submodul. **Branch:** `refactor/m0-inventory-androidtest-20261116`. **Letzter vor diesem Status geprüfter Branch-Commit:** `97b6bec075b72a3e163302bc2430ccfe828dff6f`. Der aktuelle HEAD ist über den Branch-Ref bzw. den PR abzurufen; eine Datei kann nicht ihren eigenen finalen Commit-SHA enthalten.
+**Arbeitsgrenze:** M0 allein, kein M1 ohne erfolgreiches Gate und anschließenden Merge. **Originalbasis:** `main` @ `e3c1a3eb78c85bb471d9012dd700b6efd81b44ce` (16.11.2026), Git-Tree 323 reguläre Dateien plus externes Mullvad-Submodul. **Branch:** `refactor/m0-inventory-androidtest-20261116`. **PR:** https://github.com/Justify87/Plume_Launcher/pull/51 (Draft, nicht gemergt). **Letzter vor diesem Status geprüfter Branch-Commit:** `97b6bec075b72a3e163302bc2430ccfe828dff6f`. Der aktuelle HEAD ist über den Branch-Ref bzw. den PR abzurufen; eine Datei kann nicht ihren eigenen finalen Commit-SHA enthalten.
 
 ## M0 – Inventar / Baseline / AndroidTest
 
@@ -32,11 +32,11 @@
 | `bash tools/mullvad/build-integrated.sh … :app:assembleOssProdRelease` / R8 / ARM64 / APK-Validierung | **NOT_RUN lokal**, bestehende PR-CI offen |
 | TV-Emulator, reale Shield Pro, VPN-Tunnel | **NOT_TESTED** |
 
-**CI-Nachweis:** bisherige grüne Debug-Läufe vom 15.11.2026 gelten ausdrücklich **nicht** als Beweis für diesen M0-Branch. Neuer M0-PR und aktuelle CI-URL nach PR-Erstellung nachtragen.
+**CI-Nachweis:** PR #51 wurde eröffnet; Workflow-Resultate zum finalen PR-HEAD sind noch zu prüfen. Bisherige grüne Debug-Läufe vom 15.11.2026 gelten ausdrücklich **nicht** als Beweis für diesen M0-Branch. Neuer M0-PR und aktuelle CI-URL nach PR-Erstellung nachtragen.
 
 ### Kritischer eigener Zweitreview (nicht extern unabhängig)
 - Scope: ausschließlich Test-Fix, Erweiterung des bestehenden AndroidTest-Compile-Gates und Audit-Markdown; keine Produktions-/UI-/VPN-/Signing-/Dependency-Änderungen.
-- Alte Banner-UI-Zeile existiert nicht mehr, aber der unveränderte Bild-Konvertierungs-/Upload-Test verarbeitet Banner weiterhin; nicht durch ein fiktives neues UI-Feature ersetzen.
+- Kritischer Test-Zweitreview: die einteilige `for (banner in listOf(false))`-Schleife wurde im selben PR entfernt (`865e2175a61073f7dc1f4431ca72f80727eeedb0`); Datei-Blob in F009 aktualisiert.\n- Alte Banner-UI-Zeile existiert nicht mehr, aber der unveränderte Bild-Konvertierungs-/Upload-Test verarbeitet Banner weiterhin; nicht durch ein fiktives neues UI-Feature ersetzen.
 - Aufrufer-, State- und Test-Semantik nicht durch Regex-Scans als geprüft bezeichnen. Das bleibt der explizite M0-Blocker.
 - Nach Erhalt der PR-CI muss der **eigene Diff** erneut gegen Testpfad, Versions-/Signing-/Submodul-Invarianz und allen gemeldeten Fehlern gegengeprüft werden.
 
