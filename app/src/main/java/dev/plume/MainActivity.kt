@@ -5091,7 +5091,7 @@ class MainActivity : ComponentActivity() {
     private fun appChannels(reportFailure: Boolean = false): List<TvPreviewChannel> =
         tvReader.appChannels(reportFailure) { tvFeedQueryFailed = true }
 
-        private fun channelKey(pkg: String, name: String) = "$pkg/$name"
+    private fun channelKey(pkg: String, name: String) = "$pkg/$name"
 
     private fun continueChannels(): List<TvPreviewChannel> {
         val flipped = prefs.getStringSet("ch_flip", emptySet())!!
@@ -5157,7 +5157,7 @@ class MainActivity : ComponentActivity() {
 
     private fun loadPoster(v: ImageView, uri: String?) = mediaPosters.load(v, uri)
 
-        /** Cards whose poster never arrived (offline, server timeout) try again; loaded ones are left alone. */
+    /** Cards whose poster never arrived (offline, server timeout) try again; loaded ones are left alone. */
     private fun retryPosters() {
         // Rebinding identical item/URI pairs does not call the image loader again.
         if (::vDesign.isInitialized) vDesign.retryMissingArtwork()
