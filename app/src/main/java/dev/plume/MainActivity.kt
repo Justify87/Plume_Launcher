@@ -238,15 +238,8 @@ internal fun dropSessions(c: Context) {
     }
 }
 
-internal fun <T> preferTvApps(tv: List<T>, other: List<T>, pkg: (T) -> String) = (tv + other).distinctBy(pkg)
-
 class MainActivity : ComponentActivity() {
 
-    private class App(val pkg: String, val label: String, val launch: Intent, icon: Drawable, val offline: Boolean = false, private val load: (() -> Drawable)? = null) {
-        private val strong = if (load == null) icon else null 
-        private var weak = java.lang.ref.WeakReference(icon)
-        val icon: Drawable get() = strong ?: weak.get() ?: load!!().also { weak = java.lang.ref.WeakReference(it) }
-    }
     private class Prog(val title: String, val sub: String, val progress: Int, val image: String?, val intent: String?, val pkg: String?,
                        val group: String? = pkg, val wide: Boolean = true, 
                        val contentId: String? = null, val origin: String = "tv:watchnext",
@@ -2431,22 +2424,18 @@ class MainActivity : ComponentActivity() {
         }
         val on = { b: Boolean -> getString(if (b) R.string.on else R.string.off) }
         if (at in WALLPAPER_KEYS) return pickWallpaper(dark)
-        val sections = listOf(
-            Triple(R.string.section_style, "${rows[R.string.theme]!!.second} · ${getString(glassName())}",
-                listOf(R.string.theme, R.string.glass, R.string.app_animations)),
-            Triple(R.string.section_applications, rows[R.string.sort_apps]!!.second,
-                listOf(R.string.sort_apps, R.string.icon_style, R.string.sidebar_color_icons)),
-            Triple(R.string.section_tv_media, rows[R.string.cw_channels]!!.second,
-                listOf(R.string.cw_apps, R.string.cw_channels)),
-            Triple(R.string.section_clock_weather,
-                if (weather == "off") on(false) else "${rows[R.string.weather_units]!!.second} · ${prefs.getString("geo_city", null) ?: rows[R.string.weather_location]!!.second}",
-                listOf(R.string.weather, R.string.weather_units, R.string.weather_location)),
-            Triple(R.string.section_screensaver, rows[R.string.screensaver]!!.second,
-                listOf(R.string.screensaver, R.string.test_screensaver, R.string.screensaver_timing)),
-            Triple(R.string.section_remote_home, if (homeSetUp()) getString(R.string.home_button) else on(false),
-                listOfNotNull(R.string.home_button, R.string.default_launcher.takeIf { !googleTv() && !fireTv() },
-                    R.string.smooth_volume.takeIf { !fireTv() }, R.string.section_keys, R.string.setup_home)),
-        )
+        val sections = LauncherSettingsSections.layout(googleTv(), fireTv()).map { (key, keys) ->
+            Triple(key, when (key) {
+                R.string.section_style -> "${rows[R.string.theme]!!.second} · ${getString(glassName())}"
+                R.string.section_applications -> rows[R.string.sort_apps]!!.second
+                R.string.section_tv_media -> rows[R.string.cw_channels]!!.second
+                R.string.section_clock_weather ->
+                    if (weather == "off") on(false) else "${rows[R.string.weather_units]!!.second} · ${prefs.getString("geo_city", null) ?: rows[R.string.weather_location]!!.second}"
+                R.string.section_screensaver -> rows[R.string.screensaver]!!.second
+                R.string.section_remote_home -> if (homeSetUp()) getString(R.string.home_button) else on(false)
+                else -> ""
+            }, keys)
+        }
         val section = sections.firstOrNull { at in it.third }
         if (section != null) {
             lastSettings = section.first
@@ -3139,23 +3128,8 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun loadApps(): List<App> {
-        val pm = packageManager
-        fun query(category: String) = pm.queryIntentActivities(Intent(Intent.ACTION_MAIN).addCategory(category), 0)
-            .map { it.activityInfo to category }
-        return preferTvApps(query(Intent.CATEGORY_LEANBACK_LAUNCHER), query(Intent.CATEGORY_LAUNCHER)) { it.first.packageName }
-            .filter { (a, _) -> a.packageName != packageName && a.packageName != TV_SETTINGS }
-            .map { (a, category) ->
-                App(
-                    a.packageName,
-                    a.loadLabel(pm).toString(),
-                    Intent(Intent.ACTION_MAIN).addCategory(category)
-                        .setComponent(ComponentName(a.packageName, a.name)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-                    a.loadIcon(pm),
-                    load = { a.loadIcon(pm) },
-                )
-            }
-    }
+    private fun loadApps(): List<App> =
+        LauncherAppCatalog.installed(packageManager, packageName, TV_SETTINGS)
 
     private fun hdmiInputs(): List<App> = try {
         val tv = getSystemService(TvInputManager::class.java)
@@ -3208,17 +3182,11 @@ class MainActivity : ComponentActivity() {
         Toast.makeText(this, getString(if (on) R.string.input_added else R.string.input_removed), Toast.LENGTH_SHORT).show()
     }
 
-    private fun sortedApps(): List<App> {
-        val byDefault = compareBy<App> { DEFAULT_ORDER.indexOf(it.pkg).let { i -> if (i < 0) Int.MAX_VALUE else i } }
-            .thenBy { it.label.lowercase() }
-        if (prefs.getString("sort", "manual") == "usage") {
-            return listed().sortedWith(compareByDescending<App> { prefs.getInt("n_" + it.pkg, 0) }.then(byDefault))
-        }
-        val order = prefs.getString("order", "")!!.split(',')
-        return listed().sortedWith(compareBy<App> {
-            order.indexOf(it.pkg).let { i -> if (i >= 0) i else if (it.pkg.startsWith(HDMI)) -1 else Int.MAX_VALUE }
-        }.then(byDefault))
-    }
+    private fun sortedApps(): List<App> = LauncherAppCatalog.sorted(
+        listed(), { it.pkg }, { it.label }, prefs.getString("sort", "manual"),
+        { prefs.getString("order", "")!!.split(',') }, DEFAULT_ORDER, HDMI,
+        { pkg -> prefs.getInt("n_" + pkg, 0) },
+    )
 
     private fun rowAlign() = prefs.getString("row_align", "left")!!.takeIf { it in ROW_ALIGN } ?: "left"
 
