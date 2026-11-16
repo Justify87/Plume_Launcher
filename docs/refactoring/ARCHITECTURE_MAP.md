@@ -1,6 +1,6 @@
 # M0 – ARCHITECTURE_MAP
 
-**Baseline:** `main` @ `e3c1a3eb78c85bb471d9012dd700b6efd81b44ce`. **Gültigkeit:** aktuelle aktive Verträge und produktiver Code, keine neuen Feature-Aufträge. **Status:** Arbeitshypothese / M0-Teilreview; vor M1–M6 sind Aufrufketten und Move-Grenzen in den genannten Datei-Tasks vollständig semantisch zu bestätigen.
+**Baseline:** `main` @ `e3c1a3eb78c85bb471d9012dd700b6efd81b44ce`. **Gültigkeit:** aktuelle aktive Verträge und produktiver Code, keine neuen Feature-Aufträge. **Status:** M0 vollständig inventarisiert und je Datei fachlich bewertet (123/123). M1–M6-Extraktionen bleiben gesperrt und benötigen vor jedem Move konkrete Ownership-/Thread-Verträge und Tests.
 
 ## Komponenten / aktuelle Integrationsgrenzen
 
@@ -18,7 +18,7 @@
 ### A01 – Komponenten- und Abhängigkeitskarte (M0, M2–M7)
 - Git-Baum ist mit einem Task je eigener Code-/Konfigurationsdatei in `FILE_TASKS.md` inventarisiert; Ressourcen und Assets bleiben einzeln aufgeführt.
 - Vor Extraktionen echte Aufrufer, Ressourcen-IDs und gespeicherte Keys aus dem vollständigen Code bestimmen. Bloße Import-/Namensscans aus M0 sind nur Vorarbeit.
-- **Status:** PARTIAL; Code-Tree und Dateiblobs vollständig, noch kein semantisch abgeschlossener Review aller 123 Code-Dateien.
+- **Status M0:** PASS – 123/123 Datei-Tasks mit vollständiger Inhalts-/Verantwortungsprüfung, Querverweisen und dokumentierten KEEP-/EXTRACT-/REPLACE-Entscheidungen.
 
 ### A02 – State, Lifecycle, Concurrency (M1 als Pflicht vor jedem Move)
 - **Apps**: `MainActivity.refreshApps` lädt auf `io.execute`, schreibt `apps/APPS/sources/SOURCES` nach `ui.post`; `refreshVisibleApps` aktualisiert Sidebar und sichtbares Grid. Keine neue App-State-Kopie in einer weiteren View einführen. Kandidat M2: App-Lesen/Sortierpolicy hinter begrenzte eigene Fachklasse, Activity bleibt Verteilung/Owner bis expliziter Übergabe.
@@ -59,7 +59,7 @@
 - Ferner: `tools/plume-install-test/run.sh`, Python-Unittests für Spotify/Mullvad-Staging und integrierter ARM64-Debug-/R8-Release-Check über bestehende CI.
 - Ohne Android SDK/Projektcheckout vor Ort können diese Gradle- und Python-Gates **hier** nicht lokal ausgeführt werden. Die PR-CI ist der vorgesehene reale Nachweis. Ein abgeschlossener früherer Debug-Workflow eines anderen SHA zählt nicht.
 - Geräte-/Tunnel-/D-Pad-Abnahme: **NOT_TESTED**.
-- **Status:** PENDING für M0-PR-HEAD.
+- **Status M0:** CI PASS für letzten Code-/Quellreview-HEAD `ffd18b0b5c9279fc228f4c4465357ccc084a652c` ([Run](https://github.com/Justify87/Plume_Launcher/actions/runs/43881462010)). Abschlussdokumentation wird auf neuem PR-HEAD erneut geprüft; Geräte/VPN `NOT_TESTED`.
 
 ### A08 – Finaler Code-/Import-/Altrouten-Review (M7)
 - Löschen nur, wenn ein konkreter Refactoring-Task einen alten Pfad nach belegtem Ersatz obsolet gemacht hat.
@@ -78,3 +78,11 @@
 | `MullvadEmbeddedPanel` vs. `VpnActivity` (F099,F101) | nur semantisch gemeinsame UI-Primitiven, Controller ggf. KEEP | Host-Lifecycle vs Activity-Lifecycle; Result vor STARTED | Originalservice, Consent, acht Funktionsbereiche | Timing-/Staging-/R8-Abweichung; `test_mullvad_prepare`, CI ARM64/R8, Hardware NOT_TESTED | M1→M6 |
 
 **Freigaberegel:** Solange Ziel-Owner, Thread-/Lifecycle-Vertrag, charakterisierender Test und Gegenreview nicht nachgewiesen sind, keinen Move beginnen. `KEEP` ist ein korrekter Abschluss ohne zusätzliche Abstraktion.
+
+## M0-Schlussabgleich
+
+- 323 reguläre Dateien im Ausgangsbaum, 123 eigene Code-/Konfigurationsdateien; 200 Ressourcen/Assets/sonstige Dateien vollständig inventarisiert; 3 Audit-Dokumente ausschließlich im PR neu. Der Gitlink `third_party/mullvadvpn-app` bleibt unverändert.
+- Quelllektüre: 123/123 `FULL_REVIEW` einschließlich 21 lückenloser Abschnitte der `MainActivity.kt`. Zu jedem Pfad eigener Befund, Aufrufer-/Abhängigkeitshinweise, State/Lifecycle, M-Task, Entscheidung und Prüfungen im Register. Für **M1–M6** sind genaue Move-Schnittstellen bewusst noch zu verifizieren, nicht als bereits implementiert behauptet.
+- Änderungen nur F001 (AndroidTest-Kompilation im bestehenden CI) sowie F008/F009/F010/F012 (real obsolete AndroidTest-Annahmen). Keine UI-/Produktions-/VPN-/Dependency-/Signing-/Versionsänderung. Eigener kritischer Zweitreview: drei nach der Teständerung veraltete SHA-Einträge und irreführende `KEEP`-Labels korrigiert.
+- [CI auf geprüftem Code-HEAD](https://github.com/Justify87/Plume_Launcher/actions/runs/43881462010): Unit, Lint, Debug, AndroidTest-Kompilation, Shell/Python-Staging und kombinierter ARM64-Debug/R8-Release/APK-Check **PASS**; Hardware, echter Tunnel und AndroidTest-Ausführung auf Gerät **NOT_TESTED**. Zweitreview nicht extern unabhängig.
+- M0-Code-/Quellen-/CI-Gate besteht; finaler PR-HEAD nach dieser Dokumentationskorrektur separat gegen CI prüfen. M1 erst nach Maintainer-Merge.
