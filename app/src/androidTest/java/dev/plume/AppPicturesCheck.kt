@@ -149,7 +149,7 @@ class AppPicturesCheck(private val runner: Instrumentation) {
                 prefs.edit().putString("icon_style", iconStyle).commit()
                 runOnMainSync { render.invoke(app, true) }
                 val image = (grid.getChildAt(0) as ViewGroup).getChildAt(0) as ImageView
-                check((image.drawable.colorFilter != null) == (iconStyle == "mono")) {
+                check((image.colorFilter != null) == (iconStyle == "mono")) {
                     "Uploaded icon ignored $iconStyle style"
                 }
             }
