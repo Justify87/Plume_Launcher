@@ -78,7 +78,6 @@ internal class VpnDiagnosticsUi(
     private var logBusy = false
     private var sendBusy = false
 
-    // Registered during Activity.onCreate, before lifecycle STARTED.
     private val exportDocument =
         activity.registerForActivityResult(ActivityResultContracts.CreateDocument("text/plain")) { uri ->
             if (uri != null) {
@@ -359,7 +358,6 @@ internal class VpnDiagnosticsUi(
         activity.lifecycleScope.launch {
             try {
                 val lines = withContext(Dispatchers.IO) { reports.readLogs() }
-                // Keep the full original report only in Mullvad's file; limit TV rendering.
                 val recent = lines.takeLast(160).joinToString("\n").takeLast(16000)
                 logsPreview.text = "Letzte " + minOf(lines.size, 160) + " von " +
                     lines.size + " Logzeilen:\n" + recent

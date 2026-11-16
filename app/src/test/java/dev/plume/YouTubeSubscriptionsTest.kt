@@ -51,8 +51,6 @@ class YouTubeSubscriptionsTest {
         val repo = MediaFeedRepository()
         repo.replaceSource("tv", listOf(tv))
         repo.replaceSource(YouTubeSubscriptions.SOURCE_ID, listOf(rss))
-        // M06 removes old per-app Overview previews, not the media-source dedupe contract.
-        // SmartTube remains an app shortcut only on the V-Design home.
         val deduped = YouTubeSubscriptions.dedupe(repo.snapshot())
         assertEquals(1, deduped.size)
         assertEquals(YouTubeSubscriptions.SOURCE_ID, deduped.single().sourceId)
@@ -65,7 +63,6 @@ class YouTubeSubscriptionsTest {
         try {
             assertTrue(YouTubeSubscriptions.parse(xml.toByteArray(), channel, now).isEmpty())
         } catch (_: org.xml.sax.SAXException) {
-            // Secure XML parser refuses the DTD entirely.
         }
     }
 }

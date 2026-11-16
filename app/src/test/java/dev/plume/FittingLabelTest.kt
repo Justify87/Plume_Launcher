@@ -34,7 +34,6 @@ class FittingLabelTest {
     }
 
     @Test fun itStartsAndStopsSoftly() {
-        // Eased: in the first tenth of the way it moves far less than a tenth of the distance.
         val c = MarqueeCycle(pauseMs = 0, scrollMs = 2000)
         assertTrue(marqueeShift(200, 100f, c) < 5f)
         assertTrue(marqueeShift(1800, 100f, c) > 95f)

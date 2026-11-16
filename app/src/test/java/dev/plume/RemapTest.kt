@@ -20,7 +20,6 @@ class RemapTest {
         assertTrue(Remap.kept(KeyEvent.KEYCODE_VOLUME_MUTE, 0))
     }
 
-    /** Only what Remap uses: one string in, one string out. */
     private class FakePrefs : SharedPreferences {
         val strings = HashMap<String, String>()
         override fun getString(key: String?, defValue: String?) = strings[key] ?: defValue
@@ -47,7 +46,7 @@ class RemapTest {
         override fun unregisterOnSharedPreferenceChangeListener(l: SharedPreferences.OnSharedPreferenceChangeListener?) {}
     }
 
-    @Before fun fresh() = Remap.reset() // Remap keeps its keys in memory between calls
+    @Before fun fresh() = Remap.reset() 
 
     @Test fun allAppsActionSurvivesSavingAndReloading() {
         val p = FakePrefs()
@@ -69,9 +68,9 @@ class RemapTest {
             assertEquals("media:playpause", read["s4001"]!!.short)
             assertEquals("", read["s4001"]!!.long)
         }
-        check(Remap.all(p)) // from memory
+        check(Remap.all(p)) 
         Remap.reset()
-        check(Remap.all(p)) // from the saved string
+        check(Remap.all(p)) 
     }
 
     @Test fun aKeyWithNoPressAndNoHoldIsForgotten() {
@@ -81,7 +80,7 @@ class RemapTest {
         Remap.put(p, "k183", "", "")
         assertEquals(listOf("k184"), Remap.all(p).keys.toList())
         Remap.reset()
-        assertEquals(listOf("k184"), Remap.all(p).keys.toList()) // gone from the saved string too
+        assertEquals(listOf("k184"), Remap.all(p).keys.toList()) 
     }
 
     @Test fun idUsesBothCodesWhenAvailable() {
@@ -109,8 +108,8 @@ class RemapTest {
         assertTrue(Remap.kept(KeyEvent.KEYCODE_VOLUME_UP, 115))
         assertTrue(Remap.kept(KeyEvent.KEYCODE_VOLUME_DOWN, 114))
         assertTrue(Remap.kept(KeyEvent.KEYCODE_VOLUME_MUTE, 113))
-        assertTrue(Remap.kept(KeyEvent.KEYCODE_UNKNOWN, 0)) // no code at all: every such key would share one identity
-        assertFalse(Remap.kept(KeyEvent.KEYCODE_UNKNOWN, 398)) // a scan code is enough to tell it apart
+        assertTrue(Remap.kept(KeyEvent.KEYCODE_UNKNOWN, 0)) 
+        assertFalse(Remap.kept(KeyEvent.KEYCODE_UNKNOWN, 398)) 
         assertFalse(Remap.kept(KeyEvent.KEYCODE_PROG_RED, 398))
     }
 }

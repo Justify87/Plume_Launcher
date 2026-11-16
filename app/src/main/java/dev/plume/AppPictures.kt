@@ -13,7 +13,6 @@ import android.util.AtomicFile
 import java.io.File
 import java.io.IOException
 
-/** Private, bounded PNGs: icons keep transparency; banners fill a 16:9 tile. */
 internal object AppPictures {
     private val packageName = Regex("[A-Za-z0-9_]+(?:\\.[A-Za-z0-9_]+)+")
 
@@ -75,7 +74,6 @@ internal object AppPictures {
         }
     }
 
-    /** Failed or cancelled uploads keep the previous picture. */
     fun save(file: File, bitmap: Bitmap, active: () -> Boolean): Boolean {
         val target = AtomicFile(file)
         val stream = try { target.startWrite() } catch (_: IOException) { return false }

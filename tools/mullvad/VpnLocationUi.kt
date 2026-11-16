@@ -49,11 +49,6 @@ import net.mullvad.mullvadvpn.lib.usecase.ModifyMultihopUseCase
 import net.mullvad.mullvadvpn.lib.usecase.MultihopChange
 import net.mullvad.mullvadvpn.lib.usecase.customlists.CustomListsRelayItemUseCase
 
-/**
- * Original Mullvad relay repositories and use-cases presented as native ten-foot Views.
- * No relay downloads, local relay parser, parallel settings or tunnel implementation.
- * The same browser selects singlehop exits and multihop entries/exits with upstream constraints.
- */
 internal class VpnLocationUi(
     private val activity: ComponentActivity,
     private val relays: RelayListRepository,
@@ -207,7 +202,6 @@ internal class VpnLocationUi(
         repaint(true)
     }
 
-    /** Observe upstream flows only while the VPN Activity exists; no launcher-owned backend. */
     fun start() {
         activity.lifecycleScope.launch {
             relays.relayList.collect { originalCountries = it; repaint() }
@@ -426,7 +420,6 @@ internal class VpnLocationUi(
                         if (!relay.active) " · inaktiv" else "", relay.active) {
                     select(relay)
                 }
-                // Server assignment stays reachable without treating a click as a VPN selection.
                 addRight("add:" + relay.id.code, "  + " + relay.name + " zu Liste", true) {
                     chooseListFor(relay)
                 }

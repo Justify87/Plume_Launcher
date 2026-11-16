@@ -36,10 +36,6 @@ import net.mullvad.mullvadvpn.lib.repository.DeviceRepository
 import net.mullvad.mullvadvpn.lib.repository.NewDeviceRepository
 import net.mullvad.mullvadvpn.lib.repository.VoucherRepository
 
-/**
- * Native TV account screen on Mullvad's original account/device/voucher repositories.
- * No parallel account storage, HTTP client or account cache is written by Plume.
- */
 internal class VpnAccountUi(
     private val activity: ComponentActivity,
     private val accounts: AccountRepository,
@@ -54,7 +50,6 @@ internal class VpnAccountUi(
     private val surface: Int,
     private val accent: Int,
 ) {
-    // Unknown until the original daemon delivers its first state.
     private var deviceState: DeviceState? = null
     private var accountData: AccountData? = null
     private var limitAccount: AccountNumber? = null
@@ -462,7 +457,6 @@ internal class VpnAccountUi(
 
     private fun notice(value: String) {
         accountFeedback.text = value
-        // No user credential, voucher, token or backend Throwable is logged.
     }
 
     private fun column() = LinearLayout(activity).apply {

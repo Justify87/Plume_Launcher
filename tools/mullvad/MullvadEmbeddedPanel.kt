@@ -221,7 +221,6 @@ class MullvadEmbeddedPanel private constructor(private val host: ComponentActivi
             override fun onVisibilityAggregated(isVisible: Boolean) {
                 super.onVisibilityAggregated(isVisible)
                 // The Launcher starts on Home; do not initialize Mullvad's heavy
-                // UI repositories until the VPN pane really becomes visible.
                 if (isVisible) activate()
             }
         }.apply {
@@ -512,7 +511,6 @@ class MullvadEmbeddedPanel private constructor(private val host: ComponentActivi
         else "Standort und IP: nicht bestätigt"
     }
 
-    /** A nested VPN page consumes Back first. Returns false at the top-level rail. */
     fun handleBack(): Boolean {
         if (selected == 3 && settingsUi.handleBack()) return true
         if (selected == 6 && networkUi.handleBack()) return true

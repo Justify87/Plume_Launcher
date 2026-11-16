@@ -74,7 +74,6 @@ def decode_keystore(value: str) -> bytes:
 
 def validate_keystore(environ: dict[str, str], expected: str) -> None:
     key_bytes = decode_keystore(environ["KEYSTORE_B64"])
-    # Never persist a private key in artifacts, logs, the working tree, or cache.
     with tempfile.TemporaryDirectory(prefix="plume-release-key-") as work:
         keystore = Path(work) / "release.p12"
         keystore.write_bytes(key_bytes)
@@ -87,8 +86,6 @@ def validate_keystore(environ: dict[str, str], expected: str) -> None:
             "-storepass:env", "PLUME_STORE_PASSWORD",
         ]
         try:
-            # Raw DER is used for a stable certificate fingerprint independent
-            # of keytool's localized output formatting.
             cert = subprocess.run(
                 ["keytool", "-exportcert", *common],
                 stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
@@ -106,9 +103,6 @@ def validate_keystore(environ: dict[str, str], expected: str) -> None:
                 "PLUME_RELEASE_CERT_SHA256. Do not change keys unintentionally."
             )
         try:
-            # JDK keytool may silently IGNORE a distinct -keypass for PKCS12.
-            # Detect the actual type and require identical passwords so that
-            # apksigner cannot surprise us after the expensive build.
             listing = subprocess.run(
                 ["keytool", "-J-Duser.language=en", "-J-Duser.country=US",
                  "-list", "-keystore", str(keystore),
@@ -128,8 +122,6 @@ def validate_keystore(environ: dict[str, str], expected: str) -> None:
                     "PLUME_RELEASE_KEYSTORE_PASSWORD."
                 )
         try:
-            # Also use the private key, not merely the public certificate.
-            # Catches an incorrect entry password before the multi-hour build.
             subprocess.run(
                 ["keytool", "-certreq", *common, "-keypass:env",
                  "PLUME_KEY_PASSWORD", "-file", str(Path(work) / "test.csr")],
@@ -148,7 +140,6 @@ def main() -> int:
         expected = validate_configuration(os.environ)
         validate_keystore(os.environ, expected)
     except SigningPreflightError as exc:
-        # No private key, secret content or password is ever printed.
         for line in str(exc).splitlines():
             print(f"::error::{line}", file=sys.stderr)
         return 1

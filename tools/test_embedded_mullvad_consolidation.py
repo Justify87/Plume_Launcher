@@ -23,8 +23,7 @@ class EmbeddedMullvadConsolidationTest(unittest.TestCase):
         combined = prepare.PLUME_LIBRARY_BUILD
         for script in (standalone, combined):
             self.assertIn('implementation("androidx.activity:activity:1.10.1")', script)
-            # The pinned Mullvad dependency-verification lockfile contains the
-            # core-ktx 1.16.0 AAR hash but not the 1.13.0 AAR hash.
+            # Upstream verifies core-ktx 1.16.0, not 1.13.0.
             self.assertIn('implementation("androidx.core:core-ktx:1.16.0")', script)
             self.assertNotIn('implementation("androidx.core:core-ktx:1.13.0")', script)
 
@@ -112,7 +111,6 @@ class EmbeddedMullvadConsolidationTest(unittest.TestCase):
                 self.assertEqual(artifacts[f"{name}-{version}.module"], module_sha)
                 self.assertEqual(artifacts[f"{name}-{version}.jar"], jar_sha)
             self.assertIn("<verification-metadata>", result)
-            # A repeat must fail closed, without silently replacing a signed lock.
             with self.assertRaisesRegex(RuntimeError, "already pinned"):
                 prepare.stage_witnessed_compiler_checksums(path)
             self.assertEqual(path.read_text(), result)

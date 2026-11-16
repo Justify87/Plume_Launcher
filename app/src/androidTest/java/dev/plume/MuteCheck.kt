@@ -6,7 +6,6 @@ import android.media.AudioManager
 import android.os.SystemClock
 import android.view.accessibility.AccessibilityEvent
 
-/** Uses the real audio service and restores its original mute state. Run on a device with adjustable volume. */
 class MuteCheck(private val runner: Instrumentation) {
     fun run() = with(runner) {
         val audio = targetContext.getSystemService(AudioManager::class.java)

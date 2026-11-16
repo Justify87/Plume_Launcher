@@ -37,7 +37,6 @@ class WallpaperPackTest {
     @Test fun installedAssetMatchesItsGitBlobId() = inDirectory { dir ->
         val data = image("known")
         File(dir, "fixture.webp").writeBytes(data)
-        // Expected ID comes from git hash-object, independent of the test's photo helper.
         assertTrue(PackPhoto("fixture.webp", data.size.toLong(), "aa5375f6b3cc98beb04e59e991093cf45c0adeee").current(dir))
     }
 

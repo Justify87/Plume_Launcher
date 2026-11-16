@@ -10,6 +10,6 @@ class PinTest {
         val stored = hashPin("0420")
         assertTrue(pinMatches(stored, "0420"))
         assertFalse(pinMatches(stored, "0421"))
-        assertNotEquals(stored, hashPin("0420")) // fresh salt each time
+        assertNotEquals(stored, hashPin("0420")) 
     }
 }

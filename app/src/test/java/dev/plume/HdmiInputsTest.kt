@@ -17,7 +17,7 @@ class HdmiInputsTest {
         assertEquals("settop", hdmiIcon("Sky Q", true))
         assertEquals("playback", hdmiIcon("BD Player", true))
         assertEquals("hdmi", hdmiIcon("HDMI 2", false))
-        assertEquals("xbox", hdmiIcon("xbox", false)) // a port renamed in TV settings
+        assertEquals("xbox", hdmiIcon("xbox", false)) 
         assertEquals("settop", hdmiIcon("Cable box", false))
         assertTrue(isAudioDevice("Sonos Arc"))
         assertFalse(isAudioDevice("PlayStation 5"))
@@ -27,7 +27,7 @@ class HdmiInputsTest {
         assertEquals(2, Remap.hardwareNumber("com.mediatek.tvinput/.hdmi.HDMIInputService/HW2"))
         assertEquals(10, Remap.hardwareNumber("com.mediatek.tvinput/.hdmi.HDMIInputService/HW10"))
         assertEquals(null, Remap.hardwareNumber("com.example.tuner/.TunerService"))
-        assertEquals(null, Remap.hardwareNumber("com.example/.Service/HW2/HDMI2050")) // a CEC device's id, not its port's
+        assertEquals(null, Remap.hardwareNumber("com.example/.Service/HW2/HDMI2050")) 
     }
 
     @Test fun droidlogicInputsUsePlumePlaybackWithoutGuessingPortNumbers() {
@@ -45,7 +45,6 @@ class HdmiInputsTest {
 
     @Test fun theUpdateKeepsTheInputsThatWereInTheRow() {
         val inputs = listOf("hdmi:1" to false, "hdmi:2" to true, "hdmi:3" to true, "hdmi:4" to false)
-        // 1 has a signal; 2 has none; 3 has none but was pinned; 4 has a signal but was taken out of the row
         assertEquals(setOf("hdmi:1", "hdmi:3"), pinsAfterSourcesUpdate(inputs, setOf("hdmi:4"), setOf("hdmi:3")))
     }
 }

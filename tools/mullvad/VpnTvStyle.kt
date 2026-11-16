@@ -48,11 +48,9 @@ internal object VpnTvStyle {
         }
     }
 
-    /** Use the Android dark alert theme; no custom Dialog subclass or dependency. */
     fun dialog(context: Context): AlertDialog.Builder =
         AlertDialog.Builder(context, android.R.style.Theme_Material_Dialog_Alert)
 
-    /** Framework focus-state drawable; no extra listeners or keyboard side effects. */
     fun field(edit: EditText) {
         edit.setTextColor(INK)
         edit.setHintTextColor(MUTED)

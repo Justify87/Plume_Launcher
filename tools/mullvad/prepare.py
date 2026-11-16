@@ -63,15 +63,8 @@ ALIASES = (
 
 
 
-# The pinned upstream verification file already authenticates these module
-# metadata artifacts, but the combined Plume/Mullvad dependency graph also
-# resolves their JAR counterparts. These exact JAR SHA-256 values are cross-
-# checked against independent Gradle/Nix lockfiles:
-#   - org.jetbrains.kotlinx ... 1.6.4: Briar witness.gradle and rules_kotlin lock
-#   - collection-jvm 1.4.2: tuist/tuist and RunanywhereAI Gradle lockfiles
-#   - coroutines-android 1.7.3: nyblnet/bento and expo/exact Gradle lockfiles
-# Never disable verification or write unreviewed downloaded hashes to a lock.
-# Only the temporary generated host changes; the pinned submodule stays intact.
+# JAR SHA-256 values are independently witnessed in Briar, rules_kotlin, tuist,
+# bento and expo lockfiles. Never weaken verification or edit the pinned submodule.
 WITNESSED_COMPILER_JARS = (
     ("kotlinx-coroutines-android",
      "68516559e6f84a621b9783cd892a64630ccd7875843588ddb3f0501425e33f15",
@@ -305,9 +298,8 @@ def prepare(output: Path) -> Path:
     old = 'applicationId = "net.mullvad.mullvadvpn"'
     if content.count(old) != 1:
         raise RuntimeError("Unexpected Mullvad applicationId declaration")
-    # Rust/JNI is built for ARM64 only. Without a packaging filter, native
-    # AndroidX libraries would falsely advertise ARM32/x86 compatibility.
-    # Change only the disposable host; never patch pinned Mullvad sources.
+    # ARM64-only JNI requires an ABI filter; otherwise native libraries imply unsupported ABIs.
+    # Change only the disposable host, never pinned Mullvad sources.
     content = content.replace(old, '''applicationId = "dev.plume.advanced"
         ndk {
             abiFilters += "arm64-v8a"
@@ -315,10 +307,7 @@ def prepare(output: Path) -> Path:
     content += '\n// Plume integration: TV views are a library, not a second APK.\ndependencies { implementation(project(":plume-ui")) }\n'
     host_build.write_text(content, encoding="utf-8")
 
-    # Mullvad's releasePreflight executes "git status --porcelain", but the
-    # disposable source tree intentionally excludes .git and is modified by
-    # this generator. Keep releasePreflight itself (including build header),
-    # while skipping only its impossible git cleanliness check in this copy.
+    # Staging has no .git, so only its impossible releasePreflight cleanliness check is skipped.
     root_build = android / "build.gradle.kts"
     root_contents = root_build.read_text(encoding="utf-8")
     original_preflight = "this.skipDirtyCheck.set(preflightSkipDirtyCheck)"
@@ -345,8 +334,6 @@ def prepare(output: Path) -> Path:
     )
     shutil.copy2(ROOT / "CHANGELOG.md", library / "CHANGELOG.md")
     (library / "build.gradle.kts").write_text(plume_library_build(), encoding="utf-8")
-    # The standalone Launcher uses reflection only to avoid loading Mullvad in the
-    # standalone APK. Preserve the bridge's stable JVM entry points in R8 releases.
     (library / "consumer-rules.pro").write_text(
         "-keep class net.mullvad.mullvadvpn.app.MullvadEmbeddedPanel { " +
         "public static android.view.View create(androidx.activity.ComponentActivity); " +
@@ -360,8 +347,6 @@ def prepare(output: Path) -> Path:
     debug_overlay = android / "app/src/ossProdDebug/AndroidManifest.xml"
     debug_overlay.parent.mkdir(parents=True, exist_ok=True)
     debug_overlay.write_text(debug_variant_manifest(), encoding="utf-8")
-    # Production TV Activity is available in both debug and release OSS/Prod builds.
-    # It lives in the derived host, which already supplies Mullvads original Koin backend.
     vpn_activity = android / "app/src/ossProd/kotlin/net/mullvad/mullvadvpn/app/VpnActivity.kt"
     vpn_activity.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(Path(__file__).with_name("VpnActivity.kt"), vpn_activity)
@@ -374,8 +359,6 @@ def prepare(output: Path) -> Path:
     shutil.copy2(Path(__file__).with_name("VpnDiagnosticsUi.kt"), vpn_activity.with_name("VpnDiagnosticsUi.kt"))
     shutil.copy2(Path(__file__).with_name("VpnTvStyle.kt"), vpn_activity.with_name("VpnTvStyle.kt"))
     shutil.copy2(Path(__file__).with_name("MullvadEmbeddedPanel.kt"), vpn_activity.with_name("MullvadEmbeddedPanel.kt"))
-    # The original QS tile + account/tunnel notifications use this one constant
-    # for their launch PendingIntent. Route them to the native TV Activity in the
     # *disposable staging tree only*, never edit the pinned original submodule.
     class_names = android / ("lib/common/src/main/kotlin/net/mullvad/mullvadvpn/"
         "lib/common/constant/ClassNames.kt")

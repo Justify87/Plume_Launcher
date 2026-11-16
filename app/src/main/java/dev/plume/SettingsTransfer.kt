@@ -9,7 +9,6 @@ import org.json.JSONTokener
 import java.io.File
 import java.io.IOException
 
-/** Version 1 transfers active portable preferences; retired Classic/Overview keys in old exports are ignored. */
 internal object SettingsTransfer {
     private const val LIMIT = 65_536
     private val choices = mapOf(
@@ -31,14 +30,12 @@ internal object SettingsTransfer {
 
     fun portable(all: Map<String, *>): Map<String, Any> {
         val values = all.filterKeys { it in keys }.toMutableMap()
-        // HDMI identifiers and automatic location results belong to this TV.
         (values["order"] as? String)?.let { order -> values["order"] = order.split(',').filter { pkg.matches(it) }.joinToString(",") }
         (values["row_hidden"] as? Set<*>)?.let { hidden -> values["row_hidden"] = hidden.filterIsInstance<String>().filter { pkg.matches(it) }.toSet() }
         if (values["geo_manual"] != true) for (key in listOf("geo_city", "geo_lat", "geo_lon")) values.remove(key)
         return validate(values)
     }
 
-    /** Also used before any preference mutation; JSON numbers are converted to their declared preference types. */
     fun validate(values: Map<String, *>): Map<String, Any> = buildMap {
         for ((key, value) in values) {
             if (key !in SettingsTransfer.keys) continue

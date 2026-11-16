@@ -66,7 +66,7 @@ class PreparationTests(unittest.TestCase):
         self.assertEqual(app.get(android + "icon"), "@drawable/ic_launcher_advanced")
         self.assertEqual(app.get(android + "roundIcon"), "@drawable/ic_launcher_advanced")
         self.assertEqual(app.get(android + "banner"), "@drawable/banner")
-        self.assertIsNone(app.find("activity"))  # no duplicate debug-only entry
+        self.assertIsNone(app.find("activity"))  
         replaced = set(app.get(tools + "replace").split(","))
         self.assertEqual(replaced, {
             "android:label", "android:icon", "android:roundIcon", "android:banner"
@@ -91,8 +91,6 @@ class PreparationTests(unittest.TestCase):
         self.assertIn("VpnAccountUi(", vpn)
         self.assertIn("accounts.accountData.collect", vpn)
         self.assertIn("accountUi.onDeviceState(state)", vpn)
-        # uiModule owns VoucherRepository/NewDeviceRepository; smartphone MainActivity
-        # is not launched in Plume. The original host modules must still be loaded.
         self.assertIn("loadKoinModules(listOf(uiModule, paymentModule))", vpn)
         for api in (
             "accounts.login(", "accounts.logout()", "accounts.createAccount()",
@@ -162,7 +160,7 @@ class PreparationTests(unittest.TestCase):
             self.assertIn(contract, ui)
         self.assertNotIn("SharedPreferences", ui)
         self.assertNotIn("HttpURLConnection", ui)
-        self.assertNotIn("setCustomWireguardPort", ui)  # Obfuscation belongs to M10
+        self.assertNotIn("setCustomWireguardPort", ui)  
         self.assertIn('with_name("VpnSettingsUi.kt")', (prepare.ROOT / "tools/mullvad/prepare.py").read_text())
 
     def test_m08_original_split_tunneling_and_tv_package_list(self):
@@ -222,8 +220,8 @@ class PreparationTests(unittest.TestCase):
         self.assertIn('with_name("VpnAdvancedUi.kt")',
                       (prepare.ROOT / "tools/mullvad/prepare.py").read_text())
         self.assertNotIn("SharedPreferences", advanced)
-        self.assertNotIn("setWireguardQuantumResistant(", advanced)  # M07 owns the original control
-        self.assertNotIn("connection.reconnect(", location)  # matching upstream selector behavior
+        self.assertNotIn("setWireguardQuantumResistant(", advanced)  
+        self.assertNotIn("connection.reconnect(", location)  
 
     def test_m10_network_uses_original_api_and_relay_repositories(self):
         activity = (prepare.ROOT / "tools/mullvad/VpnActivity.kt").read_text()
@@ -310,9 +308,7 @@ class PreparationTests(unittest.TestCase):
             upstream = root / "upstream"
             (upstream / "android/app").mkdir(parents=True)
             (upstream / "android/settings.gradle.kts").write_text('include(":app")\n')
-            # Mirror the pinned source's verification metadata in this isolated
-            # disposable-upstream fixture. The preparation generator intentionally
-            # refuses staging when this security file is absent or unfamiliar.
+            # The isolated fixture must provide verified upstream metadata; otherwise staging fails.
             verification = upstream / "android/gradle/verification-metadata.xml"
             verification.parent.mkdir(parents=True)
             components = []
@@ -405,7 +401,6 @@ class PreparationTests(unittest.TestCase):
 
 
 
-# Release versioning and staged Mullvad/Plume versions share one CI regression suite.
 class ReleaseSigningPreflightTest(unittest.TestCase):
     def test_missing_secrets_are_named_without_disclosing_values(self):
         with self.assertRaises(signing.SigningPreflightError) as context:
@@ -472,8 +467,6 @@ class ReleaseSigningPreflightTest(unittest.TestCase):
             signing.validate_keystore(environ, fingerprint)
             with self.assertRaises(signing.SigningPreflightError):
                 signing.validate_keystore(environ, "F" * 64)
-            # PKCS12 private-key passwords must equal the store password;
-            # keytool -certreq itself accepts a wrong keypass for PKCS12.
             wrong_keypass = dict(environ)
             wrong_keypass["PLUME_KEY_PASSWORD"] = "wrong-password"
             with self.assertRaisesRegex(

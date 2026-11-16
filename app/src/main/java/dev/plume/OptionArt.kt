@@ -7,10 +7,6 @@ import android.graphics.PixelFormat
 import android.graphics.RectF
 import android.graphics.drawable.Drawable
 
-/**
- * A small picture of a settings choice, drawn in the panel's [ink]: the apps row at each Size ("size", 8, 6 or 4 tiles
- * across) or at each Position ("position", left, centre or right). The picked one ([on]) gets a stronger frame, stronger still while its row has [focused].
- */
 internal class OptionArt(private val kind: String, private val index: Int, private val density: Float) : Drawable() {
     var ink = 0xFF000000.toInt()
     var on = false
@@ -37,7 +33,7 @@ internal class OptionArt(private val kind: String, private val index: Int, priva
                 val m = b.width() * 0.1f
                 val gap = b.width() * 0.025f
                 val w = (b.width() - 2 * m - (n - 1) * gap) / n
-                val h = b.height() * 0.4f // one height for all three, so only the tiles' width and count change
+                val h = b.height() * 0.4f 
                 val top = b.centerY() - h / 2
                 paint.color = tile
                 for (i in 0 until n) c.drawRoundRect(b.left + m + i * (w + gap), top, b.left + m + i * (w + gap) + w, top + h, h * .18f, h * .18f, paint)

@@ -1,12 +1,4 @@
 #!/usr/bin/env python3
-# A fake adb for run.sh, which tests tools/plume-install.sh without a TV. It keeps the TV's state in the JSON file
-# $FAKE_STATE and answers only the commands the script sends.
-#   FAKE_KIND         fire7 (Android 9) | fire8 (Android 11) | fire14 (Android 14) | google (Android 14)
-#   FAKE_INIT         a JSON object merged into the TV's first state (for example a service that is on already)
-#   FAKE_FAIL         substrings, separated by |: a shell command that has one fails, with a message and exit status 1
-#   FAKE_FAIL_SILENT  the same, but with no message at all (only the exit status says it failed)
-#   FAKE_NOALARM      Plume Launcher Advanced does not have the alarm change: it never sets min_futurity
-#   FAKE_HOME_BROKEN  Home does not open Plume Launcher Advanced, whatever the service does
 import json, os, re, sys
 
 SP = os.environ["FAKE_STATE"]
@@ -31,7 +23,6 @@ def service_on():
 
 
 def app_sync():
-    # What Plume Launcher Advanced does: set min_futurity when its service runs and the grant is there, put the old value back when it stops.
     if FIRE and "FAKE_NOALARM" not in os.environ:
         if service_on() and st["granted"] and "min_futurity=0" not in st["global"]:
             st["alarm_saved"] = st["global"]

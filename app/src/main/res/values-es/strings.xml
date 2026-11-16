@@ -172,7 +172,6 @@
     <string name="all_apps">Todas las apps</string>
     <string name="settings">Ajustes</string>
     <string name="continue_watching">Seguir viendo</string>
-    <!-- Mostrado en la lista de Accesibilidad de Android. Las dos indicaciones de activar/desactivar lo citan, así que deben coincidir. -->
     <string name="home_service_label">Plume Launcher Advanced: botón Inicio</string>
     <string name="theme_light">Claro</string>
     <string name="theme_dark">Oscuro</string>
@@ -206,9 +205,7 @@
     <string name="help_default_launcher">En Android TV, Plume Launcher Advanced puede ser la pantalla de inicio. Google TV mantiene la suya, así que usa el botón Inicio.</string>
     <string name="help_run_setup">Vuelve a configurar el botón Inicio.</string>
     <string name="help_remote_keys">Cambia lo que hace un botón del control remoto al pulsarlo o mantenerlo pulsado.</string>
-    <!-- Temporada y episodio en una tarjeta de Seguir viendo, por ejemplo "T1 E3". -->
     <string name="season_episode">T%1$s E%2$s</string>
-    <!-- Ventanas de configuración del botón Inicio -->
     <string name="setup_home">Repetir configuración</string>
     <string name="preview_home_setup">Vista previa de configuración de Inicio</string>
     <string name="setup_step">Paso %1$d de %2$d</string>
@@ -268,7 +265,6 @@
     <string name="lock_note">Un PIN protege los ajustes de Plume Launcher Advanced, el Wi-Fi, los ajustes de Android y los cambios en la pantalla de inicio. Las apps se siguen abriendo.</string>
     <string name="finish_setup">Terminar configuración</string>
     <string name="finish_setup_value">Haz que Inicio abra Plume Launcher Advanced</string>
-    <!-- Botones del control remoto: cambiar lo que hace un botón del control -->
     <string name="section_keys">Botones del control</string>
     <string name="key_add">Añadir un botón</string>
     <string name="key_press_prompt">Pulsa en tu control remoto el botón que quieras cambiar. Atrás, OK y las flechas no se pueden cambiar. Un botón configurado aquí deja de hacer su función habitual.</string>

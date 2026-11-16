@@ -10,10 +10,6 @@ import android.os.ParcelFileDescriptor
 import android.provider.OpenableColumns
 import java.io.File
 
-/**
- * Hands a downloaded update to the TV's own installer, on TVs without Android's confirm box (Xiaomi HyperOS).
- * Serves only that file, read only.
- */
 class ApkProvider : ContentProvider() {
     private val apk get() = File(context!!.cacheDir, NAME)
 
@@ -24,7 +20,6 @@ class ApkProvider : ContentProvider() {
     override fun openFile(uri: Uri, mode: String): ParcelFileDescriptor =
         ParcelFileDescriptor.open(apk, ParcelFileDescriptor.MODE_READ_ONLY)
 
-    // Some installers ask for the name and size first.
     override fun query(uri: Uri, projection: Array<String>?, selection: String?, args: Array<String>?, sort: String?): Cursor =
         MatrixCursor(arrayOf(OpenableColumns.DISPLAY_NAME, OpenableColumns.SIZE)).apply { addRow(arrayOf<Any?>(NAME, apk.length())) }
 
@@ -35,7 +30,6 @@ class ApkProvider : ContentProvider() {
     companion object {
         const val NAME = "Plume-Launcher-Advanced.apk"
 
-        /** The authority is `${applicationId}.apk` in the manifest. */
         fun uri(c: Context): Uri = Uri.parse("content://${c.packageName}.apk/$NAME")
     }
 }

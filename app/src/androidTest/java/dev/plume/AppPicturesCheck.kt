@@ -15,7 +15,6 @@ import android.widget.TextView
 import java.io.File
 import java.net.Socket
 
-/** Real bitmap and HTTP checks, using separate files and no installed app's artwork. */
 class AppPicturesCheck(private val runner: Instrumentation) {
     fun run() {
         val context = runner.targetContext

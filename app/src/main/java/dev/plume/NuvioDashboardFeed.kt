@@ -6,11 +6,6 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 
-/**
- * M02's Android-free V-Design model. This is deliberately separate from Classic's
- * MediaCategory/MediaFeedRepository: their mixed Watch Next and SmartTube rules survive
- * until the single V-Design screen replaces the old renderers in later milestones.
- */
 internal enum class NuvioSection { IN_PROGRESS, AVAILABLE, UPCOMING }
 
 internal data class NuvioMediaItem(
@@ -30,12 +25,10 @@ internal data class NuvioMediaItem(
     val logoUri: String?,
     val intentUri: String?,
     val progressPercent: Int?,
-    /** Null for missing or potentially synthetic 100-second publisher data. */
     val durationMillis: Long?,
     val playbackPositionMillis: Long?,
     val remainingMillis: Long?,
     val lastWatchedMillis: Long?,
-    /** Source position after TvContract's descending weight ordering. */
     val providerOrder: Int,
     val legacyFallback: Boolean,
 ) {
@@ -54,7 +47,7 @@ internal data class NuvioMediaItem(
 }
 
 internal data class NuvioDashboardSection(val section: NuvioSection, val items: List<NuvioMediaItem>) {
-    val count: Int get() = items.size // Full filtered list, not the mounted subset.
+    val count: Int get() = items.size 
 }
 
 internal data class NuvioDashboardFeed(
@@ -62,7 +55,6 @@ internal data class NuvioDashboardFeed(
     val available: List<NuvioMediaItem>,
     val upcoming: List<NuvioMediaItem>,
 ) {
-    /** Fixed visual hierarchy, including empty sections for honest empty states. */
     fun sections(): List<NuvioDashboardSection> = listOf(
         NuvioDashboardSection(NuvioSection.IN_PROGRESS, inProgress),
         NuvioDashboardSection(NuvioSection.AVAILABLE, available),
@@ -72,7 +64,6 @@ internal data class NuvioDashboardFeed(
     companion object { val EMPTY = NuvioDashboardFeed(emptyList(), emptyList(), emptyList()) }
 }
 
-/** Pure projection of the existing approved, independently read M01 provider channels. */
 internal object NuvioMediaProjector {
     private fun part(text: String) = "${text.length}:$text"
     private fun nonblank(value: String?) = value?.trim()?.takeIf { it.isNotEmpty() }
@@ -118,12 +109,8 @@ internal object NuvioMediaProjector {
         val id = identity(p)
         val duration = p.item.durationMillis?.takeIf { it > 0L }
         val position = p.item.playbackPositionMillis?.takeIf { it > 0L }
-        // Nuvio writes 100000/percent*1000 when it knows a percent but NO runtime.
-        // 100000 can also be a real duration; hiding remaining time is conservative.
         val actualDuration = duration?.takeUnless { it == 100_000L }
         val actualPosition = position?.takeIf { actualDuration != null && it <= actualDuration }
-        // The TV parser can clamp an impossible position > duration to 100%.
-        // That derived "percent" is not trustworthy, even when already populated.
         val plausibleTiming = duration == null || position == null || position <= duration
         val percent = if (!plausibleTiming) null else p.item.progressPercent?.takeIf { it in 1..100 }
             ?: if (duration != null && position != null && position <= duration)
@@ -173,14 +160,12 @@ internal object NuvioMediaProjector {
             }.thenBy { it.second.providerOrder }.thenBy { it.second.stableId })
 
         // Earlier sections win an exact episode conflict. Unknown identity cannot
-        // safely be deduplicated; preserve those records rather than lose episodes.
         val seen = HashSet<String>()
         fun unique(items: List<Pair<String?, NuvioMediaItem>>): List<NuvioMediaItem> =
             items.filter { (key, _) -> key == null || seen.add(key) }.map { it.second }
         return NuvioDashboardFeed(unique(started), unique(available), unique(upcoming))
     }
 
-    /** DST-aware next refresh boundary for M03's resumed/rebound UI; no timer/poller here. */
     fun nextLocalDayBoundary(now: Instant, zone: ZoneId): Instant =
         now.atZone(zone).toLocalDate().plusDays(1).atStartOfDay(zone).toInstant()
 }

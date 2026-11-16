@@ -12,10 +12,6 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 
-/**
- * Honest Android-TV preview for non-Nuvio apps, backed only by MediaFeedRepository.
- * No source entry means no placeholder artwork or invented episode metadata.
- */
 internal class WorkspaceGenericMediaPane(
     context: Context,
     private val title: String,

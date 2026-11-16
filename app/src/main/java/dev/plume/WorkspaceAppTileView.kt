@@ -11,7 +11,6 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 
-/** One fully new TV-first app tile for the persistent All Apps workspace. */
 internal class WorkspaceAppTileView(
     context: Context,
     val packageName: String,

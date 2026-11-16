@@ -23,7 +23,6 @@ def version_key(name: str) -> tuple[int, ...]:
     if match is None:
         raise ValueError("Use a version such as 1.8.0, 1.8.0-beta1 or 1.8.0-rc1")
     major, minor, patch, stage, number = match.groups()
-    # Stable is after beta and rc at the same numeric version.
     kind = {"beta": 0, "rc": 1, None: 2}[stage]
     return int(major), int(minor), int(patch), kind, int(number or 0)
 
@@ -49,9 +48,6 @@ def prepare(root: Path, version: str, notes_output: Path | None = None) -> int:
 
     changelog = changelog_path.read_text(encoding="utf-8")
     if requested == version_key(current_name):
-        # Supported for main branches protected by required PR checks: prepare
-        # version/changelog in a reviewed PR, then publish this exact commit.
-        # Also permits recovering an interrupted publish after the main push.
         heading = re.search(rf"(?m)^## {re.escape(version)}[ \t]*$", changelog)
         if heading is None:
             raise ValueError(f"Source is already v{version}, but changelog heading is missing")
@@ -76,8 +72,6 @@ def prepare(root: Path, version: str, notes_output: Path | None = None) -> int:
     if re.search(rf"(?m)^## {re.escape(version)}[ \t]*$", changelog):
         raise ValueError(f"Release heading ## {version} already exists")
 
-    # Preserve all Unreleased notes under the new version, keep a fresh empty
-    # Unreleased section, and preserve every older release unchanged.
     updated_changelog = (
         changelog[:markers[0].start()]
         + f"## Unreleased\n\n## {version}\n\n{notes}\n\n"

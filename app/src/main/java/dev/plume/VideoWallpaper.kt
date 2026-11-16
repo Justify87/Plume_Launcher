@@ -13,19 +13,18 @@ import java.net.URL
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.zip.GZIPInputStream
 
-/** Videos stay in Plume's wallpaper folder; no player runs after the home screen stops. */
 internal class VideoWallpaper(private val surface: SurfaceView, private val onFrame: () -> Unit, private val onError: () -> Unit) : SurfaceHolder.Callback {
     private var player: MediaPlayer? = null
     private var file: File? = null
     private var active = false
     private var ready = false
-    private var rendered = false // the player has shown a frame of the current file
+    private var rendered = false 
 
     init { surface.holder.addCallback(this) }
 
     fun show(file: File, play: Boolean) {
         if (this.file != file) { release(); this.file = file }
-        else if (play && rendered) onFrame() // same video, already on screen: the caller covered it with the picture again
+        else if (play && rendered) onFrame() 
         active = play
         surface.visibility = android.view.View.VISIBLE
         if (ready && active) start()
@@ -75,7 +74,6 @@ internal class VideoWallpaper(private val surface: SurfaceView, private val onFr
     private fun release() { player?.release(); player = null; rendered = false }
 }
 
-/** Reject mislabeled files and videos outside the TV wallpaper size limit. */
 internal fun validVideo(file: File): Boolean {
     if (!file.isFile || file.length() !in 1..VIDEO_LIMIT) return false
     val extractor = MediaExtractor()

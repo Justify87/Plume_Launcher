@@ -12,7 +12,6 @@ import android.view.SurfaceView
 import android.view.View
 import android.view.ViewGroup
 
-/** Framework device check, selected through ActivityTest with -e class dev.plume.GalleryPreviewTest. */
 class GalleryPreviewTest(private val runner: Instrumentation) {
     fun run() = with(runner) {
         val prefs = targetContext.getSharedPreferences("home", Context.MODE_PRIVATE)

@@ -1,8 +1,4 @@
 #!/bin/sh
-# Tests tools/plume-install.sh against a fake adb (the file "adb" next to this one), so that no TV is needed.
-# Run:  sh tools/plume-install-test/run.sh      (needs python3; prints the failed checks and exits 1 if there are any)
-#       TESTSH=dash sh tools/plume-install-test/run.sh   runs the script under another shell
-# Each test starts from a fresh fake TV. The fake adb is described at the top of the file "adb".
 
 HERE=$(cd "$(dirname "$0")" && pwd)
 SCRIPT=$HERE/../plume-install.sh
@@ -20,16 +16,13 @@ SVC=dev.plume.advanced/dev.plume.HomeOverride
 OTHER=com.example/com.example.Other
 N=0 BAD=0
 
-# new KIND [JSON]: a fresh TV of that kind, with nothing set up.
 new() {
   rm -f "$FAKE_STATE"
   unset FAKE_INIT FAKE_FAIL FAKE_FAIL_SILENT FAKE_NOALARM FAKE_HOME_BROKEN
   FAKE_KIND=$1; export FAKE_KIND
   [ -z "$2" ] || { FAKE_INIT=$2; export FAKE_INIT; }
 }
-# run ARGS...: the script with -y on the fake TV; its output is in $OUT and its exit status in $RC.
 run() { OUT=$(${TESTSH:-sh} "$SCRIPT" -y "$@" 10.0.0.2 2>&1); RC=$?; }
-# st KEY: a value from the fake TV's state.
 st() { python3 -c 'import json, sys; v = json.load(open(sys.argv[1]))[sys.argv[2]]; print(v if not isinstance(v, dict) else v.get(sys.argv[3], ""), end="")' "$FAKE_STATE" "$1" "$2"; }
 record() { st files $STATE; }
 check() { # check "what" 'shell test'
@@ -38,7 +31,6 @@ check() { # check "what" 'shell test'
 }
 has() { printf '%s\n' "$1" | grep -qF -- "$2"; }
 
-# ---- a TV with nothing set up -------------------------------------------------------------------------------------
 new fire7
 run -n
 check "-n changes nothing" '[ $RC = 0 ] && [ -z "$(st enabled)" ] && [ "$(st granted)" = False ]'
@@ -71,7 +63,6 @@ check "Google TV install works" '[ $RC = 0 ] && ! has "$OUT" FAILED && has "$(st
 run --undo
 check "Google TV undo works" '[ $RC = 0 ] && [ -z "$(st enabled)" ]'
 
-# ---- a service that is on already ---------------------------------------------------------------------------------
 new fire7 "{\"enabled\": \"$OTHER:$SVC\", \"granted\": true}"
 run
 check "an existing service is left alone" '[ $RC = 0 ] && ! has "$(record)" service=1 && ! has "$(record)" granted=1'
@@ -100,7 +91,6 @@ run
 run --undo
 check "a min_futurity that was 0 before is not reported as a problem" '[ $RC = 0 ] && ! has "$OUT" FAILED'
 
-# ---- a Plume Launcher Advanced without the alarm change -----------------------------------------------------------------------------
 new fire7
 FAKE_NOALARM=1; export FAKE_NOALARM
 run
@@ -108,7 +98,6 @@ check "no alarm change: installed, with a note and not a failure" '[ $RC = 0 ] &
 run --undo
 check "no alarm change: undo works" '[ $RC = 0 ] && [ -z "$(st enabled)" ]'
 
-# ---- commands that fail -------------------------------------------------------------------------------------------
 new fire7
 FAKE_FAIL="pm grant"; export FAKE_FAIL
 run
@@ -143,7 +132,6 @@ unset FAKE_FAIL
 run --undo
 check "undo can be run again after a failure" '[ $RC = 0 ] && [ "$(st granted)" = False ] && [ -z "$(record)" ]'
 
-# ---- the stock launcher -------------------------------------------------------------------------------------------
 new fire7
 run --disable-stock-launcher
 check "stock launcher off: Plume Launcher Advanced answers Home" '[ $RC = 0 ] && has "$OUT" "Home opens Plume Launcher Advanced" && has "$(st disabled)" com.amazon.tv.launcher'
@@ -185,7 +173,6 @@ new google
 run --disable-stock-launcher
 check "Google TV refuses to turn its launcher off" '[ $RC != 0 ] && has "$OUT" "Fire TV only" && [ -z "$(st enabled)" ]'
 
-# ---- the questions the script asks -------------------------------------------------------------------------------
 new fire7 '{"installed": false}'
 run
 check "Plume Launcher Advanced not installed and no -a: the script stops and changes nothing" '[ $RC != 0 ] && has "$OUT" "not installed" && [ -z "$(st enabled)" ]'

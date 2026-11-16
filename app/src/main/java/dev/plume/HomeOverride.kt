@@ -63,14 +63,12 @@ class HomeOverride : AccessibilityService() {
     override fun onKeyEvent(e: KeyEvent): Boolean {
         if (packageManager.getApplicationInfo(packageName, 0).flags and ApplicationInfo.FLAG_SUSPENDED != 0) return false
         if (e.keyCode != KeyEvent.KEYCODE_HOME) return remap(e)
-        // Decided on release, by how long it was held: this TV's remote doesn't reliably send key repeats.
         if (e.action == KeyEvent.ACTION_UP && !e.isCanceled) {
             if (e.eventTime - e.downTime < LONG_PRESS_MS) goHome() else performGlobalAction(GLOBAL_ACTION_NOTIFICATIONS)
         }
         return true
     }
 
-    /** Keys the user changed in Plume settings (see [Remap]); any other key goes on to the system untouched. */
     private fun remap(e: KeyEvent): Boolean {
         if (Remap.kept(e)) return false
         val id = Remap.id(e)
@@ -86,7 +84,6 @@ class HomeOverride : AccessibilityService() {
             return true
         }
         val m = Remap.lookup(Remap.all(this), e.keyCode, e.scanCode) ?: return false
-        // Decided on release, like Home: this TV's remote doesn't reliably send key repeats.
         if (e.action == KeyEvent.ACTION_UP && !e.isCanceled) {
             val action = if (e.eventTime - e.downTime >= LONG_PRESS_MS && m.long.isNotEmpty()) m.long else m.short
             if (action.isNotEmpty()) Remap.run(this, action)
@@ -107,12 +104,11 @@ class HomeOverride : AccessibilityService() {
         if (e.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return
         val pkg = e.packageName?.toString() ?: return
         val after = watch.opened(pkg, e.className?.toString(), SystemClock.uptimeMillis())
-        if (after == HomeWatch.KEEP) return // the waiting jump stays
-        handler.removeCallbacks(jump) // any other window opening means Home wasn't where we were going
+        if (after == HomeWatch.KEEP) return 
+        handler.removeCallbacks(jump) 
         after?.let { handler.postDelayed(jump, it) }
     }
 
-    /** The stock launchers' home screens, asked of the system when the service starts and when a package changes. */
     private fun loadHomes() {
         val home = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
         homes = stockHomes(packageManager.queryIntentActivities(home, 0).map {
@@ -121,7 +117,6 @@ class HomeOverride : AccessibilityService() {
         })
     }
 
-    // Marked as Home so the setup check can tell it from Plume being opened from the apps list.
     private fun goHome() {
         if (packageManager.getApplicationInfo(packageName, 0).flags and ApplicationInfo.FLAG_SUSPENDED != 0) return
         startActivity(Intent(this, MainActivity::class.java).setAction(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))

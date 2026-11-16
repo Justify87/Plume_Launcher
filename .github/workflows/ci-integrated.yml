@@ -1,5 +1,3 @@
-# Dedicated full PR integration gate, with standalone tests and R8 regression.
-# Manual debug APK builds are intentionally separate in debug-apk.yml.
 name: Plume + Mullvad CI
 
 on:
@@ -29,7 +27,6 @@ jobs:
           image=$(cat third_party/mullvadvpn-app/building/android-container-image.txt)
           test "$image" = 'ghcr.io/mullvad/mullvadvpn-app-build-android@sha256:ca22c11fb8a15321f897fa169c9c9d1f7d0d9edfeea16fa04af4de71ebcf4286'
 
-      # The old standalone PR check is folded into this job, not discarded.
       - name: Review dependency, permission and changelog changes (PRs)
         if: ${{ github.event_name == 'pull_request' }}
         shell: bash
@@ -96,7 +93,6 @@ jobs:
           grep -Fq 'dev.plume.MainActivity' artifacts/plume-mullvad/manifest.txt
           grep -Fq 'net.mullvad.mullvadvpn.app.MullvadApplication' artifacts/plume-mullvad/manifest.txt
           grep -Fq 'net.mullvad.mullvadvpn.app.service.MullvadVpnService' artifacts/plume-mullvad/manifest.txt
-          # M04 production TV surface must be in the APK and original harness absent.
           grep -Fq 'net.mullvad.mullvadvpn.app.VpnActivity' artifacts/plume-mullvad/manifest.txt
           if grep -Fq 'net.mullvad.mullvadvpn.app.PlumeVpnDebugActivity' artifacts/plume-mullvad/manifest.txt; then
             echo "::error::Legacy M03 debug harness is still declared"
@@ -119,9 +115,7 @@ jobs:
             exit 1
           fi
           cp "$apk" artifacts/plume-mullvad/Plume-Launcher-Advanced-Mullvad-arm64-debug.apk
-          # The original Mullvad RELEASE build intentionally has signingConfig=null.
-          # Treat its output as an unsigned R8/release validation artifact, never as
-          # an installable update. Only the debug APK is ready for sideloading.
+          # Mullvad's release APK is unsigned: validate R8 only, never offer it as an installable update.
           release_dir=.build/plume-mullvad/mullvadvpn-app/android/app/build/outputs/apk/ossProd/release
           release_apk=$(find "$release_dir" -maxdepth 1 -type f -name '*.apk' -print -quit)
           test -n "$release_apk" && test -s "$release_apk"
@@ -155,7 +149,6 @@ jobs:
             echo 'Release is UNSIGNED by original Mullvad build configuration: sign with the existing Plume update key before installation.'
             echo 'APK sizes, manifests, checksums and both variant outputs are under **Artifacts**.'
           } >> "$GITHUB_STEP_SUMMARY"
-          # Keep numeric bytes visible in the downloadable job log, not just the UI summary.
           echo "M12 APK BYTES debug=$(stat -c %s "$apk") release_unsigned=$(stat -c %s "$release_apk")"
 
       - name: Upload integrated debug APK and evidence

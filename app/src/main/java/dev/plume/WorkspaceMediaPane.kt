@@ -13,7 +13,6 @@ import java.time.Instant
 import java.time.ZoneId
 import java.util.Locale
 
-/** Source-backed, lightweight TV application preview inside the common workspace. */
 internal class WorkspaceMediaPane(
     context: Context,
     private val appName: String,

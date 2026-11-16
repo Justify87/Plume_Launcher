@@ -16,7 +16,7 @@ class SnapScrollView(context: Context, attrs: AttributeSet?) : HorizontalScrollV
         // Clip to our own bounds. The parent can't do it: it leaves clipping off so other views can lift.
         outlineProvider = ViewOutlineProvider.BOUNDS
         clipToOutline = true
-        clipChildren = false // or the row inside clips the first tile's focus lift to its own edge
+        clipChildren = false 
 
     }
 

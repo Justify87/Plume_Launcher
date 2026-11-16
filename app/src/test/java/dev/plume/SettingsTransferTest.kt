@@ -70,8 +70,6 @@ class SettingsTransferTest {
         assertEquals(2, commits)
     }
     @Test fun oldExportSettingsMapIgnoresObsoleteHomeModeAndRows() {
-        // Android's org.json is a runtime stub in plain JVM tests. Exercise the pure
-        // validate() migration used by decode(); full JSON file import needs an emulator/Shield.
         val old = mapOf<String, Any>(
             "home_layout_mode" to "classic", "row_size" to "nonsense",
             "row_align" to "centre", "row_show" to "never",

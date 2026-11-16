@@ -45,12 +45,10 @@ internal object NuvioInstallationPolicy {
         if (feedOwner != null && feedOwner in installed &&
             AndroidTvMediaSource.isNuvioPackage(feedOwner)) return feedOwner
         val candidates = installed.filter(AndroidTvMediaSource::isNuvioPackage)
-        // A sole variant is unambiguous; multiple installed variants need explicit selection.
         return candidates.singleOrNull()
     }
 }
 
-/** An app-preview intent may only target the package which published the media card. */
 internal object WorkspaceMediaLaunchPolicy {
     fun valid(owner: String?, componentPackage: String?, declaredPackage: String?,
         hasSelector: Boolean, dataScheme: String?): Boolean {

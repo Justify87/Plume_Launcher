@@ -2,13 +2,7 @@ package dev.plume
 
 import kotlin.math.abs
 
-/**
- * Minimal QR Code encoder, enough for the wallpaper-upload address without a library: byte mode,
- * error correction level M, versions 1–6 (up to 106 bytes), one alignment pattern at most.
- * Returns the modules (true = dark) without the quiet zone.
- */
 internal object Qr {
-    // Per version (index 0 = version 1), level M: data codewords, EC codewords per block, block count.
     private val DATA = intArrayOf(16, 28, 44, 64, 86, 108)
     private val EC = intArrayOf(10, 16, 26, 18, 24, 16)
     private val BLOCKS = intArrayOf(1, 1, 1, 2, 2, 4)
@@ -29,9 +23,8 @@ internal object Qr {
 
     private fun mul(a: Int, b: Int) = if (a == 0 || b == 0) 0 else EXP[LOG[a] + LOG[b]]
 
-    /** Reed–Solomon error correction codewords for one block. */
     internal fun rs(data: IntArray, n: Int): IntArray {
-        var gen = intArrayOf(1) // highest power first
+        var gen = intArrayOf(1) 
         for (i in 0 until n) {
             val next = IntArray(gen.size + 1)
             for (j in gen.indices) {
@@ -54,7 +47,6 @@ internal object Qr {
         val bytes = text.toByteArray()
         val v = DATA.indices.firstOrNull { bytes.size + 2 <= DATA[it] } ?: throw IllegalArgumentException("text too long for a QR code here")
 
-        // Bit stream: byte mode, 8-bit length, data, terminator, then pad bytes.
         val bits = ArrayList<Boolean>()
         fun put(value: Int, n: Int) { for (i in n - 1 downTo 0) bits += (value shr i) and 1 == 1 }
         put(0b0100, 4)
@@ -67,7 +59,6 @@ internal object Qr {
             else if ((i - bits.size / 8) % 2 == 0) 0xEC else 0x11
         }
 
-        // Split into blocks, add error correction, interleave.
         val per = DATA[v] / BLOCKS[v]
         val blocks = (0 until BLOCKS[v]).map { data.copyOfRange(it * per, (it + 1) * per) }
         val ecs = blocks.map { rs(it, EC[v]) }
@@ -77,10 +68,10 @@ internal object Qr {
 
         val size = 21 + 4 * v
         val m = Array(size) { BooleanArray(size) }
-        val fn = Array(size) { BooleanArray(size) } // function modules: data skips these
+        val fn = Array(size) { BooleanArray(size) } 
         fun set(r: Int, c: Int, dark: Boolean) { m[r][c] = dark; fn[r][c] = true }
 
-        for ((r0, c0) in listOf(0 to 0, 0 to size - 7, size - 7 to 0)) { // finders with their separators
+        for ((r0, c0) in listOf(0 to 0, 0 to size - 7, size - 7 to 0)) { 
             for (r in -1..7) for (c in -1..7) {
                 if (r0 + r !in 0 until size || c0 + c !in 0 until size) continue
                 val ring = maxOf(abs(r - 3), abs(c - 3))
@@ -96,7 +87,6 @@ internal object Qr {
             for (r in -2..2) for (c in -2..2) set(a + r, a + c, maxOf(abs(r), abs(c)) != 1)
         }
 
-        // Format information (level M = 00, mask 0), both copies; this also reserves those modules.
         val fmtData = 0
         var rem = fmtData
         repeat(10) { rem = (rem shl 1) xor ((rem shr 9) * 0x537) }
@@ -109,10 +99,8 @@ internal object Qr {
         for (i in 9..14) set(8, 14 - i, bit(i))
         for (i in 0..7) set(8, size - 1 - i, bit(i))
         for (i in 8..14) set(size - 15 + i, 8, bit(i))
-        set(size - 8, 8, true) // the always-dark module
+        set(size - 8, 8, true) 
 
-        // Data in two-column zigzags from the bottom right, skipping the timing column.
-        // ponytail: fixed mask 0 instead of scoring all 8; scanners read any mask, it's only less robust in rare cases.
         var k = 0
         var col = size - 1
         var up = true

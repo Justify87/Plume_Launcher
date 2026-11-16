@@ -89,7 +89,6 @@ class GlassTest {
     }
 
     @Test fun aSurfaceFindsItsPlaceInTheBlur() {
-        // The blur is 16:9 (320x180), so on a 1920x1080 screen it scales by 6 both ways; a view at (300, 200) shifts it back.
         val m = glassMapping(1920, 1080, 300, 200)
         assertEquals(6f, m[0], 0.001f)
         assertEquals(6f, m[1], 0.001f)
@@ -106,7 +105,7 @@ class GlassTest {
         val r = glassCrop(1600, 1200)
         assertEquals(0f, r[0], 0.01f)
         assertEquals(GLASS_W.toFloat(), r[2], 0.01f)
-        assertEquals(GLASS_H / 2f, (r[1] + r[3]) / 2, 0.01f) // centred, not pinned to the top
+        assertEquals(GLASS_H / 2f, (r[1] + r[3]) / 2, 0.01f) 
         assertTrue(r[1] < 0f && r[3] > GLASS_H)
     }
 
@@ -115,7 +114,7 @@ class GlassTest {
             val r = glassCrop(w, h)
             assertEquals(GLASS_W / 2f, (r[0] + r[2]) / 2, 0.01f)
             assertEquals(GLASS_H / 2f, (r[1] + r[3]) / 2, 0.01f)
-            assertTrue(r[0] <= 0.01f && r[1] <= 0.01f && r[2] >= GLASS_W - 0.01f && r[3] >= GLASS_H - 0.01f) // always covers
+            assertTrue(r[0] <= 0.01f && r[1] <= 0.01f && r[2] >= GLASS_W - 0.01f && r[3] >= GLASS_H - 0.01f) 
         }
     }
 
@@ -173,7 +172,6 @@ class GlassTest {
             val ux = verts[(row + i) * 2] / 80f - 1f
             val x = texs[(row + i) * 2] / 0.5f - 500f
             assertTrue("monotonic", texs[(row + i) * 2] > texs[(row + i - 1) * 2])
-            // Away from the rim band the picture is evenly magnified, not bulged.
             if (kotlin.math.abs(ux) < 0.8f) assertEquals(ux * 200f / clearLensScale(0f), x, 0.5f)
         }
         assertEquals(LENS_GRID * LENS_GRID * 6, LENS_INDICES.size)
@@ -218,7 +216,6 @@ class GlassTest {
         assertEquals(Backdrop.PICTURE, Backdrop.of("folder:12:Photos"))
     }
 
-    /** Every style, theme and backdrop: nothing over a plain colour, and Clear over a video is Frosted. */
     @Test fun eachLookShowsOneStyle() {
         for (style in listOf(null, GlassStyle.FROSTED, GlassStyle.CLEAR)) for (dark in listOf(false, true)) for (b in Backdrop.entries) {
             val look = GlassLook(style, dark, b)

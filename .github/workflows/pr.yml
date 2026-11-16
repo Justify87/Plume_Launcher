@@ -1,5 +1,3 @@
-# One visible required PR check; the called workflow itself contains the
-# Plume tests, lint, pinned Mullvad container build and APK validation.
 name: Pull request checks
 
 on:

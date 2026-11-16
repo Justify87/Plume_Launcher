@@ -1,7 +1,6 @@
 <resources>
     <string name="app_name">Plume Launcher Advanced</string>
 
-    <!-- M03: offline preview content, never actual viewing history -->
     <string name="demo_tag">DEMO</string>
     <string name="demo_continue_title">Continue Watching</string>
     <string name="demo_overview_info">Sample cards only. This is not your real viewing history.</string>
@@ -246,7 +245,6 @@
     <string name="all_apps">All apps</string>
     <string name="settings">Settings</string>
     <string name="continue_watching">Continue Watching</string>
-    <!-- Shown in Android's Accessibility list. The two "Turn on/off" hints quote it, so keep them the same. -->
     <string name="home_service_label">Plume Launcher Advanced: Home button</string>
     <string name="theme_light">Light</string>
     <string name="theme_dark">Dark</string>
@@ -289,9 +287,7 @@
     <string name="help_run_setup">Go through the Home button setup again.</string>
     <string name="help_smooth_volume">Hold Volume to keep changing it. Home then takes about a second longer to open Plume Launcher Advanced. Off while remote keys are set.</string>
     <string name="help_remote_keys">Change what a button on your remote does when you press it or hold it.</string>
-    <!-- Season and episode on a Continue Watching card, for example "S1 E3". -->
     <string name="season_episode">S%1$s E%2$s</string>
-    <!-- Home setup popups -->
     <string name="setup_home">Run setup again</string>
     <string name="preview_home_setup">Preview Home setup popups</string>
     <string name="setup_step">Step %1$d of %2$d</string>
@@ -345,7 +341,6 @@
     <string name="input_removed">Removed from the row.</string>
     <string name="sources_hint">Hold OK to pin an input to the row.</string>
     <string name="bing_daily">Photo of the day</string>
-    <!-- Remote keys: change what a button on the remote does -->
     <string name="section_clock_weather">Clock &amp; weather</string>
     <string name="section_remote_home">Home &amp; remote</string>
     <string name="section_lock">PIN lock</string>

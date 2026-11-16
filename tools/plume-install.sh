@@ -76,8 +76,6 @@ while [ "$(adb -s "$D" get-state 2>/dev/null)" != device ]; do
   sleep 2
 done
 
-# tvr keeps both the text (TVOUT) and adb's exit status (TVRC). An older adb may answer 0 for a command that failed,
-# so a command that failed on the TV also says so in its text.
 tvr() { TVOUT=$(adb -s "$D" shell "$@" 2>&1); TVRC=$?; TVOUT=$(printf '%s' "$TVOUT" | tr -d '\r'); }
 tv() { tvr "$@"; printf '%s\n' "$TVOUT"; }
 tvok() { tvr "$@"; [ "$TVRC" -eq 0 ] || return 1; case $TVOUT in *Exception*|*Error*|*error*|*Failure*|*Unknown*|*"not found"*) return 1 ;; esac; }
@@ -93,7 +91,6 @@ unrecord() { tvok "grep -vx '$1' $STATE > $STATE.new; mv $STATE.new $STATE"; }
 has() { printf '%s\n' "$STATEDATA" | grep -qx "$1"; }
 disabled() { tv pm list packages -d | grep -q "package:$1\$"; }
 
-# ---- What is this TV? ------------------------------------------------------------------------------------------
 MAKER=$(tv getprop ro.product.manufacturer)
 MODEL=$(tv getprop ro.product.model)
 ANDROID=$(tv getprop ro.build.version.release)
@@ -103,7 +100,6 @@ FEATURES=$(tv pm list features)
 PACKAGES=$(tv pm list packages)
 if printf '%s\n' "$FEATURES" | grep -q 'amazon.hardware.fire_tv'; then
   KIND=fire
-  # Amazon: Fire OS 6 is Android 7.1, 7 is Android 9, 8 is Android 10 and 11, 14 is Android 12 to 14, 16 is Android 15 and 16.
   case $SDK in 25) OS="Fire OS 6" ;; 28) OS="Fire OS 7" ;; 29|30) OS="Fire OS 8" ;; 31|32|33|34) OS="Fire OS 14" ;; 35|36) OS="Fire OS 16" ;; *) OS="Fire OS" ;; esac
   KINDNAME="Fire TV ($OS, Android $ANDROID)"
 elif printf '%s\n' "$PACKAGES" | grep -q 'package:com.google.android.apps.tv.launcherx$'; then
@@ -125,7 +121,6 @@ case $STATEDATA in *"No such file"*) STATEDATA= ;; esac
 is_listed() { printf '%s\n' "$ENABLED" | tr ':' '\n' | grep -qxF "$SERVICE"; }
 LISTED=0
 is_listed && LISTED=1
-# "services:{" on Fire OS 7 (Android 9), "Bound services:{" later. Fire OS names a service by its label ("Plume Launcher Advanced: Home button").
 bound() { tv dumpsys accessibility | grep -E 'Bound services|^ *services:\{' | grep -qi "Plume Launcher Advanced"; }
 MINFUT() { tv settings get global alarm_manager_constants | tr ',' '\n' | sed -n 's/^min_futurity=//p' | head -1; }
 
@@ -159,7 +154,6 @@ if [ $UNDO = 1 ]; then
     printf 'Go on? [y/N] '; read ans; case $ans in y|Y|yes) ;; *) say "Nothing changed."; exit 0 ;; esac
   fi
   say "Undoing:"
-  # The launcher comes back first: with the service off and the launcher off, Home would go nowhere.
   if [ -n "$U_STOCK" ]; then
     if tvok pm enable "$U_STOCK" && ! disabled "$U_STOCK"; then ok "stock launcher on again"; unrecord "stock=$U_STOCK" || bad "could not update the record on the TV"
     else bad "could not turn $U_STOCK on. Run: adb shell pm enable $U_STOCK"; fi
@@ -192,7 +186,6 @@ if [ $UNDO = 1 ]; then
   exit $FAILED
 fi
 
-# ---- Install: the plan ------------------------------------------------------------------------------------------
 if [ $STOCK = 1 ]; then
   [ "$KIND" = fire ] || die "--disable-stock-launcher is for a Fire TV only. On $KINDNAME the stock launcher must stay on: turning it off can stop the TV from starting."
 fi
@@ -224,7 +217,6 @@ if [ $YES = 0 ]; then
   printf 'Go on? [y/N] '; read ans; case $ans in y|Y|yes) ;; *) say "Nothing changed."; exit 0 ;; esac
 fi
 
-# ---- Install: the steps ------------------------------------------------------------------------------------------
 say "Setting up:"
 if [ -n "$APK" ]; then
   if adb -s "$D" install -r "$APK" >/dev/null 2>&1; then ok "Plume Launcher Advanced installed"; else bad "could not install $APK"; fi
@@ -260,7 +252,6 @@ if [ "$KIND" = fire ] && [ "$SDK" -le 30 ]; then
   else note "min_futurity is not 0. This Plume Launcher Advanced does not have the alarm change, so Home takes about 5 seconds. Nothing is wrong."; fi
 fi
 
-# The stock launcher goes last, and only when Plume Launcher Advanced's service runs: with the launcher off and no service, Home goes nowhere.
 resumed() { tv dumpsys activity activities | grep ResumedActivity; }
 home_opens_plume() {
   tv am start -a android.settings.SETTINGS >/dev/null

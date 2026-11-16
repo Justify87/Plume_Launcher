@@ -4,9 +4,6 @@ plugins {
     id("com.android.application")
 }
 
-// Dependency policy: use maintained, licensed UI/animation/image libraries when justified.
-// The existing framework View code is a starting point, not an architectural requirement.
-// Preserve integrated Mullvad compatibility, startup responsiveness and D-Pad accessibility.
 android {
     namespace = "dev.plume"
     compileSdk = 36
@@ -18,9 +15,6 @@ android {
         versionCode = 11
         versionName = "0.1.0"
         testInstrumentationRunner = "dev.plume.ActivityTest"
-        // What's new: only this version's section of CHANGELOG.md ships, one entry per line, ** marks kept for bold.
-        // A ### heading ships as a line starting with #. Older x.y note sections remain supported;
-        // Plume Launcher Advanced starts at 0.1.0 with dedicated x.y.z notes.
         val changelog = rootProject.file("CHANGELOG.md").readText().replace("\r", "")
         val section = { v: String -> changelog.substringAfter("\n## $v\n", "").substringBefore("\n## ") }
         val minor = versionName!!.split('.').take(2).joinToString(".")
@@ -35,15 +29,12 @@ android {
         resValues = true
     }
 
-    // CI fails on new lint errors only; the ones already here are listed in lint-baseline.xml
-    // (./gradlew updateLintBaseline rewrites it). Translations have their own check, so lag there isn't an error.
     lint {
         baseline = file("lint-baseline.xml")
         disable += setOf("MissingTranslation", "ExtraTranslation")
     }
 
-    // Release key lives outside the repo; keystore.properties (git-ignored) points at it. Without that file
-    // (a fresh clone) release builds fall back to the debug key, so anyone can still build and sideload.
+    // Without keystore.properties, releases fall back to debug signing, not production signing.
     val keys = rootProject.file("keystore.properties").takeIf { it.exists() }
         ?.let { f -> Properties().apply { f.inputStream().use { load(it) } } }
     signingConfigs {
@@ -55,7 +46,6 @@ android {
         }
     }
 
-    // Kotlin's own metadata files (reflection and tooling data) aren't used at run time.
     packaging {
         resources {
             excludes += setOf("kotlin/**", "**/*.kotlin_builtins", "META-INF/*.kotlin_module", "META-INF/*.version", "DebugProbesKt.bin")
@@ -79,7 +69,6 @@ android {
 }
 
 dependencies {
-    // ComponentActivity is required to embed Mullvad’s existing lifecycle-aware TV pages.
     implementation("androidx.activity:activity:1.10.1")
     implementation("androidx.core:core-ktx:1.16.0")
     testImplementation("junit:junit:4.13.2")

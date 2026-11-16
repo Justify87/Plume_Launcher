@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <!-- M03: nur Offline-Beispiele, keine echten Wiedergabedaten -->
     <string name="demo_tag">DEMO</string>
     <string name="demo_continue_title">Weitermachen</string>
     <string name="demo_overview_info">Nur Beispielkarten. Dies ist nicht dein echter Wiedergabeverlauf.</string>

@@ -4,18 +4,13 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <!-- In-app updates from GitHub releases. -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
-    <!-- Uninstall an app from its hold menu. -->
     <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
-    <!-- Lets us read every app's Watch Next entries (same permission Projectivy uses). -->
     <uses-permission android:name="android.permission.READ_TV_LISTINGS" />
     <uses-permission android:name="com.android.providers.tv.permission.READ_EPG_DATA" />
-    <!-- Folder wallpapers: asked for only when someone picks "Choose a folder on this TV". -->
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
-    <!-- Granted once over adb (pm grant dev.plume.advanced android.permission.WRITE_SECURE_SETTINGS) so the app can
-         re-enable its Home service: Android drops it from the enabled list whenever the app is force-stopped. -->
+    <!-- ADB-granted permission restores the Home service after Android force-stops the app. -->
     <uses-permission
         android:name="android.permission.WRITE_SECURE_SETTINGS"
         tools:ignore="ProtectedPermissions" />
@@ -34,12 +29,10 @@
         </intent>
         <package android:name="com.google.android.apps.tv.launcherx" />
         <package android:name="com.google.android.tvlauncher" />
-        <!-- Fire OS's input switch, for the HDMI tiles (Remap.openInput) -->
         <package android:name="com.amazon.tv.inputpreference.service" />
-        <!-- The TV provider (Watch Next, app channels). Stock Android TV makes it visible to all apps;
-             some makers' builds (Philips) don't, and then every query comes back null. -->
+        <!-- Some Android TV vendors hide TvContract providers, leaving their queries empty. -->
         <provider android:authorities="android.media.tv" />
-        <!-- Package visibility for explicit content URLs; no access to SmartTube account data. -->
+        <!-- Content URL visibility does not expose SmartTube account data. -->
         <package android:name="org.smarttube.beta" />
         <package android:name="org.smarttube.stable" />
         <package android:name="com.liskovsoft.smarttubetv.beta" />
@@ -88,7 +81,6 @@
             android:exported="false"
             android:screenOrientation="landscape" />
 
-        <!-- For launchers that list only LAUNCHER apps. -->
         <activity-alias
             android:name=".LauncherEntry"
             android:label="@string/app_name"
@@ -102,14 +94,12 @@
             </intent-filter>
         </activity-alias>
 
-        <!-- Back to the home screen after an update (Android kills the old version, which uncovers the last app). -->
         <receiver android:name=".Updated" android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
             </intent-filter>
         </receiver>
 
-        <!-- Update file for the TV's own installer: see ApkProvider. -->
         <provider
             android:name=".ApkProvider"
             android:authorities="${applicationId}.apk"
@@ -121,7 +111,6 @@
             android:exported="false"
             android:screenOrientation="landscape" />
 
-        <!-- Gallery screensaver; switched on and off from launcher settings. -->
         <service
             android:name=".GalleryDream"
             android:exported="true"
@@ -133,7 +122,7 @@
             </intent-filter>
         </service>
 
-        <!-- Google TV's launcher must stay enabled; this service replaces it on screen whenever it shows. -->
+        <!-- Keep Google TV's system launcher enabled; the Home service replaces its screen. -->
         <service
             android:name=".HomeOverride"
             android:exported="false"

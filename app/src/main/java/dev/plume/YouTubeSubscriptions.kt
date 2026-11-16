@@ -5,7 +5,6 @@ import java.time.Instant
 import javax.xml.XMLConstants
 import javax.xml.parsers.DocumentBuilderFactory
 
-/** YouTube data is opt-in, public and independent of SmartTube account access. */
 internal object YouTubeSubscriptions {
     const val SOURCE_ID = "youtube:rss"
     const val MAX_CHANNELS = 12

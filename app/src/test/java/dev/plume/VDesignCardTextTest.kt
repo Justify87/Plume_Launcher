@@ -42,7 +42,7 @@ class VDesignCardTextTest {
 
     @Test fun civilReleaseDateAndMissingCountdownAreHonest() {
         val zone = ZoneId.of("Europe/Berlin")
-        val now = Instant.parse("2026-11-13T23:15:00Z") // local November 14
+        val now = Instant.parse("2026-11-13T23:15:00Z") 
         assertEquals("Heute", VDesignCardText.countdown(item(date = LocalDate.of(2026, 11, 14)), now, zone))
         assertEquals("in 1 Tag", VDesignCardText.countdown(item(date = LocalDate.of(2026, 11, 15)), now, zone))
         assertNull(VDesignCardText.countdown(item(date = LocalDate.of(2026, 11, 13)), now, zone))
