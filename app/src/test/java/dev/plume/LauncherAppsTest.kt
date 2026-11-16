@@ -19,7 +19,7 @@ class LauncherAppsTest {
         )
         val sorted = LauncherAppCatalog.sorted(
             entries, { it.first }, { it.second }, "manual",
-            listOf("custom.app"), listOf("com.netflix.ninja"), "hdmi:", { 0 },
+            { listOf("custom.app") }, listOf("com.netflix.ninja"), "hdmi:", { 0 },
         )
         assertEquals(listOf("hdmi:port1", "custom.app", "com.netflix.ninja", "other.app"),
             sorted.map { it.first })
@@ -32,7 +32,7 @@ class LauncherAppsTest {
             "a.app" to "Alpha",
         )
         val sorted = LauncherAppCatalog.sorted(
-            entries, { it.first }, { it.second }, "usage", emptyList(),
+            entries, { it.first }, { it.second }, "usage", { error("manual order must not be read in usage mode") },
             listOf("com.netflix.ninja"), "hdmi:",
             { if (it == "z.app") 5 else 2 },
         )
@@ -42,7 +42,7 @@ class LauncherAppsTest {
     @Test fun manualOrderingLeavesAlreadySpecifiedPackageIdentityUntouched() {
         val entries = listOf("com.nuvio.release" to "Nuvio", "com.nuvio.debug" to "Nuvio")
         val sorted = LauncherAppCatalog.sorted(entries, { it.first }, { it.second }, "manual",
-            listOf("com.nuvio.debug"), emptyList(), "hdmi:", { 0 })
+            { listOf("com.nuvio.debug") }, emptyList(), "hdmi:", { 0 })
         assertEquals(listOf("com.nuvio.debug", "com.nuvio.release"), sorted.map { it.first })
     }
 }
