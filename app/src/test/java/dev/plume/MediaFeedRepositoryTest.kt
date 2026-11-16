@@ -144,4 +144,29 @@ class MediaFeedRepositoryTest {
         assertEquals(1, repo.snapshot().size)
         assertEquals(1, repo.snapshot(packageName = "com.plex.phone").size)
     }
+
+    @Test fun publishedFeedDoesNotRetainProducerListOrMutableAliases() {
+        val repo = MediaFeedRepository()
+        val aliases = mutableSetOf("app.alias")
+        val supplied = mutableListOf(item("episode-1").copy(packageAliases = aliases))
+        repo.replaceSource("tv", supplied)
+        val oldSnapshot = repo.snapshot()
+
+        aliases.clear()
+        supplied.clear()
+        assertEquals(listOf("episode-1"), repo.snapshot(packageName = "app.alias").map { it.contentId })
+
+        repo.replaceSource("tv", listOf(item("episode-2")))
+        assertEquals(listOf("episode-1"), oldSnapshot.map { it.contentId })
+        assertEquals(listOf("episode-2"), repo.snapshot().map { it.contentId })
+    }
+
+    @Test fun clearingOneFeedLeavesAnotherPublishersSnapshotIntact() {
+        val repo = MediaFeedRepository()
+        repo.replaceSource("tv", listOf(item("nuvio-1")))
+        repo.replaceSource("rss", listOf(item("video-1", pkg = "app.b", source = "rss")))
+        repo.replaceSource("tv", emptyList())
+        assertEquals(listOf("video-1"), repo.snapshot().map { it.contentId })
+        assertEquals(listOf("rss"), repo.snapshot().map { it.sourceId })
+    }
 }

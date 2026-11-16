@@ -74,4 +74,34 @@ class LauncherWorkspaceNavigationTest {
             "com.spotify.tv.android", null, false, "content"))
     }
 
+
+    @Test fun backFromContentRestoresRailBeforeResettingDestination() {
+        val focused = LauncherWorkspaceNavigation.State(
+            destination = LauncherWorkspaceNavigation.Destination.SETTINGS,
+            railFocused = false,
+            contentFocusKey = "settings/theme",
+        )
+        val onRail = LauncherWorkspaceNavigation.back(focused)
+        assertEquals(true, onRail.railFocused)
+        assertEquals(LauncherWorkspaceNavigation.Destination.SETTINGS, onRail.destination)
+        assertEquals("settings/theme", onRail.contentFocusKey)
+        assertEquals(LauncherWorkspaceNavigation.State(), LauncherWorkspaceNavigation.back(onRail))
+    }
+
+    @Test fun railDestinationChangeClearsPreviousContentFocusWithoutEnteringEmptyPane() {
+        val previous = LauncherWorkspaceNavigation.State(
+            destination = LauncherWorkspaceNavigation.Destination.ALL_APPS,
+            railFocused = false,
+            contentFocusKey = "app.example",
+        )
+        val selected = LauncherWorkspaceNavigation.focusRail(
+            previous, LauncherWorkspaceNavigation.Destination.VPN)
+        assertEquals(true, selected.railFocused)
+        assertEquals(LauncherWorkspaceNavigation.Destination.VPN, selected.destination)
+        assertNull(selected.contentFocusKey)
+        assertEquals(LauncherWorkspaceNavigation.Action.SHOW_CONTENT,
+            LauncherWorkspaceNavigation.focusAction(previous,
+                LauncherWorkspaceNavigation.Destination.VPN))
+        assertEquals(selected, LauncherWorkspaceNavigation.right(selected, false))
+    }
 }
