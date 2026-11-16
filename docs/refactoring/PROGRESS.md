@@ -1,6 +1,6 @@
 # Plume Launcher Advanced – Refactoring PROGRESS
 
-**Status:** M0 **PASS**, PR #51 von Nutzerauftrag aus gemergt als `a438073d3a6150d16efbfbc017df4910fb5f516f`; abschließende M0-CI [Run 43936635601](https://github.com/Justify87/Plume_Launcher/actions/runs/43936635601) **SUCCESS**. M1 im eigenen Branch in Bearbeitung, **CI PENDING**; M2–M7 NOT_STARTED.
+**Aktueller Status:** M0, M1 und M2 gemergt (#51, #52, #53). **M3** im eigenen Branch und PR #55: Source-/Projection-/Poster-Extraktionen umgesetzt, eigene JVM-Grenzfalltests ergänzt; **CI PENDING**, Geräteabnahme **NOT_TESTED**. M4–M7 NOT_STARTED. Ältere Meilensteinabschnitte darunter sind historische Prüfstände.
 
 **Baseline:** `main` @ `e3c1a3eb78c85bb471d9012dd700b6efd81b44ce`. **Branch:** `refactor/m0-inventory-androidtest-20261116`. **Pull Request:** [#51](https://github.com/Justify87/Plume_Launcher/pull/51). **Letzter erfolgreich getesteter Code- und Quellreview-HEAD vor Dokumentationsabschluss:** `ffd18b0b5c9279fc228f4c4465357ccc084a652c`. **CI:** [Run 43881462010](https://github.com/Justify87/Plume_Launcher/actions/runs/43881462010) = `completed / success`. Aktuellen HEAD und neueren Status stets in den [PR Checks](https://github.com/Justify87/Plume_Launcher/pull/51/checks) prüfen.
 
@@ -80,3 +80,34 @@ Alle **PASS**-Aussagen beziehen sich auf [den tatsächlich erfolgreichen CI-Lauf
 - **Task-Register:** Historisches M0-Inventar 123/123, M2-Neudateien F124–F126 = **126 Task-Dateien**. F026/F067 aktualisiert; alle anderen Original-Tasks bleiben unverändert. Submodul, Build/CI-Konfiguration, Android-API, Signing, Layout, Features und Release unverändert.
 - **Vorläufiges Gate:** **PARTIAL bis PR-HEAD-CI und kritischer Diff-Zweitreview erfolgreich**. `testDebugUnitTest lintDebug assembleDebug compileDebugAndroidTestKotlin` und bestehende ADB-/Python-/Mullvad-ARM64-/R8-/APK-Checks: **PENDING**. AndroidTest-Lauf, Shield Pro, D-Pad/Focus, App-Paketwechsel, echter VPN-Tunnel: **NOT_TESTED**.
 - **Scope-Review:** Keine neue State-Kopie oder Executor. Die enge Extraktion lässt die API-/Prefs-/Intent-/Render-Verträge in ihren ursprünglichen Lebenszyklen; eine Komplettverschiebung von `launch` oder `renderSettings` wäre eine künstliche Callback-/Activity-Wrapper-Schicht. UI und Funktion sollen unverändert bleiben.
+
+---
+
+## M3 – Medienabfrage / Content-Pipeline (PR #55)
+
+**Basis:** `main` @ `2e05a0abddcaaf61137255cc3905c06cd2ace6b0` (M2 gemergt); **Branch:** `refactor/m3-media-pipeline-20261117`; **PR:** https://github.com/Justify87/Plume_Launcher/pull/55. M3 **PARTIAL bis finale CI und Review**.
+
+### Geprüfte Datei-/Architektur-Tasks
+
+- F026 → F127 `TvContractMediaReader.kt`: `readPrograms` und `appChannels` inklusive `Prog`, Fehler-/Null-/Sortier-/Publisher-Vertrag aus Activity extrahiert. F015 `AndroidTvMediaSource` weiterhin KEEP als unabhängige Channel-/Programm-Policy.
+- F026 → F128 `TvFeedProjection.kt`: `AndroidTvProgram`-Mapping, `selectNuvio`, `NuvioMediaProjector.project`, generische Medienklassifikation und zwei getrennte 20er-Limits. F027 `MediaFeedRepository` unveränderter Source-Snapshot-Owner, F029 `NuvioDashboardFeed` unverändert KEEP.
+- F026 → F129 `MediaPosterLoader.kt`: 3 Worker, Inflight-Set, 6-MiB-LruCache, Poster-Byte-/Sample-Decoding, UI-Handler/URI-Tag und `onTrimMemory`/`onDestroy`-Lifecycle als kohärente Einheit. Wallpaper-Thumbnailcache `thumbCache` bleibt bewusst separat in Activity.
+- F130 `TvFeedProjectionTest.kt`: vier JVM-Regressionsfälle für exakten Nuvio-Kanal/Publisher (inkl. fremdem Paket), `cw_off`, unbekannte Dauer/Prozent und `yt_new_on`-Gate. Bestands-Tests F059/F069/F070/F071/F085 sowie PR-CI weiterverwenden.
+- `FILE_TASKS`: historisch 123 + M2 3 + M3 4 = **130 eigenständige Tasks**, keine doppelten Pfade; tatsächliche F015/F026/F127–F130-Blobs und Zuständigkeiten ergänzt. A02, A04, A07 im `ARCHITECTURE_MAP` auf Ist-Zustand angepasst.
+
+### Scope / Verhaltensinvarianz
+
+Keine Änderung an `refreshWatchNext`-Trigger, `io.execute → ui.post`, Activity-eigenem Feed-/Failure-State, App-Start-/Intent-Policies (`openVDesignMedia`, `openWorkspaceMediaItem`), `YouTubeRssSource`, `YouTubeSubscriptions`, `MediaItem`, `MediaFeedRepository`, `NuvioMediaProjector`, UI-Layout/Fokus, Pref-Keys/Backup, Mullvad/Submodul, Versionsnummern, Signing oder CI-Konfiguration. Keine Security-/Feature-Nebenarbeit.
+
+### Test-/Review-Gate
+
+| Prüfung | Ergebnis |
+|---|---|
+| `./gradlew testDebugUnitTest lintDebug assembleDebug compileDebugAndroidTestKotlin` | **PENDING** – PR-HEAD-CI |
+| `sh tools/plume-install-test/run.sh`, Spotify-/Mullvad-Python-Tests | **PENDING** – PR-HEAD-CI |
+| Kombinierter Mullvad ARM64-Debug + unsigned R8-Release und APK-/Manifest-Checks | **PENDING** – PR-HEAD-CI |
+| AndroidTest-Ausführung, echte TvContract-Provider, Nuvio/SmartTube auf Shield Pro, Poster-/Fokus-/VPN-Hardware | **NOT_TESTED** |
+
+**Kritischer Zweitreview (selbst, nicht extern unabhängig):** Transfer auf Quelltext-/Diff-Ebene verglichen: einzelne Reader-Methoden ohne zusätzlichen Worker/State; Projektion erzeugt dieselben `AndroidTvProgram`-Metadaten mit denselben `mapIndexed`-Indizes und 20er-Grenzen; Poster-Cache und Shutdown gemeinschaftlich verlagert, `tag==uri` geschützt. Der bisherige `MainActivity`-OpenStream bleibt von anderen Featurebereichen nutzbar. Noch **kein** Hardware- oder CI-PASS behauptet.
+
+**Nächster Task:** finale PR-CI auf demselben HEAD abwarten und Fehler ursachenbezogen im selben PR beheben; nach gesamtem PASS PR reviewbereit markieren, **nicht mergen**. Kein M4 vor M3-Merge.
