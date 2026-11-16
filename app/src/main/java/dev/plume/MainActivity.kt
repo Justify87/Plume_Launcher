@@ -2424,22 +2424,18 @@ class MainActivity : ComponentActivity() {
         }
         val on = { b: Boolean -> getString(if (b) R.string.on else R.string.off) }
         if (at in WALLPAPER_KEYS) return pickWallpaper(dark)
-        val sections = listOf(
-            Triple(R.string.section_style, "${rows[R.string.theme]!!.second} · ${getString(glassName())}",
-                listOf(R.string.theme, R.string.glass, R.string.app_animations)),
-            Triple(R.string.section_applications, rows[R.string.sort_apps]!!.second,
-                listOf(R.string.sort_apps, R.string.icon_style, R.string.sidebar_color_icons)),
-            Triple(R.string.section_tv_media, rows[R.string.cw_channels]!!.second,
-                listOf(R.string.cw_apps, R.string.cw_channels)),
-            Triple(R.string.section_clock_weather,
-                if (weather == "off") on(false) else "${rows[R.string.weather_units]!!.second} · ${prefs.getString("geo_city", null) ?: rows[R.string.weather_location]!!.second}",
-                listOf(R.string.weather, R.string.weather_units, R.string.weather_location)),
-            Triple(R.string.section_screensaver, rows[R.string.screensaver]!!.second,
-                listOf(R.string.screensaver, R.string.test_screensaver, R.string.screensaver_timing)),
-            Triple(R.string.section_remote_home, if (homeSetUp()) getString(R.string.home_button) else on(false),
-                listOfNotNull(R.string.home_button, R.string.default_launcher.takeIf { !googleTv() && !fireTv() },
-                    R.string.smooth_volume.takeIf { !fireTv() }, R.string.section_keys, R.string.setup_home)),
-        )
+        val sections = LauncherSettingsSections.layout(googleTv(), fireTv()).map { (key, keys) ->
+            Triple(key, when (key) {
+                R.string.section_style -> "${rows[R.string.theme]!!.second} · ${getString(glassName())}"
+                R.string.section_applications -> rows[R.string.sort_apps]!!.second
+                R.string.section_tv_media -> rows[R.string.cw_channels]!!.second
+                R.string.section_clock_weather ->
+                    if (weather == "off") on(false) else "${rows[R.string.weather_units]!!.second} · ${prefs.getString("geo_city", null) ?: rows[R.string.weather_location]!!.second}"
+                R.string.section_screensaver -> rows[R.string.screensaver]!!.second
+                R.string.section_remote_home -> if (homeSetUp()) getString(R.string.home_button) else on(false)
+                else -> ""
+            }, keys)
+        }
         val section = sections.firstOrNull { at in it.third }
         if (section != null) {
             lastSettings = section.first
