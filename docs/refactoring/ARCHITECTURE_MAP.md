@@ -129,3 +129,19 @@
 **Charakterisierung M1:** F068 ergänzt Back-Content→Rail→Home und Wechsel von Pane mit altem Focus-Key; F069 ergänzt defensive Producer-Listen/Alias-Snapshot-Kopie, stabile alte Snapshots sowie unabhängiges Löschen einer Quelle. Diese JVM-Tests behaupten **keine** Activity-/Service-/TV-Hardware-Integration.
 
 **Zweitreview:** Alle empfohlenen neuen Fachklassen sind nur optional und müssen vor M2–M6 anhand echten Diffs begründet sein. KEEP ist vollwertig. Keine Sicherheits-, Dependency-, UI- oder Build-Neugestaltung.
+
+
+---
+
+## M2 – Apps und Launcher-Einstellungen (auf M1-Merge `b02d08ec2e8583074fff087f9e7d148abcb5de1c`)
+
+| Verantwortung | Source → Target und State-Besitz | Unveränderter Vertrag / Nachweis |
+|---|---|---|
+| PackageManager TV-/Phone-App-Ermittlung, Icon-Reload | F026 privates `App` und `loadApps` → F124 `LauncherAppCatalog.installed` und top-level `App`. **Kein eigener Katalog-State**. `MainActivity` besitzt weiterhin `apps/sources/APPS/SOURCES`, `appsDirty`, PackageReceiver, `io.execute` und `ui.post`. | LEANBACK-Kategorie vor LAUNCHER, `distinctBy(packageName)`, exakte ComponentName- und Intent-Flags, Filter für eigene App und TV-Settings, schwache Drawable-Referenz mit identischem Loader. Tests F067 für TV-Kategorie; physische installierte Varianten NOT_TESTED. |
+| App-Sortierung | F026 `sortedApps` → reine Sortierpolicy F124 mit Inputs `listed()`, gespeicherter Sortmodus, Reihenfolge, Defaults, HDMI-Präfix und bisherigem Nutzungszähler aus Prefs. | Manual: Order-Index, ungeordnete HDMI-Einträge -1, Default-Rang, Label. Usage: Nutzungszähler absteigend, Default-/Label-Ties. Kein neues State-Feld/Cache, F067 JVM-Testfälle inklusive Paketvarianten. |
+| Einstellungen-Sektionsstruktur | F026 `renderSettings`-Liste → F125 `LauncherSettingsSections.layout`, keine neuen UI-Komponenten. Activity erzeugt weiterhin Beschriftungen, `showPage`, `RowStyle`, `steps`, `lastSettings`, `pageExit` und alle Actions. | Originale sechs Sections und Zeilenreihenfolge; Google TV blendet Default-Launcher aus, Fire TV zusätzlich Smooth Volume. F126 Charakterisierungstest. Kein neue Pane oder Navigation-Owner. |
+| App-Start, Icon-UI, PIN, SettingsTransfer | **KEEP** F026 `launch/startApp`, `vDesignAppIcon`, `appPictures`, `renderSettings` UI-Callbacks und PIN/Unlock/Focus; F017 `AppPictures` und F034 `SettingsTransfer`. | Launcher ist der einzige Activity-/Intent-/Fokus-Owner; Usage-`n_`-/`t_`-Keys, fallback-Intent, installierte Variante und HDMI/Input-Dispatch unverändert. Preferences-Name `home`, Layout-Sperre, Backup/Restore v1 und Icon-/Banner-Pfade unverändert; weitergehender Move würde diese Callback-Grenzen künstlich aufteilen. |
+
+**Thread- und Lifecycle-Invarianz:** Neues F124/F125 besitzen weder Executor, `Handler`, Receiver noch mutable App-/Settings-Daten. Bestehende `refreshApps`-Reihenfolge: `appsDirty=false` → `io.execute { F124.installed; hdmiInputs }` → `ui.post` (Destroy-Check, Input-Migration, State-Update, `refreshVisibleApps`). `launch` und `renderSettings` behalten bisherige Seite-/Fokus-/PIN-Callbacks auf UI-Thread.
+
+**M2-Regression:** F067 `LauncherAppsTest` (neu manuell/usage/HDMI/Paketidentität) und F126 `LauncherSettingsSectionsTest`; bestehende `IconStyleTest`, `PinTest`, `SettingsTransferTest`, `AppPicturesCheck` sowie volle integrierte CI bleiben aktiv. AndroidTest nur Kompilation in CI; Shield-Pro/Fokus-/Paketwechsel-Tests `NOT_TESTED`. **Keine neue UI, keine Verschiebung des echten App-Starts/Settings-Renderer-Lifecycles.**
