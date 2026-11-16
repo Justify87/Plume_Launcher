@@ -9,7 +9,6 @@ import android.graphics.Color
 import android.media.ExifInterface
 import android.os.SystemClock
 import android.view.ViewGroup
-import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.TextView
 import java.io.File
@@ -110,23 +109,26 @@ class AppPicturesCheck(private val runner: Instrumentation) {
             prefs.edit().putBoolean("setup_shown", true).remove("lock_pin").putString("icon_style", "colour").commit()
             val app = startActivitySync(Intent(targetContext, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) as MainActivity
             home = app
-            val row = app.findViewById<ViewGroup>(R.id.appRow)
-            await { row.childCount > 0 }
-            val pkg = row.getChildAt(0).tag as String
-            val name = row.getChildAt(0).contentDescription.toString()
+            val grid = app.findViewById<ViewGroup>(R.id.allAppsGrid)
+            val openApps = MainActivity::class.java.getDeclaredMethod("openAllApps").apply { isAccessible = true }
+            runOnMainSync { openApps.invoke(app) }
+            await { grid.childCount > 0 }
+            val pkg = grid.getChildAt(0).tag as String
+            val name = grid.getChildAt(0).contentDescription.toString()
             for (banner in listOf(false, true)) {
                 val file = AppPictures.file(targetContext, pkg, banner)
                 originals[file] = file.takeIf { it.exists() }?.readBytes()
             }
-            val count = row.childCount
+            val count = grid.childCount
             val list = app.findViewById<ViewGroup>(R.id.settingsList)
             val upload = MainActivity::class.java.getDeclaredField("upload").apply { isAccessible = true }
             val pictures = MainActivity::class.java.getDeclaredMethod("appPictures", String::class.java, String::class.java).apply { isAccessible = true }
-            val render = MainActivity::class.java.getDeclaredMethod("renderApps").apply { isAccessible = true }
-            runOnMainSync { row.getChildAt(0).requestFocus(); pictures.invoke(app, pkg, name) }
+            val render = MainActivity::class.java.getDeclaredMethod("renderAllAppsPane", Boolean::class.javaPrimitiveType).apply { isAccessible = true }
+            runOnMainSync { grid.getChildAt(0).requestFocus(); pictures.invoke(app, pkg, name) }
             await { app.findViewById<TextView>(R.id.settingsTitle).text.toString() == targetContext.getString(R.string.change_app_picture) }
-            for (banner in listOf(false, true)) {
-                runOnMainSync { list.getChildAt(if (banner) 1 else 0).performClick() }
+            for (banner in listOf(false)) {
+                runOnMainSync { list.getChildAt(0).performClick() }
+                await { upload.get(app) != null }
                 val server = upload.get(app) as UploadServer
                 val response = Socket("127.0.0.1", server.port).use { socket ->
                     socket.soTimeout = 5_000
@@ -140,13 +142,13 @@ class AppPicturesCheck(private val runner: Instrumentation) {
                 check(response.startsWith("HTTP/1.1 200")) { response }
                 waitForIdleSync()
                 check(AppPictures.file(targetContext, pkg, banner).exists())
-                check(row.childCount == count && row.getChildAt(0).tag == pkg) { "Upload changed the app row" }
-                check(row.getChildAt(0).contentDescription.toString() == name)
+                check(grid.childCount == count && grid.getChildAt(0).tag == pkg) { "Upload changed the app grid" }
+                check(grid.getChildAt(0).contentDescription.toString() == name)
                 if (!banner) {
                     for (style in listOf("mono", "colour")) {
                         prefs.edit().putString("icon_style", style).commit()
-                        runOnMainSync { render.invoke(app) }
-                        val image = (row.getChildAt(0) as ViewGroup).getChildAt(0) as ImageView
+                        runOnMainSync { render.invoke(app, true) }
+                        val image = (grid.getChildAt(0) as ViewGroup).getChildAt(0) as ImageView
                         check((image.drawable.colorFilter != null) == (style == "mono")) { "Uploaded icon ignored $style style" }
                     }
                 }
@@ -154,9 +156,9 @@ class AppPicturesCheck(private val runner: Instrumentation) {
                 check(upload.get(app) == null) { "Done left the server running" }
             }
             prefs.edit().putString("icon_style", "banner").commit()
-            runOnMainSync { render.invoke(app) }
-            check(row.getChildAt(0) is FrameLayout) { "Custom banner did not use the banner tile" }
-            runOnMainSync { list.getChildAt(2).performClick() }
+            runOnMainSync { render.invoke(app, true) }
+            check(grid.getChildAt(0).tag == pkg) { "Banner style changed the app selection" }
+            runOnMainSync { list.getChildAt(1).performClick() }
             check(listOf(false, true).none { AppPictures.file(targetContext, pkg, it).exists() }) { "Reset left custom pictures" }
             runOnMainSync { app.onBackPressed() }
             check(app.currentFocus?.tag == pkg) { "Closing the page lost the app selection" }
