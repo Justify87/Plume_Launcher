@@ -28,7 +28,7 @@ class SettingsTransferCheck(private val runner: Instrumentation) {
             check(prefs.getInt("wp_every", 0) == 15)
             check(prefs.getFloat("geo_lat", 0f) == 51.5f)
             check(prefs.getStringSet("row_hidden", emptySet()) == setOf("missing.app"))
-            check(!prefs.contains("clock_style")) { "Missing supported setting did not reset" }
+            check(prefs.getString("clock_style", null) == "bold") { "Restore changed an unrelated local setting" }
             check(prefs.getString("lock_pin", null) == "destination-secret")
             check(prefs.getBoolean("setup_shown", false))
             check(prefs.getString("ss_folder", null) == "local-folder")
@@ -36,7 +36,7 @@ class SettingsTransferCheck(private val runner: Instrumentation) {
             val before = prefs.all
             for (bad in listOf("{", "{}", "[]", bytes.toString(Charsets.UTF_8) + "garbage",
                 "{\"format\":\"plume-settings\",\"version\":2,\"settings\":{}}",
-                "{\"format\":\"plume-settings\",\"version\":1,\"settings\":{\"clock_style\":\"bad\"}}",
+                "{\"format\":\"plume-settings\",\"version\":1,\"settings\":{\"theme\":\"invalid\"}}",
                 "{\"format\":\"plume-settings\",\"version\":1,\"settings\":{\"app_anim\":null}}")) {
                 file.writeText(bad)
                 fails { SettingsTransfer.restore(prefs, SettingsTransfer.load(file)) }
@@ -45,7 +45,7 @@ class SettingsTransferCheck(private val runner: Instrumentation) {
             fails { SettingsTransfer.decode(ByteArray(65_537)) }
             fails { SettingsTransfer.decode(("[".repeat(100) + "]".repeat(100)).toByteArray()) }
             SettingsTransfer.save(file, original)
-            fails { SettingsTransfer.save(file, mapOf("clock_size" to "999")) }
+            fails { SettingsTransfer.save(file, mapOf("wp_every" to 999)) }
             check(SettingsTransfer.load(file) == original) { "Failed save destroyed previous backup" }
             file.delete()
             fails { SettingsTransfer.load(file) }
