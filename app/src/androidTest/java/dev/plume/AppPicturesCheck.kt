@@ -126,35 +126,35 @@ class AppPicturesCheck(private val runner: Instrumentation) {
             val render = MainActivity::class.java.getDeclaredMethod("renderAllAppsPane", Boolean::class.javaPrimitiveType).apply { isAccessible = true }
             runOnMainSync { grid.getChildAt(0).requestFocus(); pictures.invoke(app, pkg, name) }
             await { app.findViewById<TextView>(R.id.settingsTitle).text.toString() == targetContext.getString(R.string.change_app_picture) }
-            for (banner in listOf(false)) {
-                runOnMainSync { list.getChildAt(0).performClick() }
-                await { upload.get(app) != null }
-                val server = upload.get(app) as UploadServer
-                val response = Socket("127.0.0.1", server.port).use { socket ->
-                    socket.soTimeout = 5_000
-                    socket.getOutputStream().apply {
-                        write("POST /${server.code} HTTP/1.1\r\nHost: localhost\r\nContent-Type: image/png\r\nContent-Length: ${png.size}\r\n\r\n".toByteArray())
-                        write(png)
-                        flush()
-                    }
-                    socket.getInputStream().bufferedReader().readText()
+            runOnMainSync { list.getChildAt(0).performClick() }
+            await { upload.get(app) != null }
+            val server = upload.get(app) as UploadServer
+            val response = Socket("127.0.0.1", server.port).use { socket ->
+                socket.soTimeout = 5_000
+                socket.getOutputStream().apply {
+                    write("POST /${server.code} HTTP/1.1\r\nHost: localhost\r\nContent-Type: image/png\r\nContent-Length: ${png.size}\r\n\r\n".toByteArray())
+                    write(png)
+                    flush()
                 }
-                check(response.startsWith("HTTP/1.1 200")) { response }
-                waitForIdleSync()
-                check(AppPictures.file(targetContext, pkg, banner).exists())
-                check(grid.childCount == count && grid.getChildAt(0).tag == pkg) { "Upload changed the app grid" }
-                check(grid.getChildAt(0).contentDescription.toString() == name)
-                if (!banner) {
-                    for (style in listOf("mono", "colour")) {
-                        prefs.edit().putString("icon_style", style).commit()
-                        runOnMainSync { render.invoke(app, true) }
-                        val image = (grid.getChildAt(0) as ViewGroup).getChildAt(0) as ImageView
-                        check((image.drawable.colorFilter != null) == (style == "mono")) { "Uploaded icon ignored $style style" }
-                    }
-                }
-                runOnMainSync { list.getChildAt(list.childCount - 1).performClick() }
-                check(upload.get(app) == null) { "Done left the server running" }
+                socket.getInputStream().bufferedReader().readText()
             }
+            check(response.startsWith("HTTP/1.1 200")) { response }
+            waitForIdleSync()
+            check(AppPictures.file(targetContext, pkg, false).exists())
+            check(grid.childCount == count && grid.getChildAt(0).tag == pkg) {
+                "Upload changed the app grid"
+            }
+            check(grid.getChildAt(0).contentDescription.toString() == name)
+            for (iconStyle in listOf("mono", "colour")) {
+                prefs.edit().putString("icon_style", iconStyle).commit()
+                runOnMainSync { render.invoke(app, true) }
+                val image = (grid.getChildAt(0) as ViewGroup).getChildAt(0) as ImageView
+                check((image.drawable.colorFilter != null) == (iconStyle == "mono")) {
+                    "Uploaded icon ignored $iconStyle style"
+                }
+            }
+            runOnMainSync { list.getChildAt(list.childCount - 1).performClick() }
+            check(upload.get(app) == null) { "Done left the server running" }
             prefs.edit().putString("icon_style", "banner").commit()
             runOnMainSync { render.invoke(app, true) }
             check(grid.getChildAt(0).tag == pkg) { "Banner style changed the app selection" }
