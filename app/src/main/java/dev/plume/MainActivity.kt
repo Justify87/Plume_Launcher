@@ -3184,7 +3184,7 @@ class MainActivity : ComponentActivity() {
 
     private fun sortedApps(): List<App> = LauncherAppCatalog.sorted(
         listed(), { it.pkg }, { it.label }, prefs.getString("sort", "manual"),
-        prefs.getString("order", "")!!.split(','), DEFAULT_ORDER, HDMI,
+        { prefs.getString("order", "")!!.split(',') }, DEFAULT_ORDER, HDMI,
         { pkg -> prefs.getInt("n_" + pkg, 0) },
     )
 
