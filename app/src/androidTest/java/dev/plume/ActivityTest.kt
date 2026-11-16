@@ -144,7 +144,7 @@ class ActivityTest : Instrumentation() {
         val result = Bundle().apply {
             putString("class", this@ActivityTest.javaClass.name)
             putString("test", name)
-            putInt("numtests", if (previewOnly || transferOnly || muteOnly) 1 else 11)
+            putInt("numtests", if (previewOnly || transferOnly || muteOnly || picturesOnly) 1 else 11)
             putInt("current", ++current)
         }
         sendStatus(1, result)
