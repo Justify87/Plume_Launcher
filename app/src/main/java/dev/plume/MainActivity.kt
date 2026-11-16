@@ -3141,20 +3141,16 @@ class MainActivity : ComponentActivity() {
 
     private fun loadApps(): List<App> {
         val pm = packageManager
-        fun query(category: String) = pm.queryIntentActivities(Intent(Intent.ACTION_MAIN).addCategory(category), 0)
-            .map { it.activityInfo to category }
-        return preferTvApps(query(Intent.CATEGORY_LEANBACK_LAUNCHER), query(Intent.CATEGORY_LAUNCHER)) { it.first.packageName }
-            .filter { (a, _) -> a.packageName != packageName && a.packageName != TV_SETTINGS }
-            .map { (a, category) ->
-                App(
-                    a.packageName,
-                    a.loadLabel(pm).toString(),
-                    Intent(Intent.ACTION_MAIN).addCategory(category)
-                        .setComponent(ComponentName(a.packageName, a.name)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-                    a.loadIcon(pm),
-                    load = { a.loadIcon(pm) },
-                )
-            }
+        return LauncherAppCatalog.query(pm, packageName, TV_SETTINGS).map { (a, category) ->
+            App(
+                a.packageName,
+                a.loadLabel(pm).toString(),
+                Intent(Intent.ACTION_MAIN).addCategory(category)
+                    .setComponent(ComponentName(a.packageName, a.name)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                a.loadIcon(pm),
+                load = { a.loadIcon(pm) },
+            )
+        }
     }
 
     private fun hdmiInputs(): List<App> = try {
