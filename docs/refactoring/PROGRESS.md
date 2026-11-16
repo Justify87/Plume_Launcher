@@ -66,3 +66,14 @@ Alle **PASS**-Aussagen beziehen sich auf [den tatsächlich erfolgreichen CI-Lauf
 **Kritischer eigener Zweitreview (nicht extern unabhängig):** Tests prüfen vorhandene Policy-/Snapshot-Contracts und ändern keine UI-Pfade. M1 dokumentiert Eigentums-/Shutdown-Reihenfolgen statt neue State-Duplikate einzubauen. Die weitergehenden Geräte-/Callback-Integrationstests wurden **nicht** erfunden oder als PASS bezeichnet. Keine neuen Features, keine Security-Aufgaben, kein Dependency- oder Signing-Umbau. M2 bleibt bis M1-Gate und Maintainer-Merge gesperrt.
 
 **Nächster eindeutiger Schritt:** M1-PR eröffnen, genau dessen HEAD gegen bestehenden CI-Gesamtlauf prüfen, bei Fehlschlägen denselben PR korrigieren; finalen CI-SHA/Run in PR und diesem Fortschrittsregister dokumentieren. M1 **PASS** erst nach grünem Gate. 
+
+## M2 – Apps und Launcher-Einstellungen (laufend)
+
+**Basis:** M1 in main gemergt, Merge-Commit `b02d08ec2e8583074fff087f9e7d148abcb5de1c`. **PR:** [#54](https://github.com/Justify87/Plume_Launcher/pull/54), zunächst Draft.
+
+- App-Installationsermittlung/Leanback-Präferenz/Paketfilter aus `MainActivity.loadApps` nach `LauncherAppCatalog.query/select` verlagert. `MainActivity` behält `App`-Objekterzeugung und Launcher-Intents sowie den bestehenden IO→UI-Callback-Owner.
+- Sortierung aus `MainActivity.sortedApps` nach `LauncherAppOrder.sort` extrahiert. Originale Preference-Keys `sort`, `order`, `n_<pkg>`, `inputs_pinned` sowie HDMI-Sonderfall bleiben erhalten. Keine konkurrierende App-State-Quelle.
+- Vier neue JVM-Tests in `LauncherAppCatalogTest` und `LauncherAppOrderTest` für TV-Variantenpriorität, Paketfilter, manuelle/HDMI- und Nutzungs-Sortierung.
+- `AppPictures`, `SettingsTransfer`, PIN, App-Start, Settings-Pane, Fokus, Bilddateien und Layout vorerst **KEEP**: die verbleibende Extraktion nur nach zielgerichtetem Vertragstest. Keine UI-/VPN-/Security-/Build-Änderung.
+
+**Gate:** PARTIAL bis finaler CI-/Diff-Zweitreview und gegebenenfalls weiterer M2-Tranchen. AndroidTest-Ausführung/Shield/VPN-Tunnel: NOT_TESTED.
