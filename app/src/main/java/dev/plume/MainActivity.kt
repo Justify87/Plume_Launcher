@@ -3208,17 +3208,16 @@ class MainActivity : ComponentActivity() {
         Toast.makeText(this, getString(if (on) R.string.input_added else R.string.input_removed), Toast.LENGTH_SHORT).show()
     }
 
-    private fun sortedApps(): List<App> {
-        val byDefault = compareBy<App> { DEFAULT_ORDER.indexOf(it.pkg).let { i -> if (i < 0) Int.MAX_VALUE else i } }
-            .thenBy { it.label.lowercase() }
-        if (prefs.getString("sort", "manual") == "usage") {
-            return listed().sortedWith(compareByDescending<App> { prefs.getInt("n_" + it.pkg, 0) }.then(byDefault))
-        }
-        val order = prefs.getString("order", "")!!.split(',')
-        return listed().sortedWith(compareBy<App> {
-            order.indexOf(it.pkg).let { i -> if (i >= 0) i else if (it.pkg.startsWith(HDMI)) -1 else Int.MAX_VALUE }
-        }.then(byDefault))
-    }
+    private fun sortedApps(): List<App> = LauncherAppOrder.sort(
+        apps = listed(),
+        mode = prefs.getString("sort", "manual"),
+        manualOrder = prefs.getString("order", "")!!.split(','),
+        defaultOrder = DEFAULT_ORDER,
+        hdmiPrefix = HDMI,
+        packageName = { it.pkg },
+        label = { it.label },
+        usageCount = { prefs.getInt("n_" + it.pkg, 0) },
+    )
 
     private fun rowAlign() = prefs.getString("row_align", "left")!!.takeIf { it in ROW_ALIGN } ?: "left"
 
