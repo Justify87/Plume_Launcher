@@ -65,4 +65,18 @@ Alle **PASS**-Aussagen beziehen sich auf [den tatsächlich erfolgreichen CI-Lauf
 
 **Kritischer eigener Zweitreview (nicht extern unabhängig):** Tests prüfen vorhandene Policy-/Snapshot-Contracts und ändern keine UI-Pfade. M1 dokumentiert Eigentums-/Shutdown-Reihenfolgen statt neue State-Duplikate einzubauen. Die weitergehenden Geräte-/Callback-Integrationstests wurden **nicht** erfunden oder als PASS bezeichnet. Keine neuen Features, keine Security-Aufgaben, kein Dependency- oder Signing-Umbau. M2 bleibt bis M1-Gate und Maintainer-Merge gesperrt.
 
-**Nächster eindeutiger Schritt:** M1-PR eröffnen, genau dessen HEAD gegen bestehenden CI-Gesamtlauf prüfen, bei Fehlschlägen denselben PR korrigieren; finalen CI-SHA/Run in PR und diesem Fortschrittsregister dokumentieren. M1 **PASS** erst nach grünem Gate. 
+**Nächster eindeutiger Schritt:** M1-PR eröffnen, genau dessen HEAD gegen bestehenden CI-Gesamtlauf prüfen, bei Fehlschlägen denselben PR korrigieren; finalen CI-SHA/Run in PR und diesem Fortschrittsregister dokumentieren. M1 **PASS** erst nach grünem Gate.
+
+
+---
+
+## M2 – Apps / Launcher-Einstellungen (PR #53)
+
+**Basis:** `main` @ `b02d08ec2e8583074fff087f9e7d148abcb5de1c` (M1-Merge PR #52). **Branch:** `refactor/m2-app-catalog-settings-20261116`. **PR:** https://github.com/Justify87/Plume_Launcher/pull/53.
+
+- **F026 → F124:** App-Klassenmodell mit schwachem Icon-Reload und stateless `PackageManager`-TV-/Phone-Ermittlung sowie manuelle/usage/Default/HDMI-Sortierung aus `MainActivity` ausgelagert. Activity hält unverändert Apps/HDMI-Sources als Single State Owner, `appsDirty`, `io→ui`-Delivery, Start-/Fallback-Intent, Launch-Stats, Fokus und UI.
+- **F026 → F125:** feste Settings-Struktur (6 Sektionen, TV-/Fire-abhängige Zeilen) extrahiert; alle `renderSettings`-Beschriftungen, `RowStyle`, `showPage`, `pageExit`, PIN-/Backup-Callbacks und Preferences im bestehenden Activity-Lifecycle. **F017 AppPictures, F034 SettingsTransfer, PIN, Icon-UI, tatsächlicher App-Start: KEEP**; Verschieben würde ohne Mehrwert den State-/Callback-Besitz aufteilen.
+- **F067 und F126:** drei zusätzliche Tests für Package-Sortierung/Variante sowie zwei neue Tests für Settings-Zeilen/Section-Order. Vorhandene Tests unverändert belassen.
+- **Task-Register:** Historisches M0-Inventar 123/123, M2-Neudateien F124–F126 = **126 Task-Dateien**. F026/F067 aktualisiert; alle anderen Original-Tasks bleiben unverändert. Submodul, Build/CI-Konfiguration, Android-API, Signing, Layout, Features und Release unverändert.
+- **Vorläufiges Gate:** **PARTIAL bis PR-HEAD-CI und kritischer Diff-Zweitreview erfolgreich**. `testDebugUnitTest lintDebug assembleDebug compileDebugAndroidTestKotlin` und bestehende ADB-/Python-/Mullvad-ARM64-/R8-/APK-Checks: **PENDING**. AndroidTest-Lauf, Shield Pro, D-Pad/Focus, App-Paketwechsel, echter VPN-Tunnel: **NOT_TESTED**.
+- **Scope-Review:** Keine neue State-Kopie oder Executor. Die enge Extraktion lässt die API-/Prefs-/Intent-/Render-Verträge in ihren ursprünglichen Lebenszyklen; eine Komplettverschiebung von `launch` oder `renderSettings` wäre eine künstliche Callback-/Activity-Wrapper-Schicht. UI und Funktion sollen unverändert bleiben.
