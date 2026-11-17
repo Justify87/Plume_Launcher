@@ -1668,7 +1668,7 @@ class MainActivity : ComponentActivity() {
         val allScenes = videoScenes(this)
         val currentScene = allScenes.firstOrNull { "video:${it.file}" == current }
         val files = dir.listFiles { f -> f.extension.equals("mp4", true) }?.sortedBy { it.name } ?: emptyList()
-        val own = WallpaperVideoFiles.personal(dir, allScenes)
+        val own = WallpaperVideoFiles.personal(files, allScenes)
         val keepOne = prefs.getBoolean("video_keep_one", false)
 
 
