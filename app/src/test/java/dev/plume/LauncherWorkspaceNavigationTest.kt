@@ -8,19 +8,19 @@ class LauncherWorkspaceNavigationTest {
     @Test fun sidebarKeysRoundTripThroughSingleNavigationDestinationPolicy() {
         val nav = LauncherWorkspaceNavigation
         val routes = listOf(
-            VDesignHomeView.OVERVIEW to nav.Destination.HOME,
-            VDesignHomeView.NUVIO to nav.Destination.NUVIO,
-            VDesignHomeView.SMARTTUBE to nav.Destination.SMARTTUBE,
-            VDesignHomeView.SPOTIFY to nav.Destination.SPOTIFY,
-            VDesignHomeView.ALL_APPS to nav.Destination.ALL_APPS,
-            VDesignHomeView.SETTINGS to nav.Destination.SETTINGS,
-            VDesignHomeView.VPN to nav.Destination.VPN,
+            VDesignHomeView.OVERVIEW to LauncherWorkspaceNavigation.Destination.HOME,
+            VDesignHomeView.NUVIO to LauncherWorkspaceNavigation.Destination.NUVIO,
+            VDesignHomeView.SMARTTUBE to LauncherWorkspaceNavigation.Destination.SMARTTUBE,
+            VDesignHomeView.SPOTIFY to LauncherWorkspaceNavigation.Destination.SPOTIFY,
+            VDesignHomeView.ALL_APPS to LauncherWorkspaceNavigation.Destination.ALL_APPS,
+            VDesignHomeView.SETTINGS to LauncherWorkspaceNavigation.Destination.SETTINGS,
+            VDesignHomeView.VPN to LauncherWorkspaceNavigation.Destination.VPN,
         )
         for ((key, destination) in routes) {
             assertEquals(destination, nav.destinationForKey(key))
             assertEquals(key, nav.keyForDestination(destination))
         }
-        assertEquals(nav.Destination.HOME, nav.destinationForKey("unknown"))
+        assertEquals(LauncherWorkspaceNavigation.Destination.HOME, nav.destinationForKey("unknown"))
     }
 
     @Test fun railFocusImmediatelySelectsContentWithoutOk() {
