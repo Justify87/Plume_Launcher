@@ -17,6 +17,26 @@ internal object LauncherWorkspaceNavigation {
         val contentFocusKey: String? = null,
     )
 
+    fun destinationForKey(key: String): Destination = when (key) {
+        VDesignHomeView.NUVIO -> Destination.NUVIO
+        VDesignHomeView.SMARTTUBE -> Destination.SMARTTUBE
+        VDesignHomeView.SPOTIFY -> Destination.SPOTIFY
+        VDesignHomeView.ALL_APPS -> Destination.ALL_APPS
+        VDesignHomeView.SETTINGS -> Destination.SETTINGS
+        VDesignHomeView.VPN -> Destination.VPN
+        else -> Destination.HOME
+    }
+
+    fun keyForDestination(destination: Destination): String = when (destination) {
+        Destination.HOME -> VDesignHomeView.OVERVIEW
+        Destination.NUVIO -> VDesignHomeView.NUVIO
+        Destination.SMARTTUBE -> VDesignHomeView.SMARTTUBE
+        Destination.SPOTIFY -> VDesignHomeView.SPOTIFY
+        Destination.ALL_APPS -> VDesignHomeView.ALL_APPS
+        Destination.SETTINGS -> VDesignHomeView.SETTINGS
+        Destination.VPN -> VDesignHomeView.VPN
+    }
+
     fun focusRail(state: State, destination: Destination): State =
         state.copy(destination = destination, railFocused = true, contentFocusKey = null)
 
