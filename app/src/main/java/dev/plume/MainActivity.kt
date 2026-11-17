@@ -5124,36 +5124,11 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    /** TV channel discovery retains real channel ID, owner, provider ID and opt-in state. */
-    private fun appChannels(reportFailure: Boolean = false): List<TvPreviewChannel> = try {
-        val out = ArrayList<TvPreviewChannel>()
-        val cursor = contentResolver.query(TvContract.Channels.CONTENT_URI, null, null, null, null)
-        if (cursor == null && reportFailure) android.util.Log.w("Plume", "TV channels provider returned null")
-        cursor?.use { c ->
-            val name = c.getColumnIndex(TvContract.Channels.COLUMN_DISPLAY_NAME)
-            val pkg = c.getColumnIndex(TvContract.Channels.COLUMN_PACKAGE_NAME)
-            val id = c.getColumnIndex(TvContract.Channels._ID)
-            val provider = c.getColumnIndex(TvContract.Channels.COLUMN_INTERNAL_PROVIDER_ID)
-            val browsable = c.getColumnIndex(TvContract.Channels.COLUMN_BROWSABLE)
-            if (name >= 0 && pkg >= 0 && id >= 0) {
-                while (c.moveToNext()) {
-                    val p = if (c.isNull(pkg)) null else c.getString(pkg)
-                    val n = if (c.isNull(name)) null else c.getString(name)
-                    if (p.isNullOrBlank() || n == null || p == packageName || c.isNull(id)) continue
-                    out += TvPreviewChannel(c.getLong(id), p, n,
-                        if (provider < 0 || c.isNull(provider)) null else c.getString(provider),
-                        if (browsable < 0 || c.isNull(browsable)) null else c.getInt(browsable) == 1)
-                }
-            } else if (reportFailure) android.util.Log.w("Plume", "TV channels provider missing required columns")
-        }
-        out
-    } catch (e: Exception) {
-        if (reportFailure) {
+    /** Channel query failures remain visible to the existing refresh flow. */
+    private fun appChannels(reportFailure: Boolean = false): List<TvPreviewChannel> =
+        TvPreviewChannelSource.read(contentResolver, packageName, reportFailure) {
             tvFeedQueryFailed = true
-            android.util.Log.w("Plume", "TV channel discovery unavailable", e)
         }
-        emptyList()
-    }
 
     private fun channelKey(pkg: String, name: String) = "$pkg/$name"
 
