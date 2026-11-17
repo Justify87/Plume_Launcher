@@ -1346,55 +1346,12 @@ class MainActivity : ComponentActivity() {
         ui.postDelayed(folderRetryTask, delay)
     }
 
-    /**
-     * The first frame of a video wallpaper, shown until the video plays: the player takes a second to start (longer
-     * after a theme change recreates the screen), and the default picture in that second looked like a wrong
-     * wallpaper. The video starts at this same frame, so the switch does not show. Read once, then kept as a JPEG.
-     */
-    private fun videoPoster(video: File): Bitmap? {
-        val cache = File(cacheDir, "poster-${video.name}-${video.length()}-${video.lastModified()}.jpg")
-        if (cache.isFile) BitmapFactory.decodeFile(cache.path)?.let { return it }
-        val r = android.media.MediaMetadataRetriever()
-        return try {
-            r.setDataSource(video.path)
-            val at = android.media.MediaMetadataRetriever.OPTION_CLOSEST_SYNC
-            val frame = if (Build.VERSION.SDK_INT >= 27) r.getScaledFrameAtTime(0, at, resources.displayMetrics.widthPixels, resources.displayMetrics.heightPixels)
-                else r.getFrameAtTime(0, at)?.let { f -> // Android 8.0 has no scaled read: a 4K frame is 33 MB, shrink it
-                    val w = resources.displayMetrics.widthPixels
-                    if (f.width <= w) f else Bitmap.createScaledBitmap(f, w, maxOf(1, f.height * w / f.width), true).also { f.recycle() }
-                }
-            frame?.also { f ->
-                cacheDir.listFiles { f2 -> f2.name.startsWith("poster-") }?.forEach { it.delete() } 
-                cache.outputStream().use { f.compress(Bitmap.CompressFormat.JPEG, 90, it) }
-            }
-        } catch (e: Exception) {
-            null
-        } finally {
-            r.release()
-        }
-    }
+    private fun videoPoster(video: File): Bitmap? = VideoWallpaperArtwork.poster(
+        video, cacheDir, resources.displayMetrics.widthPixels, resources.displayMetrics.heightPixels,
+    )
 
-    /**
-     * Small frames of a video, one every 4 s (at most 30), read from the file, so the text colour can be one that reads
-     * on all of them: the screen cannot be read on TVs that play video on an overlay, and a colour that changed with
-     * the picture would flicker. ponytail: read again on every load (a few seconds, off the UI thread); cache if it shows.
-     */
-    private fun videoFrames(video: File, w: Int, h: Int): List<Bitmap> {
-        val r = android.media.MediaMetadataRetriever()
-        return try {
-            r.setDataSource(video.path)
-            val ms = r.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull() ?: 0L
-            val at = android.media.MediaMetadataRetriever.OPTION_CLOSEST_SYNC
-            (0L..ms step 4000L).take(30).mapNotNull { t ->
-                val f = if (Build.VERSION.SDK_INT >= 27) r.getScaledFrameAtTime(t * 1000, at, w * 4, h * 4) else r.getFrameAtTime(t * 1000, at)
-                f?.let { Bitmap.createScaledBitmap(it, w, h, true).also { s -> if (s !== it) it.recycle() } }
-            }
-        } catch (e: Exception) {
-            emptyList()
-        } finally {
-            r.release()
-        }
-    }
+    private fun videoFrames(video: File, w: Int, h: Int): List<Bitmap> =
+        VideoWallpaperArtwork.frames(video, w, h)
 
     private fun packFor(bundled: String) =
         packDir().listFiles { f -> f.isFile && packFileName(f.name) && packPhotoName(f.name) == bundled }?.firstOrNull()
@@ -1617,8 +1574,7 @@ class MainActivity : ComponentActivity() {
 
     private fun ownUploads(forDark: Boolean, scenes: List<VideoScene>): List<Pair<String, File?>> {
         val photos = wallpaperChoices(forDark).filter { it.second.startsWith("file:") }.map { it.second to null as File? }
-        val videos = wallpaperDir()?.listFiles { f -> f.extension.equals("mp4", true) }
-            ?.filterNot { f -> scenes.any { it.file == f.name } }?.sortedBy { it.name }.orEmpty().map { "video:${it.name}" to it }
+        val videos = WallpaperVideoFiles.personal(wallpaperDir(), scenes).map { "video:${it.name}" to it }
         return photos + videos
     }
 
@@ -1699,18 +1655,12 @@ class MainActivity : ComponentActivity() {
         previewBack = null
     }
 
-    private fun cleanUnusedVideoWallpapers(dir: File) {
-        val light = prefs.getString("wp_light", null)
-        val dark = prefs.getString("wp_dark", null)
-        val screensaver = if (aerialScreensaverOn()) aerialScenes(this).map { it.file }.toSet() else emptySet()
-        val catalogFiles = videoScenes(this).map { it.file }.toSet() - screensaver
-        dir.listFiles { f -> f.extension.equals("mp4", true) }?.forEach { file ->
-            val choice = "video:${file.name}"
-            if (file.name in catalogFiles && choice != light && choice != dark) {
-                file.delete()
-            }
-        }
-    }
+    private fun cleanUnusedVideoWallpapers(dir: File) =
+        WallpaperVideoFiles.cleanUnused(
+            dir, videoScenes(this),
+            if (aerialScreensaverOn()) aerialScenes(this).map { it.file }.toSet() else emptySet(),
+            prefs.getString("wp_light", null), prefs.getString("wp_dark", null),
+        )
 
     private fun pickVideoWallpaper(forDark: Boolean) {
         val dir = wallpaperDir() ?: return
@@ -1718,7 +1668,7 @@ class MainActivity : ComponentActivity() {
         val allScenes = videoScenes(this)
         val currentScene = allScenes.firstOrNull { "video:${it.file}" == current }
         val files = dir.listFiles { f -> f.extension.equals("mp4", true) }?.sortedBy { it.name } ?: emptyList()
-        val own = files.filterNot { file -> allScenes.any { it.file == file.name } }
+        val own = WallpaperVideoFiles.personal(dir, allScenes)
         val keepOne = prefs.getBoolean("video_keep_one", false)
 
 
