@@ -1346,55 +1346,12 @@ class MainActivity : ComponentActivity() {
         ui.postDelayed(folderRetryTask, delay)
     }
 
-    /**
-     * The first frame of a video wallpaper, shown until the video plays: the player takes a second to start (longer
-     * after a theme change recreates the screen), and the default picture in that second looked like a wrong
-     * wallpaper. The video starts at this same frame, so the switch does not show. Read once, then kept as a JPEG.
-     */
-    private fun videoPoster(video: File): Bitmap? {
-        val cache = File(cacheDir, "poster-${video.name}-${video.length()}-${video.lastModified()}.jpg")
-        if (cache.isFile) BitmapFactory.decodeFile(cache.path)?.let { return it }
-        val r = android.media.MediaMetadataRetriever()
-        return try {
-            r.setDataSource(video.path)
-            val at = android.media.MediaMetadataRetriever.OPTION_CLOSEST_SYNC
-            val frame = if (Build.VERSION.SDK_INT >= 27) r.getScaledFrameAtTime(0, at, resources.displayMetrics.widthPixels, resources.displayMetrics.heightPixels)
-                else r.getFrameAtTime(0, at)?.let { f -> // Android 8.0 has no scaled read: a 4K frame is 33 MB, shrink it
-                    val w = resources.displayMetrics.widthPixels
-                    if (f.width <= w) f else Bitmap.createScaledBitmap(f, w, maxOf(1, f.height * w / f.width), true).also { f.recycle() }
-                }
-            frame?.also { f ->
-                cacheDir.listFiles { f2 -> f2.name.startsWith("poster-") }?.forEach { it.delete() } 
-                cache.outputStream().use { f.compress(Bitmap.CompressFormat.JPEG, 90, it) }
-            }
-        } catch (e: Exception) {
-            null
-        } finally {
-            r.release()
-        }
-    }
+    private fun videoPoster(video: File): Bitmap? = VideoWallpaperArtwork.poster(
+        video, cacheDir, resources.displayMetrics.widthPixels, resources.displayMetrics.heightPixels,
+    )
 
-    /**
-     * Small frames of a video, one every 4 s (at most 30), read from the file, so the text colour can be one that reads
-     * on all of them: the screen cannot be read on TVs that play video on an overlay, and a colour that changed with
-     * the picture would flicker. ponytail: read again on every load (a few seconds, off the UI thread); cache if it shows.
-     */
-    private fun videoFrames(video: File, w: Int, h: Int): List<Bitmap> {
-        val r = android.media.MediaMetadataRetriever()
-        return try {
-            r.setDataSource(video.path)
-            val ms = r.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull() ?: 0L
-            val at = android.media.MediaMetadataRetriever.OPTION_CLOSEST_SYNC
-            (0L..ms step 4000L).take(30).mapNotNull { t ->
-                val f = if (Build.VERSION.SDK_INT >= 27) r.getScaledFrameAtTime(t * 1000, at, w * 4, h * 4) else r.getFrameAtTime(t * 1000, at)
-                f?.let { Bitmap.createScaledBitmap(it, w, h, true).also { s -> if (s !== it) it.recycle() } }
-            }
-        } catch (e: Exception) {
-            emptyList()
-        } finally {
-            r.release()
-        }
-    }
+    private fun videoFrames(video: File, w: Int, h: Int): List<Bitmap> =
+        VideoWallpaperArtwork.frames(video, w, h)
 
     private fun packFor(bundled: String) =
         packDir().listFiles { f -> f.isFile && packFileName(f.name) && packPhotoName(f.name) == bundled }?.firstOrNull()
@@ -1617,8 +1574,7 @@ class MainActivity : ComponentActivity() {
 
     private fun ownUploads(forDark: Boolean, scenes: List<VideoScene>): List<Pair<String, File?>> {
         val photos = wallpaperChoices(forDark).filter { it.second.startsWith("file:") }.map { it.second to null as File? }
-        val videos = wallpaperDir()?.listFiles { f -> f.extension.equals("mp4", true) }
-            ?.filterNot { f -> scenes.any { it.file == f.name } }?.sortedBy { it.name }.orEmpty().map { "video:${it.name}" to it }
+        val videos = WallpaperVideoFiles.personal(wallpaperDir(), scenes).map { "video:${it.name}" to it }
         return photos + videos
     }
 
@@ -1699,18 +1655,12 @@ class MainActivity : ComponentActivity() {
         previewBack = null
     }
 
-    private fun cleanUnusedVideoWallpapers(dir: File) {
-        val light = prefs.getString("wp_light", null)
-        val dark = prefs.getString("wp_dark", null)
-        val screensaver = if (aerialScreensaverOn()) aerialScenes(this).map { it.file }.toSet() else emptySet()
-        val catalogFiles = videoScenes(this).map { it.file }.toSet() - screensaver
-        dir.listFiles { f -> f.extension.equals("mp4", true) }?.forEach { file ->
-            val choice = "video:${file.name}"
-            if (file.name in catalogFiles && choice != light && choice != dark) {
-                file.delete()
-            }
-        }
-    }
+    private fun cleanUnusedVideoWallpapers(dir: File) =
+        WallpaperVideoFiles.cleanUnused(
+            dir, videoScenes(this),
+            if (aerialScreensaverOn()) aerialScenes(this).map { it.file }.toSet() else emptySet(),
+            prefs.getString("wp_light", null), prefs.getString("wp_dark", null),
+        )
 
     private fun pickVideoWallpaper(forDark: Boolean) {
         val dir = wallpaperDir() ?: return
@@ -1718,7 +1668,7 @@ class MainActivity : ComponentActivity() {
         val allScenes = videoScenes(this)
         val currentScene = allScenes.firstOrNull { "video:${it.file}" == current }
         val files = dir.listFiles { f -> f.extension.equals("mp4", true) }?.sortedBy { it.name } ?: emptyList()
-        val own = files.filterNot { file -> allScenes.any { it.file == file.name } }
+        val own = WallpaperVideoFiles.personal(files, allScenes)
         val keepOne = prefs.getBoolean("video_keep_one", false)
 
 
@@ -4266,9 +4216,11 @@ class MainActivity : ComponentActivity() {
     }
 
 
-    private fun gallery() = ComponentName(this, GalleryDream::class.java).flattenToString()
+    private val dreamSettings by lazy { DreamSettingsGateway(this) }
 
-    private fun currentScreensaver() = Settings.Secure.getString(contentResolver, "screensaver_components").orEmpty()
+    private fun gallery() = dreamSettings.galleryComponent()
+
+    private fun currentScreensaver() = dreamSettings.currentComponent()
 
     private fun galleryOn() = currentScreensaver() == gallery()
 
@@ -4386,18 +4338,16 @@ class MainActivity : ComponentActivity() {
             return openScreensaverSettings()
         }
         prefs.edit().putString("prev_screensaver", currentScreensaver()).apply()
-        Settings.Secure.putString(contentResolver, "screensaver_components", gallery())
-        Settings.Secure.putInt(contentResolver, "screensaver_enabled", 1)
+        dreamSettings.enableGallery()
     }
 
     private fun stopGallery() {
         if (checkSelfPermission(WRITE_SECURE) != PackageManager.PERMISSION_GRANTED) return openScreensaverSettings()
-        Settings.Secure.putString(contentResolver, "screensaver_components", prefs.getString("prev_screensaver", "") ?: "")
+        dreamSettings.restoreComponent(prefs.getString("prev_screensaver", "") ?: "")
         paintingsDir(this).deleteRecursively() 
     }
 
-    private fun readDreamSetting(key: String): String? = if (key == Settings.System.SCREEN_OFF_TIMEOUT)
-        Settings.System.getString(contentResolver, key) else Settings.Secure.getString(contentResolver, key)
+    private fun readDreamSetting(key: String): String? = dreamSettings.read(key)
 
     private fun screensaverDelayName(): String {
         if (readDreamSetting("screensaver_enabled") == "0") return getString(R.string.never)
@@ -4426,8 +4376,7 @@ class MainActivity : ComponentActivity() {
             page(name, if (name == current) CHOSEN else "") {
                 try {
                     saveScreensaverDelay(minutes, fireTv(), ::readDreamSetting) { key, value ->
-                        if (key == Settings.System.SCREEN_OFF_TIMEOUT) Settings.System.putString(contentResolver, key, value)
-                        else Settings.Secure.putString(contentResolver, key, value)
+                        dreamSettings.write(key, value)
                     }
                 } catch (e: Exception) {
                     android.util.Log.w("Plume", "Could not save screensaver timing", e)
@@ -4769,25 +4718,10 @@ class MainActivity : ComponentActivity() {
         if (System.currentTimeMillis() - prefs.getLong("wx_time", 0) < 25 * 60_000L) return
         io.execute {
             try {
-                if (!manualCity() && System.currentTimeMillis() - prefs.getLong("geo_time", 0) > 6 * 3600_000L) {
-                    val geo = getJson("https://ipwho.is/?fields=success,city,latitude,longitude")
-                    if (geo.optBoolean("success")) prefs.edit()
-                        .putString("geo_city", geo.getString("city"))
-                        .putFloat("geo_lat", geo.getDouble("latitude").toFloat())
-                        .putFloat("geo_lon", geo.getDouble("longitude").toFloat())
-                        .putLong("geo_time", System.currentTimeMillis()).apply()
-                }
-                if (!prefs.contains("geo_lat")) return@execute
-                val now = getJson("https://api.open-meteo.com/v1/forecast?latitude=${prefs.getFloat("geo_lat", 0f)}" +
-                    "&longitude=${prefs.getFloat("geo_lon", 0f)}&current=temperature_2m,weather_code,is_day").getJSONObject("current")
-                prefs.edit()
-                    .putFloat("wx_temp", now.getDouble("temperature_2m").toFloat())
-                    .putInt("wx_code", now.getInt("weather_code"))
-                    .putBoolean("wx_day", now.optInt("is_day", 1) == 1)
-                    .putLong("wx_time", System.currentTimeMillis()).apply()
+                if (!WeatherDataSource.refresh(prefs, ::getJson)) return@execute
                 ui.post { if (!isDestroyed) showWeather() }
             } catch (e: Exception) {
-                android.util.Log.w("TvHome", "weather failed ($e)") 
+                android.util.Log.w("TvHome", "weather failed ($e)")
             }
         }
     }
@@ -4823,9 +4757,7 @@ class MainActivity : ComponentActivity() {
 
     private fun manualCity() = prefs.getBoolean("geo_manual", false)
 
-    private class City(val name: String, val where: String, val lat: Float, val lon: Float)
-
-    private fun pickCity(query: String = "", found: List<City>? = null, status: String = "") {
+    private fun pickCity(query: String = "", found: List<WeatherDataSource.City>? = null, status: String = "") {
         val field = textField(query, getString(R.string.city_hint), InputType.TYPE_TEXT_FLAG_CAP_WORDS, EditorInfo.IME_ACTION_SEARCH) { searchCity(it) }
         val top = (field.parent as LinearLayout).apply {
             if (status.isNotEmpty()) addView(label(status, 12f).apply { alpha = 0.6f; setPadding(dp(14), dp(8), 0, 0) })
@@ -4853,14 +4785,7 @@ class MainActivity : ComponentActivity() {
         pickCity(query, status = getString(R.string.searching))
         io.execute {
             val found = try {
-                val r = getJson("https://geocoding-api.open-meteo.com/v1/search?count=8&format=json" +
-                    "&language=${java.util.Locale.getDefault().language}&name=${URLEncoder.encode(query, "UTF-8")}")
-                val list = r.optJSONArray("results")
-                (0 until (list?.length() ?: 0)).map { i ->
-                    val c = list!!.getJSONObject(i)
-                    City(c.getString("name"), listOf(c.optString("admin1"), c.optString("country")).filter { it.isNotEmpty() }.joinToString(", "),
-                        c.getDouble("latitude").toFloat(), c.getDouble("longitude").toFloat())
-                }
+                WeatherDataSource.searchCities(query, ::getJson)
             } catch (e: Exception) {
                 null
             }

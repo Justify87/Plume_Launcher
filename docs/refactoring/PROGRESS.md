@@ -111,3 +111,33 @@ Keine Änderung an `refreshWatchNext`-Trigger, `io.execute → ui.post`, Activit
 **Kritischer Zweitreview (selbst, nicht extern unabhängig):** Transfer auf Quelltext-/Diff-Ebene verglichen: einzelne Reader-Methoden ohne zusätzlichen Worker/State; Projektion erzeugt dieselben `AndroidTvProgram`-Metadaten mit denselben `mapIndexed`-Indizes und 20er-Grenzen; Poster-Cache und Shutdown gemeinschaftlich verlagert, `tag==uri` geschützt. Der bisherige `MainActivity`-OpenStream bleibt von anderen Featurebereichen nutzbar. Noch **kein** Hardware- oder CI-PASS behauptet.
 
 **Nächster Task:** finale PR-CI auf demselben HEAD abwarten und Fehler ursachenbezogen im selben PR beheben; nach gesamtem PASS PR reviewbereit markieren, **nicht mergen**. Kein M4 vor M3-Merge.
+
+---
+
+## M4 – Wallpaper, Screensaver und Systemintegration (PR-HEAD-CI PENDING)
+
+**Basis:** `main` @ `9c9fb89c94b381dca27ee5d79990605afba26e39` (M3 erfolgreich gemergt; CI PASS). **Branch:** `refactor/m4-wallpaper-system-coordination-20261117`.
+
+### Tatsächlich umgesetzte Tasks
+
+- **F026 → F131 `VideoWallpaperArtwork.kt`:** Video-Poster-Cache/Erstframe und zeitlich abgetastete Videoframes aus `MainActivity` extrahiert. Die vorhandenen `io`-Worker, `wallpaperLoad`-Generation, UI-Apply, `VideoWallpaper`-Surface, Pause/Resume/Clear bleiben unberührt.
+- **F026 → F132 `WallpaperVideoFiles.kt`:** persönliche mp4-Dateien, Katalog-/Aerial-Ausschlüsse und Bereinigung bei `video_keep_one` ausgelagert. Keine zweite Dateiliste und kein langlebiger State.
+- **F026 → F133 `DreamSettingsGateway.kt`:** Android-Dream-Komponente und Secure/System-Werte inkl. unveränderter Write-Reihenfolge gekapselt. Activity behält `WRITE_SECURE`-Prüfung, Gallery-Download, Dream-Page, Return-/Prefs-Flow.
+- **F026 → F134 `WeatherDataSource.kt`:** Wetter-/Geo-JSON und City-Suche auf unverändertem Activity-`io`-Executor zusammengezogen. Gleiche `geo_*`/`wx_*`-Werte, 25m/6h-Fenster, fehlende Geo-Infos, URI-Parameter. Activity bleibt Owner für `weatherTick`, UI-Handler und Stale-Result-Check.
+- **F135/F136:** neue JVM-Charakterisierung: private vs. Katalog-/Aerial-Videos, Light-/Dark-Auswahl und Cleanup; Wetter-/Geocoding-URL-Vertrag. Bestehende `ScreensaverTimingTest`, `VideoScenesTest`, `WallpaperPackTest`, `RebootSetupAndWallpaperTest`, `HomeWatchTest` und AndroidTest-Kompilation bleiben CI-Gates.
+- **FILE_TASKS:** M0 123 + M2 3 + M3 4 + M4 6 = **136 Datei-Tasks**. F026 aktualisiert; bestehende Wallpaper/System-Dateien bewusst KEEP.
+
+### Scope-Review und Verifikation
+
+**KEEP:** `Bing`, `GalleryDream`, `AerialShow`, `UploadServer`, `WallpaperPack`, `VideoWallpaper`, HomeOverride/HomeWatch, HDMI/Remap, QR, ScreensaverTiming, Sun, Wetter-/Update-UI/PackageInstaller, alle Receiver/ContentObserver und Upload-PageExit. Keine neuen Hintergrund-Worker, keine veränderte Start-/Focus-/Statusbar- oder VPN-Logik.
+
+| Gate | M4-Code-Review-Status |
+|---|---|
+| Semantischer Source-Diff, Ownership, Fokus-/Prefs-/Callback-Order | Quellvergleich erledigt, erneuter kritischer PR-Review offen |
+| `testDebugUnitTest lintDebug assembleDebug compileDebugAndroidTestKotlin` | **PENDING** auf endgültigem PR-HEAD |
+| Installer-Shell, Spotify-/Mullvad-Python-/Staging-Tests | **PENDING** |
+| Integrierter ARM64-Debug, unsigned R8, APK-/Manifestchecks | **PENDING** |
+| TV-Emulator/Shield: Surface, Galerie, echte Screensaver-Settings, Wetter-, Upload-/Systemaktionen | **NOT_TESTED** |
+| VPN-Tunnel/echte Dienste | **NOT_TESTED**, Produktkern unverändert |
+
+**Vorläufige Entscheidung:** `M4 PARTIAL` bis finaler CI-PASS und kritischer Zweitreview. Keinen automatischen Merge und keinen Beginn von M5 vor Nutzer-Merge.
