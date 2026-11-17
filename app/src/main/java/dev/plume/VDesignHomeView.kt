@@ -51,24 +51,8 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
     private val homeContent = mutableListOf<View>()
     private val workspacePanels = linkedMapOf<String, View>()
     private var navigation = LauncherWorkspaceNavigation.State()
-    private fun destination(key: String): LauncherWorkspaceNavigation.Destination = when (key) {
-        NUVIO -> LauncherWorkspaceNavigation.Destination.NUVIO
-        SMARTTUBE -> LauncherWorkspaceNavigation.Destination.SMARTTUBE
-        SPOTIFY -> LauncherWorkspaceNavigation.Destination.SPOTIFY
-        ALL_APPS -> LauncherWorkspaceNavigation.Destination.ALL_APPS
-        SETTINGS -> LauncherWorkspaceNavigation.Destination.SETTINGS
-        VPN -> LauncherWorkspaceNavigation.Destination.VPN
-        else -> LauncherWorkspaceNavigation.Destination.HOME
-    }
-    private val currentWorkspace: String get() = when (navigation.destination) {
-        LauncherWorkspaceNavigation.Destination.HOME -> OVERVIEW
-        LauncherWorkspaceNavigation.Destination.NUVIO -> NUVIO
-        LauncherWorkspaceNavigation.Destination.SMARTTUBE -> SMARTTUBE
-        LauncherWorkspaceNavigation.Destination.SPOTIFY -> SPOTIFY
-        LauncherWorkspaceNavigation.Destination.ALL_APPS -> ALL_APPS
-        LauncherWorkspaceNavigation.Destination.SETTINGS -> SETTINGS
-        LauncherWorkspaceNavigation.Destination.VPN -> VPN
-    }
+    private val currentWorkspace: String
+        get() = LauncherWorkspaceNavigation.keyForDestination(navigation.destination)
     private var preview: (String) -> Unit = {}
     private var lastContentFocus: WeakReference<View>? = null
     private var lastContentDestination: String? = null
@@ -170,7 +154,7 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
     fun showWorkspace(key: String, force: Boolean = false) {
         val alreadyVisible = !force && key == currentWorkspace &&
             (key == OVERVIEW || workspacePanels[key]?.visibility == View.VISIBLE)
-        navigation = LauncherWorkspaceNavigation.focusRail(navigation, destination(key))
+        navigation = LauncherWorkspaceNavigation.focusRail(navigation, LauncherWorkspaceNavigation.destinationForKey(key))
         if (alreadyVisible) return
         homeContent.forEach { it.visibility = if (key == OVERVIEW) View.VISIBLE else View.GONE }
         workspacePanels.forEach { (destination, view) ->
