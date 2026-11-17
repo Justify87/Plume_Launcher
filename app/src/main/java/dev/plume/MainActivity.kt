@@ -4216,9 +4216,11 @@ class MainActivity : ComponentActivity() {
     }
 
 
-    private fun gallery() = ComponentName(this, GalleryDream::class.java).flattenToString()
+    private val dreamSettings by lazy { DreamSettingsGateway(this) }
 
-    private fun currentScreensaver() = Settings.Secure.getString(contentResolver, "screensaver_components").orEmpty()
+    private fun gallery() = dreamSettings.galleryComponent()
+
+    private fun currentScreensaver() = dreamSettings.currentComponent()
 
     private fun galleryOn() = currentScreensaver() == gallery()
 
@@ -4336,18 +4338,16 @@ class MainActivity : ComponentActivity() {
             return openScreensaverSettings()
         }
         prefs.edit().putString("prev_screensaver", currentScreensaver()).apply()
-        Settings.Secure.putString(contentResolver, "screensaver_components", gallery())
-        Settings.Secure.putInt(contentResolver, "screensaver_enabled", 1)
+        dreamSettings.enableGallery()
     }
 
     private fun stopGallery() {
         if (checkSelfPermission(WRITE_SECURE) != PackageManager.PERMISSION_GRANTED) return openScreensaverSettings()
-        Settings.Secure.putString(contentResolver, "screensaver_components", prefs.getString("prev_screensaver", "") ?: "")
+        dreamSettings.restoreComponent(prefs.getString("prev_screensaver", "") ?: "")
         paintingsDir(this).deleteRecursively() 
     }
 
-    private fun readDreamSetting(key: String): String? = if (key == Settings.System.SCREEN_OFF_TIMEOUT)
-        Settings.System.getString(contentResolver, key) else Settings.Secure.getString(contentResolver, key)
+    private fun readDreamSetting(key: String): String? = dreamSettings.read(key)
 
     private fun screensaverDelayName(): String {
         if (readDreamSetting("screensaver_enabled") == "0") return getString(R.string.never)
@@ -4376,8 +4376,7 @@ class MainActivity : ComponentActivity() {
             page(name, if (name == current) CHOSEN else "") {
                 try {
                     saveScreensaverDelay(minutes, fireTv(), ::readDreamSetting) { key, value ->
-                        if (key == Settings.System.SCREEN_OFF_TIMEOUT) Settings.System.putString(contentResolver, key, value)
-                        else Settings.Secure.putString(contentResolver, key, value)
+                        dreamSettings.write(key, value)
                     }
                 } catch (e: Exception) {
                     android.util.Log.w("Plume", "Could not save screensaver timing", e)
