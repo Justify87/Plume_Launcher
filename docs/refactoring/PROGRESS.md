@@ -141,3 +141,33 @@ Keine Änderung an `refreshWatchNext`-Trigger, `io.execute → ui.post`, Activit
 | VPN-Tunnel/echte Dienste | **NOT_TESTED**, Produktkern unverändert |
 
 **Vorläufige Entscheidung:** `M4 PARTIAL` bis finaler CI-PASS und kritischer Zweitreview. Keinen automatischen Merge und keinen Beginn von M5 vor Nutzer-Merge.
+
+
+---
+
+## M5 – Workspace, V-Design und Fokus (CI-/PR-Gate offen)
+
+**Basis:** `main` @ `125e379419d9647fb403fc2793f7a2b797b19696` (M4-Merge #57). **Branch:** `refactor/m5-sidebar-focus-20261117`. Ein eigener M5-PR wird eröffnet; `main` nicht verändert.
+
+### Umgesetzte Datei-/Architektur-Tasks
+
+- **F025/F044:** Die vormals zweifach in `VDesignHomeView` geschriebenen Destination↔Sidebar-Key-Abbildungen liegen in `LauncherWorkspaceNavigation`. Es gibt weiter **nur einen State-Owner**: `VDesignHomeView.navigation`. Back/OK/D-Pad/Pane-Fokus/Medienstart-/Installationspolicy werden nicht umgebaut.
+- **F044 → F137:** `VDesignSidebarLayout` berechnet ausschließlich die **originalen Y-Positionen** und einen strukturellen Slot-Fingerprint (Key, Position, Farbmodus). Bei identischen Slots baut `bindNavigation` die Rail nicht neu; bestehende Views behalten ihren Fokus, während App-Icons, Accessibility-Texte und die auf neue Activity-Paketlisten zielenden Callbacks aktualisiert bleiben. Eine aktuell fokussierte Rail führt weiterhin den bisherigen Preview-Callback aus; dessen Pane-Bindings besitzen bereits eigene Equality-Guards. Bei verändertem Key-/Farbmodus wird der bisherige vollständige Rebuild mit Fokusrestore weiterhin verwendet. Keine zweite Preview- oder Navigationsstate-Kopie.
+- **F068/F138:** Neue JVM-Regressionen für alle sieben Routen und unbekannten Key-Fallback, volle/sparse Sidebar-Positionen sowie Rebuild-Kriterien. Alle bisherigen `LauncherWorkspaceNavigationTest`, `VDesignFocusNavigatorTest`, `VDesignCardSlotsTest`, `WorkspaceGridPolicyTest`, `VDesignLaunchPolicyTest` unverändert weiter im Testlauf.
+- **F008/F139:** `VDesignNavigationCheck` als AndroidTest-Charakterisierung im vorhandenen `ActivityTest`-Runner eingebunden (auch einzeln via `-e class dev.plume.VDesignNavigationCheck`). Prüft in Android-View-Instanz wiederverwendete Sidebar-Views, erneuerte Icon-Drawable-Daten, aktuellen Open-Callback und FullColor-Style-Wechsel. CI kompiliert AndroidTest, führt ihn nicht auf Shield aus.
+- **KEEP nach fachlichem Review:** `MainActivity.refreshVDesignNavigation` als Callback-/App-Paket-Owner; `VDesignFocusNavigator` als reine D-Pad-Spatial-Policy; `WorkspaceMediaPane` und `WorkspaceGenericMediaPane` mit bestehenden unveränderten Daten-Equality-Guards; `VDesignCardView`, `VDesignCanvas`, `VDesignCardSlots`, `VDesignCardText`, `WorkspaceAppTileView`, `SnapScrollView`, `WorkspaceGridPolicy`, `VDesignLaunchPolicy` bleiben im unveränderten Verhalten. Keine zusätzlichen Threads/Observer/Receiver/Settings.
+- **FILE_TASKS:** M0 123 + M2 3 + M3 4 + M4 6 + M5 3 = **139/139** eigenständige Code-/Konfigdatei-Tasks. M5 besitzt 3 neue, 4 aktualisierte Datei-Tasks; sonstige Dateien nur geprüft/KEEP.
+
+### Vorläufige Abnahme
+
+| Prüfung | Ergebnis am M5-Arbeitsstand |
+|---|---|
+| Fachlicher Owner-/Diff-Abgleich (ein aktiver Navigator, unveränderte Pane-/Launch-/Fokus-Semantik) | **CODE_REVIEW_DONE**, kritischer Zweitreview nach PR-Diff offen |
+| JVM: `./gradlew testDebugUnitTest lintDebug assembleDebug` | **PENDING** auf finalem PR-HEAD |
+| AndroidTest-Kompilation: `compileDebugAndroidTestKotlin` | **PENDING** |
+| Installer-/Spotify-/Mullvad-Staging-/Python-/ADB-Regression | **PENDING** |
+| Integrierter ARM64-Debug/unsigned R8-Release/APK-Manifest | **PENDING** |
+| Gerätetest VDesignNavigationCheck, Right/Left/Back/Home/OK, Nuvio-Paketvarianten, App-Icon-Update, Shield-/Emulator-Fokus | **NOT_TESTED** |
+| Physischer VPN-Tunnel/Split-Tunneling | **NOT_TESTED**, Produktkern unverändert |
+
+**M5 PARTIAL** bis CI und Review auf exakt dem finalen PR-HEAD erfolgreich sind. PR nicht automatisch mergen; M6 erst nach Nutzer-Merge. Kein Layout-/Farb-/Kachelredesign, kein Feature-, Security-, Mullvad-, Build-/Signing-, Preference- oder API-Scope-Drift.

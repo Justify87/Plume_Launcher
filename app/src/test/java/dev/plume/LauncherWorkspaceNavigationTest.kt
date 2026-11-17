@@ -5,6 +5,24 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 
 class LauncherWorkspaceNavigationTest {
+    @Test fun sidebarKeysRoundTripThroughSingleNavigationDestinationPolicy() {
+        val nav = LauncherWorkspaceNavigation
+        val routes = listOf(
+            VDesignHomeView.OVERVIEW to LauncherWorkspaceNavigation.Destination.HOME,
+            VDesignHomeView.NUVIO to LauncherWorkspaceNavigation.Destination.NUVIO,
+            VDesignHomeView.SMARTTUBE to LauncherWorkspaceNavigation.Destination.SMARTTUBE,
+            VDesignHomeView.SPOTIFY to LauncherWorkspaceNavigation.Destination.SPOTIFY,
+            VDesignHomeView.ALL_APPS to LauncherWorkspaceNavigation.Destination.ALL_APPS,
+            VDesignHomeView.SETTINGS to LauncherWorkspaceNavigation.Destination.SETTINGS,
+            VDesignHomeView.VPN to LauncherWorkspaceNavigation.Destination.VPN,
+        )
+        for ((key, destination) in routes) {
+            assertEquals(destination, nav.destinationForKey(key))
+            assertEquals(key, nav.keyForDestination(destination))
+        }
+        assertEquals(LauncherWorkspaceNavigation.Destination.HOME, nav.destinationForKey("unknown"))
+    }
+
     @Test fun railFocusImmediatelySelectsContentWithoutOk() {
         val before = LauncherWorkspaceNavigation.State()
         val selected = LauncherWorkspaceNavigation.focusRail(before,
