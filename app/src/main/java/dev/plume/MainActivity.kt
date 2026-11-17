@@ -4785,10 +4785,10 @@ class MainActivity : ComponentActivity() {
         pickCity(query, status = getString(R.string.searching))
         io.execute {
             val found = try {
-            WeatherDataSource.searchCities(query, ::getJson)
-        } catch (e: Exception) {
-            null
-        }
+                WeatherDataSource.searchCities(query, ::getJson)
+            } catch (e: Exception) {
+                null
+            }
             ui.post {
                 if (isDestroyed) return@post
                 // Only if the page is still open: Back may have left it while the search ran.
