@@ -162,3 +162,20 @@
 **M3-Zweitreview (selbst, nicht extern unabhängig):** `AppChannels`-Exception-Callback bleibt nur bei `reportFailure` aktiv; `readPrograms` wirft wie bisher zur Unterscheidung von echtem Providerfehler und leerem Ergebnis; `NuvioMediaProjector` und `AndroidTvMediaSource` bleiben die vorhandenen Semantik-Owner. Beide Media-Startpfade sind unverändert geblieben. `YouTubeRssSource`-Netzwerkzugriffe laufen weiterhin auf dem bisherigen `io`-Executor; dessen und des Posterpool-Lifecycle werden nicht zusammengelegt. Keine neuen Features, Sicherheitsaufgaben oder Preference-/Buildänderungen.
 
 **Gate:** CODE_REVIEW_DONE; finale PR-HEAD-CI noch PENDING. AndroidTest-Ausführung, realer Provider und Shield/VPN: NOT_TESTED. M4 erst nach Nutzer-Merge von M3.
+
+---
+
+## M4 – Wallpaper, Screensaver und Systemintegration: tatsächliche Ownership
+
+**Basis:** M3-Merge `9c9fb89c94b381dca27ee5d79990605afba26e39`. Datei-Tasks F026, F020, F022–F024, F031–F038, F047–F049; neue F131–F136.
+
+| Bewegte Funktion | Neuer Zustands-/Code-Owner | Bewahrte Lifecycle-/Thread-Grenze | Verhaltensvertrag / Test |
+|---|---|---|---|
+| `MainActivity.videoPoster/videoFrames` | `VideoWallpaperArtwork` liest Medien-Frames und verwaltet nur bestehende `poster-…jpg`-Dateien | Aufruf weiterhin über `MainActivity.io.execute`; `wallpaperLoad`-Generationszähler und `ui.post`-Apply bleiben in F026; `VideoWallpaper` behält Surface/MediaPlayer | SDK-27-Fallback, erstes Frame/Cache, max. 30 Frame-Samples/4 s, Bildgrößen identisch; Bilddecoding auf Hardware NOT_TESTED |
+| `cleanUnusedVideoWallpapers`, eigene Videos in `ownUploads/pickVideoWallpaper` | `WallpaperVideoFiles`: Dateiselektion und optionales Löschen; keine persistente State-Kopie | Auslösung weiter nur bei ursprünglichen `video_keep_one`-/`setWallpaper`-Events; Upload-UI, Page-Exit, `UploadServer.stop` unverändert | Nur ungewählte Katalogvideos löschen; aktive Light/Dark- und Aerial-Screensaver-Dateien sowie eigene Uploads behalten; `WallpaperVideoFilesTest` |
+| Android-Dream-/Gallery-Settings aus `gallery/currentScreensaver/useGallery/stopGallery/readDreamSetting` | `DreamSettingsGateway` besitzt eng begrenzten ContentResolver/Settings-Zugriff, keine Receiver oder eigenen Threads | Activity prüft `WRITE_SECURE` vorher, schreibt `ss_folder`/`prev_screensaver` vor dem Aufruf, steuert Gallery-Download/Settings-Seite; `GalleryDream`/`AerialShow` bleiben Surface-/Service-Owner | Exakt dieselbe `screensaver_components`/`screensaver_enabled`-Reihenfolge sowie `Settings.System.SCREEN_OFF_TIMEOUT` vs Secure; `ScreensaverTimingTest` |
+| Wetter-/Stadtabfragen in `refreshWeather/searchCity` | `WeatherDataSource` liest JSON/Prefs auf dem vorhandenen `io`-Worker; keine zusätzliche Queue und kein Cache | `weatherTick`/TTL-Guard, `ui.post`, Page-Title-Schutz gegen späte Suchantworten und `onPause`/Destroy-Cancel bleiben F026 | Originale `geo_*`/`wx_*` Keys, 6h Geo-Update, 25m Wetter-TTL, API-Parameter, Locale und UI-Texte; `WeatherDataSourceTest` |
+
+**KEEP nach Fachreview (kein Move ohne Mehrwert):** `VideoWallpaper` (SurfaceHolder/MediaPlayer), `GalleryDream`/`AerialShow` (eigene Service-/Surface-Lifecycles), `UploadServer` (Socket/Thread/Tempfile, bei `pageExit` stoppen), `WallpaperPack` (Atomic Download), `Bing`/`ShowsWall` (getrennte Feeds), Wallpaper-ContentObserver/-Receiver und Wallpaper-Generationszähler (F026), `HomeOverride`/`InputActivity`/`Remap` (eigenständige System-/Home-/HDMI-Lifecycles), `ScreensaverTiming`/`Sun`/`Qr` (bereits isolierte Policies). Updates: `checkUpdate/installUpdate` behalten denselben Activity-/PackageInstaller-Callbacks-/Updater-State, da eine weitere Extraktion eine unnötige neue Eigentumsgrenze erzeugen würde.
+
+**Scope-Gate:** Keine Änderung an UI, Intents, Manifest/ABI/API, Berechtigungen, Datei- oder Preference-Format, zusätzlichen Netz-/UI-Threads, Mullvad/Submodul oder Build-/Signing-System. Bestehende In-Flight-Callbacks und `onResume/onPause/onStop/onDestroy`-Reihenfolge sind unverändert; AndroidTest-Ausführung und Shield-/Video-/Upload-/Dream-Realverhalten bleiben **NOT_TESTED**. CI-/Diff-Abnahme auf dem konkreten PR-HEAD nachtragen.
