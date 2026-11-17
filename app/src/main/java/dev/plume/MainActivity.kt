@@ -4718,25 +4718,10 @@ class MainActivity : ComponentActivity() {
         if (System.currentTimeMillis() - prefs.getLong("wx_time", 0) < 25 * 60_000L) return
         io.execute {
             try {
-                if (!manualCity() && System.currentTimeMillis() - prefs.getLong("geo_time", 0) > 6 * 3600_000L) {
-                    val geo = getJson("https://ipwho.is/?fields=success,city,latitude,longitude")
-                    if (geo.optBoolean("success")) prefs.edit()
-                        .putString("geo_city", geo.getString("city"))
-                        .putFloat("geo_lat", geo.getDouble("latitude").toFloat())
-                        .putFloat("geo_lon", geo.getDouble("longitude").toFloat())
-                        .putLong("geo_time", System.currentTimeMillis()).apply()
-                }
-                if (!prefs.contains("geo_lat")) return@execute
-                val now = getJson("https://api.open-meteo.com/v1/forecast?latitude=${prefs.getFloat("geo_lat", 0f)}" +
-                    "&longitude=${prefs.getFloat("geo_lon", 0f)}&current=temperature_2m,weather_code,is_day").getJSONObject("current")
-                prefs.edit()
-                    .putFloat("wx_temp", now.getDouble("temperature_2m").toFloat())
-                    .putInt("wx_code", now.getInt("weather_code"))
-                    .putBoolean("wx_day", now.optInt("is_day", 1) == 1)
-                    .putLong("wx_time", System.currentTimeMillis()).apply()
+                if (!WeatherDataSource.refresh(prefs, ::getJson)) return@execute
                 ui.post { if (!isDestroyed) showWeather() }
             } catch (e: Exception) {
-                android.util.Log.w("TvHome", "weather failed ($e)") 
+                android.util.Log.w("TvHome", "weather failed ($e)")
             }
         }
     }
@@ -4772,9 +4757,7 @@ class MainActivity : ComponentActivity() {
 
     private fun manualCity() = prefs.getBoolean("geo_manual", false)
 
-    private class City(val name: String, val where: String, val lat: Float, val lon: Float)
-
-    private fun pickCity(query: String = "", found: List<City>? = null, status: String = "") {
+    private fun pickCity(query: String = "", found: List<WeatherDataSource.City>? = null, status: String = "") {
         val field = textField(query, getString(R.string.city_hint), InputType.TYPE_TEXT_FLAG_CAP_WORDS, EditorInfo.IME_ACTION_SEARCH) { searchCity(it) }
         val top = (field.parent as LinearLayout).apply {
             if (status.isNotEmpty()) addView(label(status, 12f).apply { alpha = 0.6f; setPadding(dp(14), dp(8), 0, 0) })
@@ -4802,17 +4785,10 @@ class MainActivity : ComponentActivity() {
         pickCity(query, status = getString(R.string.searching))
         io.execute {
             val found = try {
-                val r = getJson("https://geocoding-api.open-meteo.com/v1/search?count=8&format=json" +
-                    "&language=${java.util.Locale.getDefault().language}&name=${URLEncoder.encode(query, "UTF-8")}")
-                val list = r.optJSONArray("results")
-                (0 until (list?.length() ?: 0)).map { i ->
-                    val c = list!!.getJSONObject(i)
-                    City(c.getString("name"), listOf(c.optString("admin1"), c.optString("country")).filter { it.isNotEmpty() }.joinToString(", "),
-                        c.getDouble("latitude").toFloat(), c.getDouble("longitude").toFloat())
-                }
-            } catch (e: Exception) {
-                null
-            }
+            WeatherDataSource.searchCities(query, ::getJson)
+        } catch (e: Exception) {
+            null
+        }
             ui.post {
                 if (isDestroyed) return@post
                 // Only if the page is still open: Back may have left it while the search ran.
