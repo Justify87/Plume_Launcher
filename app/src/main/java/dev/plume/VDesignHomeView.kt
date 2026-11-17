@@ -47,6 +47,7 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
 
     private val anchored = mutableListOf<Pair<View, VDesignCanvas.Box>>()
     private val menu = mutableListOf<View>()
+    private var renderedSidebarSlots = emptyList<VDesignSidebarLayout.Slot>()
     private val homeContent = mutableListOf<View>()
     private val workspacePanels = linkedMapOf<String, View>()
     private var navigation = LauncherWorkspaceNavigation.State()
@@ -413,6 +414,15 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
         upcomingCards.forEach { it.retryMissingArtwork() }
     }
 
+    private fun sidebarDescription(item: Navigation): String = when (item.key) {
+        OVERVIEW -> item.label + ". Langes OK: Alle Apps"
+        SETTINGS -> item.label + ". Langes OK: System, HDMI und Power"
+        else -> item.label
+    }
+
+    private fun sidebarIcon(icon: Drawable?): Drawable? =
+        icon?.constantState?.newDrawable(resources)?.mutate() ?: icon
+
     fun bindNavigation(items: List<Navigation>, onOpen: (String) -> Unit,
         onPreview: (String) -> Unit = {}, showFullColorAppIcons: Boolean = true,
         onAllApps: () -> Unit, onSystemActions: (View) -> Unit) {
@@ -422,32 +432,39 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
         systemActions = onSystemActions
         val previousFocus = menu.firstOrNull { it.isFocused }?.tag as? String
         if (previousFocus != null) lastSidebarKey = previousFocus
+        val slots = VDesignSidebarLayout.slots(
+            items.map { it.key to (it.appIcon && showFullColorAppIcons) })
+        if (slots == renderedSidebarSlots && menu.size == items.size &&
+            menu.all { it.parent === this }) {
+            // Refresh app icons and accessibility labels without destroying focused rail views.
+            items.forEachIndexed { index, item ->
+                val bar = menu[index] as FrameLayout
+                bar.contentDescription = sidebarDescription(item)
+                (bar.getChildAt(0) as ImageView).setImageDrawable(sidebarIcon(item.icon))
+            }
+            return
+        }
         for (old in menu) {
             removeView(old)
             anchored.removeAll { it.first === old }
         }
         menu.clear()
-        var shortcuts = 0
-        for (item in items) {
+        for ((item, slot) in items.zip(slots)) {
             val bar = FrameLayout(context).apply {
                 tag = item.key
-                contentDescription = when (item.key) {
-                    OVERVIEW -> item.label + ". Langes OK: Alle Apps"
-                    SETTINGS -> item.label + ". Langes OK: System, HDMI und Power"
-                    else -> item.label
-                }
+                contentDescription = sidebarDescription(item)
                 isFocusable = true
                 isClickable = true
             }
             val mark = ImageView(context).apply {
-                setImageDrawable(item.icon?.constantState?.newDrawable(resources)?.mutate() ?: item.icon)
+                setImageDrawable(sidebarIcon(item.icon))
                 scaleType = ImageView.ScaleType.FIT_CENTER
                 importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
             }
             bar.addView(mark, FrameLayout.LayoutParams(
                 (36 * scale()).toInt().coerceAtLeast(1),
                 (36 * scale()).toInt().coerceAtLeast(1), Gravity.CENTER))
-            val originalColors = item.appIcon && showFullColorAppIcons
+            val originalColors = slot.fullColorIcon
             fun style(focused: Boolean) {
                 if (originalColors) mark.clearColorFilter()
                 else mark.setColorFilter(if (focused) 0xFF121317.toInt() else Palette.INK)
@@ -481,16 +498,9 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
             if (item.key == OVERVIEW) bar.setOnLongClickListener { allApps(); true }
             if (item.key == SETTINGS) bar.setOnLongClickListener { systemActions(bar); true }
             menu += bar
-            val y = when (item.key) {
-                OVERVIEW -> 88
-                NUVIO, SMARTTUBE, SPOTIFY -> 170 + 81 * shortcuts++
-                ALL_APPS -> 170 + 81 * shortcuts
-                VPN -> 674
-                SETTINGS -> 761
-                else -> 170
-            }
-            mount(bar, VDesignCanvas.Box(17, y, 66, 66))
+            mount(bar, VDesignCanvas.Box(17, slot.y, 66, 66))
         }
+        renderedSidebarSlots = slots
         menu.forEach { bringChildToFront(it) }
         if (previousFocus != null && isShown)
             (menu.firstOrNull { it.tag == previousFocus } ?: menu.firstOrNull())?.requestFocus()
