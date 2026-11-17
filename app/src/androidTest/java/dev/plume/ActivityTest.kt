@@ -23,6 +23,7 @@ class ActivityTest : Instrumentation() {
     private var transferOnly = false
     private var muteOnly = false
     private var picturesOnly = false
+    private var navigationOnly = false
 
     override fun onCreate(arguments: Bundle?) {
         super.onCreate(arguments)
@@ -30,10 +31,16 @@ class ActivityTest : Instrumentation() {
         transferOnly = arguments?.getString("class") == SettingsTransferCheck::class.java.name
         muteOnly = arguments?.getString("class") == MuteCheck::class.java.name
         picturesOnly = arguments?.getString("class") == AppPicturesCheck::class.java.name
+        navigationOnly = arguments?.getString("class") == VDesignNavigationCheck::class.java.name
         start()
     }
 
     override fun onStart() {
+        if (navigationOnly) {
+            test("vDesignSidebarReuseAndUpdatedCallbacks") { VDesignNavigationCheck(this).run() }
+            finish(Activity.RESULT_OK, Bundle().apply { putString("stream", "\n$current tests, $failures failures\n") })
+            return
+        }
         if (picturesOnly) {
             test("appPictureUploadSizingTransparencyAndReset") { AppPicturesCheck(this).run() }
             finish(Activity.RESULT_OK, Bundle().apply { putString("stream", "\n$current tests, $failures failures\n") })
@@ -56,6 +63,7 @@ class ActivityTest : Instrumentation() {
         }
         ParcelFileDescriptor.AutoCloseInputStream(uiAutomation.executeShellCommand(
             "pm grant ${targetContext.packageName} android.permission.READ_TV_LISTINGS")).use { it.readBytes() }
+        test("vDesignSidebarReuseAndUpdatedCallbacks") { VDesignNavigationCheck(this).run() }
         test("missingInputShowsError") { checkInput(null, R.string.input_failed) }
         test("unknownInputShowsError") { checkInput("invalid/.Input/HW5", R.string.input_failed) }
         test("tunerInputShowsError") {
@@ -144,7 +152,7 @@ class ActivityTest : Instrumentation() {
         val result = Bundle().apply {
             putString("class", this@ActivityTest.javaClass.name)
             putString("test", name)
-            putInt("numtests", if (previewOnly || transferOnly || muteOnly || picturesOnly) 1 else 11)
+            putInt("numtests", if (previewOnly || transferOnly || muteOnly || picturesOnly || navigationOnly) 1 else 12)
             putInt("current", ++current)
         }
         sendStatus(1, result)
