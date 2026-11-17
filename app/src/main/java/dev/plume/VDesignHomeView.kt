@@ -426,6 +426,11 @@ internal class VDesignHomeView(context: Context) : FrameLayout(context) {
                 bar.contentDescription = sidebarDescription(item)
                 (bar.getChildAt(0) as ImageView).setImageDrawable(sidebarIcon(item.icon))
             }
+            if (previousFocus != null && isShown) {
+                preferMediaOnReturn = false
+                showWorkspace(previousFocus)
+                preview(previousFocus)
+            }
             return
         }
         for (old in menu) {
