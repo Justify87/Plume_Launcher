@@ -240,21 +240,8 @@ internal fun dropSessions(c: Context) {
 
 class MainActivity : ComponentActivity() {
 
-    private class Prog(val title: String, val sub: String, val progress: Int, val image: String?, val intent: String?, val pkg: String?,
-                       val group: String? = pkg, val wide: Boolean = true, 
-                       val contentId: String? = null, val origin: String = "tv:watchnext",
-                       val category: MediaCategory = MediaCategory.UNKNOWN, val durationMillis: Long? = null,
-                       val playbackPositionMillis: Long? = null, val engagedAtMillis: Long? = null,
-                       val watchNextType: Long? = null, val channelName: String? = null,
-                       val internalProviderId: String? = null, val seriesId: String? = null,
-                       val seriesTitle: String? = null, val episodeTitle: String? = null,
-                       val seasonNumber: String? = null, val episodeNumber: String? = null,
-                       val channelId: Long? = null, val channelProviderId: String? = null,
-                       val releaseDate: String? = null, val shortDescription: String? = null,
-                       val longDescription: String? = null, val posterUri: String? = null,
-                       val logoUri: String? = null)
-
     private val prefs by lazy { getSharedPreferences("home", MODE_PRIVATE) }
+    private val tvReader by lazy { TvContractMediaReader(this, prefs) }
     private val io = Executors.newSingleThreadExecutor()
     private val mediaFeed = MediaFeedRepository()
     @Volatile private var nuvioProviderFeeds = NuvioProviderFeeds.EMPTY
@@ -264,13 +251,18 @@ class MainActivity : ComponentActivity() {
     private val thumbCache = object : LruCache<String, Bitmap>(8 * 1024 * 1024) {
         override fun sizeOf(key: String, value: Bitmap) = value.byteCount
     }
-    // Posters get their own threads: one slow image server must not hold up the rest (or the row data).
-    private val posterIo = Executors.newFixedThreadPool(3)
-    private val loading = java.util.Collections.synchronizedSet(HashSet<String>())
     private val ui = Handler(Looper.getMainLooper())
-    private val posters = object : LruCache<String, Bitmap>(6 * 1024 * 1024) {
-        override fun sizeOf(key: String, value: Bitmap) = value.byteCount
-    }
+    private val mediaPosters = MediaPosterLoader(
+        ui = ui,
+        openStream = ::openStream,
+        targetSizePx = { dp(220) },
+        isActive = { !isDestroyed },
+        artworkReady = { uri, bmp ->
+            if (::vDesign.isInitialized) vDesign.artworkReady(uri, bmp)
+            workspaceAppPreviews.values.forEach { it.artworkReady(uri, bmp) }
+            workspaceOtherPreviews.values.forEach { it.artworkReady(uri, bmp) }
+        },
+    )
 
     private var apps = APPS ?: emptyList()
     private var sources = SOURCES ?: emptyList() 
@@ -576,7 +568,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onTrimMemory(level: Int) {
         super.onTrimMemory(level)
-        posters.evictAll()
+        mediaPosters.evictAll()
     }
 
     override fun onDestroy() {
@@ -597,7 +589,7 @@ class MainActivity : ComponentActivity() {
             ui.removeCallbacks(folderRetryTask)
             ui.removeCallbacksAndMessages(null) // the clocks and the posts still queued must not use the pools below
             io.shutdownNow()
-            posterIo.shutdownNow()
+            mediaPosters.shutdownNow()
         }
         super.onDestroy()
     }
@@ -1913,8 +1905,8 @@ class MainActivity : ComponentActivity() {
 
     private fun programsFor(s: Triple<String, Long?, String>): List<Prog> {
         val hidden = prefs.getStringSet("hidden_watch", emptySet())!!
-        val id = s.second ?: return readPrograms(TvContract.WatchNextPrograms.CONTENT_URI, hidden).map { it.second }
-        return readPrograms(TvContract.buildPreviewProgramsUriForChannel(id), hidden, "wp$id").map { it.second }
+        val id = s.second ?: return tvReader.readPrograms(TvContract.WatchNextPrograms.CONTENT_URI, hidden).map { it.second }
+        return tvReader.readPrograms(TvContract.buildPreviewProgramsUriForChannel(id), hidden, "wp$id").map { it.second }
     }
 
     private fun pickWpSources(focus: Int = 0) {
@@ -4983,7 +4975,7 @@ class MainActivity : ComponentActivity() {
         val hidden = prefs.getStringSet("hidden_watch", emptySet())!!
         val watchNextOn = WATCH_NEXT !in prefs.getStringSet("ch_flip", emptySet())!!
         val watchNext = if (watchNextOn) try {
-            readPrograms(TvContract.WatchNextPrograms.CONTENT_URI, hidden)
+            tvReader.readPrograms(TvContract.WatchNextPrograms.CONTENT_URI, hidden)
         } catch (e: Exception) {
             tvFeedQueryFailed = true
             android.util.Log.w("Plume", "Watch Next query unavailable", e)
@@ -5002,7 +4994,7 @@ class MainActivity : ComponentActivity() {
         val channels = on.flatMap { channel ->
             val id = channel.id
             try {
-                readPrograms(TvContract.buildPreviewProgramsUriForChannel(id), hidden,
+                tvReader.readPrograms(TvContract.buildPreviewProgramsUriForChannel(id), hidden,
                     "ch$id", channel.displayName, id, channel.channelProviderId)
             } catch (e: Exception) {
                 tvFeedQueryFailed = true
@@ -5015,7 +5007,7 @@ class MainActivity : ComponentActivity() {
             YouTubeSubscriptions.isSmartTube(pkg) && YouTubeSubscriptions.isSubscriptions(name) &&
                 on.none { it.first == id }
         }.flatMap { (id, _, name) ->
-            try { readPrograms(TvContract.buildPreviewProgramsUriForChannel(id), hidden, "ch$id", name) }
+            try { tvReader.readPrograms(TvContract.buildPreviewProgramsUriForChannel(id), hidden, "ch$id", name) }
             catch (e: Exception) {
                 tvFeedQueryFailed = true
                 android.util.Log.w("Plume", "SmartTube Subscriptions channel $id unavailable", e)
@@ -5027,7 +5019,7 @@ class MainActivity : ComponentActivity() {
                 name.equals("Next Up", ignoreCase = true) && on.none { it.first == id }
         }.flatMap { (id, _, name) ->
             try {
-                readPrograms(TvContract.buildPreviewProgramsUriForChannel(id), hidden, "ch$id", name)
+                tvReader.readPrograms(TvContract.buildPreviewProgramsUriForChannel(id), hidden, "ch$id", name)
             } catch (e: Exception) {
                 tvFeedQueryFailed = true
                 android.util.Log.w("Plume", "Nuvio Next Up channel $id unavailable", e)
@@ -5041,7 +5033,7 @@ class MainActivity : ComponentActivity() {
         }
         val nuvioCategorized = categorizedChannels.flatMap { channel ->
             try {
-                readPrograms(TvContract.buildPreviewProgramsUriForChannel(channel.id), hidden,
+                tvReader.readPrograms(TvContract.buildPreviewProgramsUriForChannel(channel.id), hidden,
                     "ch${channel.id}", channel.displayName, channel.id, channel.channelProviderId)
             } catch (e: Exception) {
                 tvFeedQueryFailed = true
@@ -5059,44 +5051,16 @@ class MainActivity : ComponentActivity() {
         // Use the same TV query as Classic; do not re-crawl providers or alter Classic's sorting.
         val feedEntries = newestPerApp(visible + nuvioNextUp.filter { it.second.pkg !in off } +
             smartTubeSubs.filter { it.second.pkg !in off }, PER_APP) { it.group }
-        fun tvProgram(index: Int, p: Prog): AndroidTvProgram = AndroidTvProgram(
-                item = MediaItem(
-                    stableId = MediaFeedRules.stableId(p.origin, p.pkg, p.contentId, p.intent, index),
-                    sourceId = "tv", sourcePackage = p.pkg, title = p.title,
-                    subtitle = p.sub.takeIf { it.isNotBlank() }, imageUri = p.image,
-                    progressPercent = p.progress.takeIf { p.durationMillis != null && (p.playbackPositionMillis ?: 0L) >= 1000L },
-                    durationMillis = p.durationMillis, playbackPositionMillis = p.playbackPositionMillis,
-                    engagedAtMillis = MediaFeedRules.timestampMillis(p.engagedAtMillis),
-                    intentUri = p.intent?.takeIf { it.isNotBlank() },
-                    contentId = p.contentId?.let { "${p.origin}:$it" },
-                    sourceLabel = p.channelName, sourceOrder = index,
-                ),
-                watchNext = p.origin == "tv:watchnext", watchNextType = p.watchNextType,
-                channelName = p.channelName, internalProviderId = p.internalProviderId,
-                seriesId = p.seriesId, seriesTitle = p.seriesTitle,
-                episodeTitle = p.episodeTitle, seasonNumber = p.seasonNumber,
-                episodeNumber = p.episodeNumber, channelId = p.channelId,
-                channelProviderId = p.channelProviderId, releaseDate = p.releaseDate,
-                shortDescription = p.shortDescription, longDescription = p.longDescription,
-                posterUri = p.posterUri, logoUri = p.logoUri,
-            )
-        val candidates = feedEntries.mapIndexed(::tvProgram)
-        nuvioProviderFeeds = AndroidTvMediaSource.selectNuvio(
-            channels = discovered,
-            programs = nuvioCategorized.filter { it.second.pkg !in off }
-                .map { it.second }.mapIndexed(::tvProgram),
-            legacyPrograms = candidates,
-            permissionGranted = true,
+        val projection = TvFeedProjection.project(
+            discovered = discovered,
+            feedEntries = feedEntries,
+            nuvioCategorized = nuvioCategorized.map { it.second },
+            off = off,
+            youtubeEnabled = prefs.getBoolean("yt_new_on", false),
         )
-        nuvioDashboardFeed = NuvioMediaProjector.project(nuvioProviderFeeds)
-        val classified = AndroidTvMediaSource.select(candidates, permissionGranted = true)
-            .filter { prefs.getBoolean("yt_new_on", false) ||
-                !(YouTubeSubscriptions.isSmartTube(it.sourcePackage) && it.category == MediaCategory.NEW) }
-        // Limit each section independently. A full Continue row must not hide all Next Up.
-        mediaFeed.replaceSource("tv",
-            classified.filter { it.category == MediaCategory.CONTINUE }.take(20) +
-                classified.filter { it.category == MediaCategory.NEW }.take(20)
-        )
+        nuvioProviderFeeds = projection.providerFeeds
+        nuvioDashboardFeed = projection.dashboardFeed
+        mediaFeed.replaceSource("tv", projection.mediaItems)
         return displayed
     }
 
@@ -5124,36 +5088,8 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    /** TV channel discovery retains real channel ID, owner, provider ID and opt-in state. */
-    private fun appChannels(reportFailure: Boolean = false): List<TvPreviewChannel> = try {
-        val out = ArrayList<TvPreviewChannel>()
-        val cursor = contentResolver.query(TvContract.Channels.CONTENT_URI, null, null, null, null)
-        if (cursor == null && reportFailure) android.util.Log.w("Plume", "TV channels provider returned null")
-        cursor?.use { c ->
-            val name = c.getColumnIndex(TvContract.Channels.COLUMN_DISPLAY_NAME)
-            val pkg = c.getColumnIndex(TvContract.Channels.COLUMN_PACKAGE_NAME)
-            val id = c.getColumnIndex(TvContract.Channels._ID)
-            val provider = c.getColumnIndex(TvContract.Channels.COLUMN_INTERNAL_PROVIDER_ID)
-            val browsable = c.getColumnIndex(TvContract.Channels.COLUMN_BROWSABLE)
-            if (name >= 0 && pkg >= 0 && id >= 0) {
-                while (c.moveToNext()) {
-                    val p = if (c.isNull(pkg)) null else c.getString(pkg)
-                    val n = if (c.isNull(name)) null else c.getString(name)
-                    if (p.isNullOrBlank() || n == null || p == packageName || c.isNull(id)) continue
-                    out += TvPreviewChannel(c.getLong(id), p, n,
-                        if (provider < 0 || c.isNull(provider)) null else c.getString(provider),
-                        if (browsable < 0 || c.isNull(browsable)) null else c.getInt(browsable) == 1)
-                }
-            } else if (reportFailure) android.util.Log.w("Plume", "TV channels provider missing required columns")
-        }
-        out
-    } catch (e: Exception) {
-        if (reportFailure) {
-            tvFeedQueryFailed = true
-            android.util.Log.w("Plume", "TV channel discovery unavailable", e)
-        }
-        emptyList()
-    }
+    private fun appChannels(reportFailure: Boolean = false): List<TvPreviewChannel> =
+        tvReader.appChannels(reportFailure) { tvFeedQueryFailed = true }
 
     private fun channelKey(pkg: String, name: String) = "$pkg/$name"
 
@@ -5183,64 +5119,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun readPrograms(uri: Uri, hidden: Set<String>, group: String? = null,
-                             channelName: String? = null, channelId: Long? = null,
-                             channelProviderId: String? = null): List<Pair<Long, Prog>> {
-        val out = ArrayList<Triple<Long, Long, Prog>>()
-        val cursor = contentResolver.query(uri, null, null, null, null)
-        if (cursor == null) android.util.Log.w("Plume", "no TV provider answer for $uri") // provider hidden from us or missing
-        cursor?.use { c ->
-            fun str(col: String) = c.getColumnIndex(col).let { if (it < 0 || c.isNull(it)) null else c.getString(it) }
-            fun num(col: String) = c.getColumnIndex(col).let { if (it < 0 || c.isNull(it)) 0L else c.getLong(it) }
-            fun optionalNum(col: String): Long? = c.getColumnIndex(col).let { if (it < 0 || c.isNull(it)) null else c.getLong(it) }
-            while (c.moveToNext()) {
-                if (str("browsable") == "0") continue
-                val title = str("title") ?: continue
-                if (hideKey(str("package_name"), title) in hidden) continue
-                val season = displayNumber(str("season_display_number"))
-                val episode = displayNumber(str("episode_display_number"))
-                val duration = num("duration_millis")
-                val position = num("last_playback_position_millis")
-                val sub = listOfNotNull(
-                    if (season != null && episode != null) getString(R.string.season_episode, season, episode) else null,
-                    if (duration > 0 && position in 1000 until duration) timeLeft(duration - position) else null,
-                ).joinToString(" - ")
-                val progress = if (duration > 0 && position >= 1000) (position * 100 / duration).toInt().coerceIn(0, 100) else 0
-                val pkg = str("package_name")
-                val wide = ShowsWall.wide(str("thumbnail_uri") != null, num("poster_art_aspect_ratio").toInt())
-                val engaged = num("last_engagement_time_utc_millis")
-                val prog = Prog(
-                    title, sub, progress, str("thumbnail_uri") ?: str("poster_art_uri"),
-                    str("intent_uri"), pkg, group ?: pkg, wide,
-                    contentId = str("_id"), origin = if (group == null) "tv:watchnext" else "tv:$group",
-                    category = MediaFeedRules.classify(
-                        if (group == null) optionalNum("watch_next_type") else null,
-                        position.takeIf { it > 0 },
-                        channelName.equals("Continue Watching", ignoreCase = true),
-                    ),
-                    durationMillis = duration.takeIf { it > 0 },
-                    playbackPositionMillis = position.takeIf { it > 0 },
-                    engagedAtMillis = engaged.takeIf { it > 0 },
-                    watchNextType = if (group == null) optionalNum("watch_next_type") else null,
-                    channelName = channelName, internalProviderId = str("internal_provider_id"),
-                    seriesId = str("series_id"), seriesTitle = str("series_title"),
-                    episodeTitle = str("episode_title"),
-                    seasonNumber = season, episodeNumber = episode,
-                    channelId = channelId, channelProviderId = channelProviderId,
-                    releaseDate = str("release_date"),
-                    shortDescription = str("short_description"),
-                    longDescription = str("long_description"),
-                    posterUri = str("poster_art_uri"), logoUri = str("logo_uri"),
-                )
-                out += Triple(num("weight"),
-                    if (group == null) watchSortKey(num("watch_next_type"), engaged) else channelSortKey(engaged, prefs.getLong("t_$pkg", 0)), prog)
-            }
-        }
-        return byWeight(out)
-    }
-
-    private fun hideKey(pkg: String?, title: String) = "$pkg/$title"
-
     /** We can't delete another app's Watch Next row, so hiding is a local filter. */
     private fun hideWatch(p: Prog) {
         val hidden = prefs.getStringSet("hidden_watch", emptySet())!! + hideKey(p.pkg, p.title)
@@ -5262,12 +5140,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun timeLeft(ms: Long): String {
-        val min = ms / 60_000
-        return if (min >= 60) getString(R.string.time_left_hm, min / 60, min % 60) else getString(R.string.time_left_m, min)
-    }
-
-
     /** "always", "down" (hidden until Down reaches it) or "never". */
 
 
@@ -5283,62 +5155,12 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun loadPoster(v: ImageView, uri: String?) {
-        if (uri == null) return
-        posters.get(uri)?.let { v.setImageBitmap(it); return }
-        v.tag = uri
-        if (!loading.add(uri)) return 
-        posterIo.execute {
-            val bmp = try {
-                decode(uri)
-            } catch (e: Exception) {
-                android.util.Log.w("TvHome", "poster failed: $uri ($e)") 
-                null
-            } finally {
-                loading.remove(uri)
-            } ?: return@execute
-            posters.put(uri, bmp)
-            ui.post {
-                if (!isDestroyed) {
-                    if (v.tag == uri) v.setImageBitmap(bmp)
-                    if (::vDesign.isInitialized) vDesign.artworkReady(uri, bmp)
-                    workspaceAppPreviews.values.forEach { it.artworkReady(uri, bmp) }
-                    workspaceOtherPreviews.values.forEach { it.artworkReady(uri, bmp) }
-                }
-            }
-        }
-    }
+    private fun loadPoster(v: ImageView, uri: String?) = mediaPosters.load(v, uri)
 
     /** Cards whose poster never arrived (offline, server timeout) try again; loaded ones are left alone. */
     private fun retryPosters() {
         // Rebinding identical item/URI pairs does not call the image loader again.
         if (::vDesign.isInitialized) vDesign.retryMissingArtwork()
-    }
-
-    private fun decode(uri: String): Bitmap? {
-        val bytes = openStream(uri).use { input ->
-            val output = java.io.ByteArrayOutputStream()
-            val buffer = ByteArray(16 * 1024)
-            var total = 0
-            while (true) {
-                val read = input.read(buffer)
-                if (read < 0) break
-                if (read == 0) continue
-                total += read
-                if (total > VDesignPosterDecodePolicy.MAX_BYTES) return null
-                output.write(buffer, 0, read)
-            }
-            output.toByteArray()
-        }
-        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
-        val sample = VDesignPosterDecodePolicy.sampleSize(
-            bounds.outWidth, bounds.outHeight, dp(220))
-        val opts = BitmapFactory.Options().apply {
-            inSampleSize = sample
-            inPreferredConfig = Bitmap.Config.RGB_565
-        }
-        return BitmapFactory.decodeByteArray(bytes, 0, bytes.size, opts)
     }
 
     private fun openStream(uri: String): InputStream =

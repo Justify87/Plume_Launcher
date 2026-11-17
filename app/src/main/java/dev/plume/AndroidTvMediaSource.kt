@@ -1,7 +1,7 @@
 package dev.plume
 
 /**
- * Adapts the records returned by MainActivity's existing TvContract query to the shared feed.
+ * Adapts TvContractMediaReader rows to the shared feed.
  * No provider access, worker, polling or Activity dependencies live here.
  */
 internal data class AndroidTvProgram(
